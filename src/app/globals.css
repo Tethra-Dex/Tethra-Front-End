@@ -139,3 +139,424 @@ body {
   border-radius: 8px;
   overflow: hidden;
 }
+.trading-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #131722;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #334158;
+}
+
+.left-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.interval-selector {
+  display: flex;
+}
+
+.interval-button {
+  padding: 4px 12px;
+  background-color: transparent;
+  color: #d1d5db;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.interval-button.active {
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 4px;
+}
+
+.live-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: #4b5563;
+  color: #e5e7eb;
+  border: 1px solid #6b7280;
+}
+
+.live-button.active {
+  background-color: #ef5350;
+  color: white;
+  border-color: #ef5350;
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+}
+
+.live-indicator.blinking {
+  background-color: #f87171;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.wallet-button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.wallet-button.connect {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+.wallet-button.disconnect {
+  background-color: #4b5563;
+  border-color: #6b7280;
+}
+
+.chart-container {
+  flex-grow: 1;
+  width: 100%;
+}
+
+/* Styling untuk Order Panel */
+.order-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1e222d;
+  color: #d1d5db;
+}
+
+.order-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid #334158;
+}
+
+.tab-button {
+  flex-grow: 1;
+  padding: 12px 8px;
+  background-color: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+  color: white;
+  border-bottom-color: #3b82f6;
+}
+
+.order-panel-content {
+  padding: 16px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* Styling untuk Form Order */
+.order-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.input-field {
+  background-color: #334158;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 8px;
+  color: white;
+  width: 100%;
+}
+
+.total-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.buy-button, .sell-button {
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.buy-button {
+  background-color: #26a69a;
+}
+
+.sell-button {
+  background-color: #ef5350;
+}
+
+/* Styling untuk Order Book */
+.order-book {
+  font-size: 12px;
+}
+
+.order-book-header,
+.order-book-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  text-align: right;
+  padding: 4px 0;
+}
+
+.order-book-header {
+  color: #9ca3af;
+  font-weight: bold;
+}
+
+.price-green {
+  color: #26a69a;
+}
+
+.price-red {
+  color: #ef5350;
+}
+
+.current-price {
+    padding: 8px 0;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    border-top: 1px solid #334158;
+    border-bottom: 1px solid #334158;
+    margin: 4px 0;
+}/* Styling untuk Order Panel */
+.order-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #131722; /* Warna disamakan dengan chart */
+  color: #d1d5db;
+}
+
+.order-panel-tabs {
+  display: flex;
+  padding: 8px;
+  gap: 8px;
+}
+
+.tab-button {
+  flex-grow: 1;
+  padding: 10px 8px;
+  background-color: #2a2d3b;
+  border: 1px solid #334158;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+.tab-button.active {
+  color: white;
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.order-panel-content {
+  padding: 0 16px 16px 16px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* Styling untuk Form Trade Baru */
+.trade-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.buy-sell-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background-color: #2a2d3b;
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid #334158;
+}
+
+.toggle-button {
+  padding: 8px;
+  border: none;
+  background-color: transparent;
+  color: #9ca3af;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.toggle-button.buy.active {
+  background-color: #26a69a;
+  color: white;
+}
+
+.toggle-button.sell.active {
+  background-color: #ef5350;
+  color: white;
+}
+
+.form-group label {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: #2a2d3b;
+  border: 1px solid #334158;
+  border-radius: 6px;
+}
+
+.amount-input-wrapper .input-field {
+  background-color: transparent;
+  border: none;
+  flex-grow: 1;
+}
+
+.token-selector {
+  padding: 0 12px;
+  font-weight: 600;
+  color: #d1d5db;
+  border-left: 1px solid #334158;
+}
+
+.preset-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.preset-buttons button {
+  background-color: #334158;
+  border: none;
+  color: #d1d5db;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.preset-buttons button:hover {
+  background-color: #4b5563;
+}
+
+.action-button {
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.action-button:hover {
+  opacity: 0.9;
+}
+.action-button.buy {
+  background-color: #26a69a;
+}
+.action-button.sell {
+  background-color: #ef5350;
+}
+
+.trade-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #334158;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 4px;
+}
+
+.summary-item span:first-child {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.summary-item span:last-child {
+  font-size: 14px;
+  font-weight: 600;
+}
+/* ... (CSS Anda yang sudah ada) ... */
+
+/* Styling untuk Pair Selector */
+.left-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pair-dropdown {
+  background-color: #334158;
+  color: #d1d5db;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.pair-dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
