@@ -19,6 +19,13 @@ interface MarketData {
     volume24h: string;
 }
 
+interface FuturesData {
+    fundingRate: string;
+    nextFundingTime: number;
+    openInterest: string;
+    openInterestValue: string;
+}
+
 const ALL_MARKETS: Market[] = [
     { symbol: 'BTC', tradingViewSymbol: 'BITSTAMP:BTCUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
     { symbol: 'ETH', tradingViewSymbol: 'BITSTAMP:ETHUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
@@ -53,6 +60,22 @@ const formatVolume = (volume: number) => {
     if (volume >= 1e6) return `$${(volume / 1e6).toFixed(2)}M`;
     if (volume >= 1e3) return `$${(volume / 1e3).toFixed(2)}K`;
     return `$${volume.toFixed(2)}`;
+};
+
+const formatFundingRate = (rate: number) => {
+    return `${(rate * 100).toFixed(4)}%`;
+};
+
+const formatTimeUntil = (timestamp: number) => {
+    const now = Date.now();
+    const diff = timestamp - now;
+    if (diff <= 0) return 'Now';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
 };
 
 interface MarketSelectorProps {
@@ -146,6 +169,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
 interface ChartHeaderProps {
     activeMarket: Market | null;
     marketData: MarketData | null;
+    futuresData: FuturesData | null;
     allPrices: Record<string, string>;
     onSymbolChangeClick: () => void;
     isMarketSelectorOpen: boolean;
@@ -157,6 +181,8 @@ interface ChartHeaderProps {
 const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
     const priceChangePercent = props.marketData?.priceChangePercent ? parseFloat(props.marketData.priceChangePercent) : 0;
     const isPositive = priceChangePercent >= 0;
+    const fundingRate = props.futuresData ? parseFloat(props.futuresData.fundingRate) : 0;
+    const isFundingPositive = fundingRate >= 0;
     
     return (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
@@ -215,24 +241,50 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         </span>
                     </div>
                 </div>
+
                 <div className="flex flex-col">
                     <span className="text-xs text-slate-400">24h High</span>
                     <span className="font-semibold font-mono text-sm text-slate-200">
                         {props.marketData?.high24h ? formatPrice(parseFloat(props.marketData.high24h)) : '$--'}
                     </span>
                 </div>
+
                 <div className="flex flex-col">
                     <span className="text-xs text-slate-400">24h Low</span>
                     <span className="font-semibold font-mono text-sm text-slate-200">
                         {props.marketData?.low24h ? formatPrice(parseFloat(props.marketData.low24h)) : '$--'}
                     </span>
                 </div>
+
                 <div className="flex flex-col">
                     <span className="text-xs text-slate-400">24h Volume</span>
                     <span className="font-semibold font-mono text-sm text-slate-200">
                         {props.marketData?.volume24h ? formatVolume(parseFloat(props.marketData.volume24h)) : '--'}
                     </span>
                 </div>
+                
+                {/* Futures Data */}
+                {props.futuresData && (
+                    <>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-slate-400">Funding Rate</span>
+                            <div className="flex items-center gap-1">
+                                <span className={`font-semibold font-mono text-sm ${isFundingPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                    {formatFundingRate(fundingRate)}
+                                </span>
+                                <span className="text-xs text-slate-500">
+                                    / {formatTimeUntil(props.futuresData.nextFundingTime)}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-slate-400">Open Interest</span>
+                            <span className="font-semibold font-mono text-sm text-slate-200">
+                                {formatVolume(parseFloat(props.futuresData.openInterestValue))}
+                            </span>
+                        </div>
+                    </>
+                )}
             </div>
             <div className="flex items-center gap-x-2">
                 <div className="flex-shrink-0">
@@ -336,7 +388,67 @@ const TradingChart: React.FC = () => {
     const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
     const [allPrices, setAllPrices] = useState<Record<string, string>>({});
     const [marketDataMap, setMarketDataMap] = useState<Record<string, MarketData>>({});
+    const [futuresDataMap, setFuturesDataMap] = useState<Record<string, FuturesData>>({});
 
+    // Fetch Futures Data (Funding Rate, Open Interest)
+    useEffect(() => {
+        const fetchFuturesData = async () => {
+            try {
+                const symbols = markets.map(m => m.binanceSymbol);
+                
+                const results = await Promise.all(
+                    symbols.map(async (symbol) => {
+                        try {
+                            // Fetch funding rate
+                            const fundingResponse = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`);
+                            const fundingData = await fundingResponse.json();
+                            
+                            // Fetch open interest
+                            const oiResponse = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`);
+                            const oiData = await oiResponse.json();
+                            
+                            // Get current price for OI value calculation
+                            const priceResponse = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`);
+                            const priceData = await priceResponse.json();
+                            
+                            const openInterestValue = (parseFloat(oiData.openInterest || '0') * parseFloat(priceData.price || '0')).toString();
+                            
+                            return {
+                                symbol,
+                                data: {
+                                    fundingRate: fundingData.lastFundingRate || '0',
+                                    nextFundingTime: fundingData.nextFundingTime || 0,
+                                    openInterest: oiData.openInterest || '0',
+                                    openInterestValue
+                                }
+                            };
+                        } catch (error) {
+                            console.error(`Error fetching futures data for ${symbol}:`, error);
+                            return null;
+                        }
+                    })
+                );
+
+                const newFuturesData: Record<string, FuturesData> = {};
+                results.forEach(result => {
+                    if (result) {
+                        newFuturesData[result.symbol] = result.data;
+                    }
+                });
+                
+                setFuturesDataMap(newFuturesData);
+            } catch (error) {
+                console.error('Error fetching futures data:', error);
+            }
+        };
+
+        fetchFuturesData();
+        const interval = setInterval(fetchFuturesData, 10000); // Update every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [markets]);
+
+    // WebSocket for real-time spot prices
     useEffect(() => {
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
 
@@ -379,6 +491,7 @@ const TradingChart: React.FC = () => {
     );
 
     const currentMarketData = activeMarket ? marketDataMap[activeMarket.binanceSymbol] : null;
+    const currentFuturesData = activeMarket ? futuresDataMap[activeMarket.binanceSymbol] : null;
 
     const handleMarketSelect = (symbol: string) => {
         setActiveSymbol(symbol);
@@ -389,13 +502,14 @@ const TradingChart: React.FC = () => {
         <div className="w-full h-full flex flex-col bg-black text-slate-100">
             <ChartHeader
                 activeMarket={activeMarket}
-                marketData={currentMarketData}
-                allPrices={allPrices}
-                onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-                isMarketSelectorOpen={isMarketSelectorOpen}
-                onClose={() => setIsMarketSelectorOpen(false)}
-                markets={markets}
-                onSelect={handleMarketSelect}
+                    marketData={currentMarketData}
+                    futuresData={currentFuturesData}
+                    allPrices={allPrices}
+                    onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
+                    isMarketSelectorOpen={isMarketSelectorOpen}
+                    onClose={() => setIsMarketSelectorOpen(false)}
+                    markets={markets}
+                    onSelect={handleMarketSelect}
             />
             <div className="relative w-full flex-grow">
                 {activeMarket && (
@@ -404,6 +518,7 @@ const TradingChart: React.FC = () => {
                         interval={activeInterval} 
                     />
                 )}
+                
             </div>
         </div>
     );
