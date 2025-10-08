@@ -2,104 +2,330 @@
 
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Tube, Grid } from '@react-three/drei';
 import * as THREE from 'three';
-const DataLine = () => {
-  const tubeRef = useRef<THREE.Mesh>(null);
 
-  const initialPoints = useMemo(() => {
-    const points = [];
-    for (let i = 0; i < 20; i++) {
-      const x = i * 2 - 20;
-      const y = Math.sin(i * 0.5) * Math.random() * 2; 
-      const z = (Math.random() - 0.5) * 5; 
-      points.push(new THREE.Vector3(x, y, z));
-    }
-    return points;
-  }, []);
+// Wireframe Grid Planes (inspired by logo)
+const WireframePlanes = () => {
+  const groupRef = useRef<THREE.Group>(null);
+
   useFrame(({ clock }) => {
-    if (tubeRef.current) {
-      const t = clock.getElapsedTime();
-      // @ts-ignore
-      if(tubeRef.current.material.map) {
-          // @ts-ignore
-          tubeRef.current.material.map.offset.x = -t * 0.3;
-      }
-      const newPoints = initialPoints.map(p => {
-        const point = p.clone();
-        point.y += Math.sin(t * 1.5 + point.x * 0.4) * 0.8; 
-        point.z += Math.cos(t * 1.0 + point.x * 0.3) * 0.5;
-        return point;
-      });
-      const newCurve = new THREE.CatmullRomCurve3(newPoints);
-      if (tubeRef.current.geometry) {
-        tubeRef.current.geometry.dispose();
-      }
-      tubeRef.current.geometry = new THREE.TubeGeometry(newCurve, 64, 0.05, 8, false);
+    if (groupRef.current) {
+      const time = clock.getElapsedTime();
+      groupRef.current.rotation.y = Math.sin(time * 0.3) * 0.2;
     }
   });
-  const gradientTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 1;
-    const context = canvas.getContext('2d');
-    if (context) {
-      const gradient = context.createLinearGradient(0, 0, 256, 0);
-      gradient.addColorStop(0, '#00BFFF'); 
-      gradient.addColorStop(1, '#4dff4d'); 
-      context.fillStyle = gradient;
-      context.fillRect(0, 0, 256, 1);
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    return texture;
-  }, []);
-  const initialCurve = useMemo(() => new THREE.CatmullRomCurve3(initialPoints), [initialPoints]);
+
+  const createGridPlane = (width: number, height: number, divisions: number) => {
+    const geometry = new THREE.PlaneGeometry(width, height, divisions, divisions);
+    return geometry;
+  };
 
   return (
-    <Tube ref={tubeRef} args={[initialCurve, 64, 0.05, 8, false]}>
-      <meshStandardMaterial
-        map={gradientTexture}
-        emissive={'#ffffff'}
-        emissiveIntensity={2.5}
-        toneMapped={false}
-      />
-    </Tube>
+    <group ref={groupRef}>
+      {/* Left plane (blue side) */}
+      <mesh position={[-3, 0, 0]} rotation={[0, Math.PI / 6, 0]}>
+        <primitive object={createGridPlane(6, 8, 20)} />
+        <meshBasicMaterial
+          color="#0ea5e9"
+          wireframe
+          transparent
+          opacity={0.6}
+        />
+      </mesh>
+
+      {/* Right plane (green side) */}
+      <mesh position={[3, 0, 0]} rotation={[0, -Math.PI / 6, 0]}>
+        <primitive object={createGridPlane(6, 8, 20)} />
+        <meshBasicMaterial
+          color="#10b981"
+          wireframe
+          transparent
+          opacity={0.6}
+        />
+      </mesh>
+
+      {/* Top left wing */}
+      <mesh position={[-4, 4, -1]} rotation={[Math.PI / 3, Math.PI / 4, 0]}>
+        <primitive object={createGridPlane(4, 3, 15)} />
+        <meshBasicMaterial
+          color="#0ea5e9"
+          wireframe
+          transparent
+          opacity={0.4}
+        />
+      </mesh>
+
+      {/* Top right wing */}
+      <mesh position={[4, 4, -1]} rotation={[Math.PI / 3, -Math.PI / 4, 0]}>
+        <primitive object={createGridPlane(4, 3, 15)} />
+        <meshBasicMaterial
+          color="#10b981"
+          wireframe
+          transparent
+          opacity={0.4}
+        />
+      </mesh>
+    </group>
   );
 };
-const FinancialDataScene = () => {
+
+// Animated Grid Floor
+const GridFloor = () => {
+  const gridRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (gridRef.current) {
+      const material = gridRef.current.material as THREE.ShaderMaterial;
+      material.uniforms.time.value = clock.getElapsedTime();
+    }
+  });
+
+  const geometry = useMemo(() => new THREE.PlaneGeometry(40, 40, 40, 40), []);
+
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        color1: { value: new THREE.Color('#0ea5e9') },
+        color2: { value: new THREE.Color('#10b981') },
+      },
+      vertexShader: `
+        uniform float time;
+        varying vec2 vUv;
+        varying float vElevation;
+        
+        void main() {
+          vUv = uv;
+          vec3 pos = position;
+          
+          float wave1 = sin(pos.x * 0.5 + time) * 0.3;
+          float wave2 = sin(pos.y * 0.5 + time * 0.8) * 0.3;
+          pos.z = wave1 + wave2;
+          
+          vElevation = pos.z;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 color1;
+        uniform vec3 color2;
+        varying vec2 vUv;
+        varying float vElevation;
+        
+        void main() {
+          vec3 color = mix(color1, color2, vUv.x);
+          float alpha = 0.15 + vElevation * 0.2;
+          gl_FragColor = vec4(color, alpha);
+        }
+      `,
+      transparent: true,
+      wireframe: true,
+    });
+  }, []);
+
   return (
-    <Canvas camera={{ position: [0, 5, 15], fov: 60 }}>
-      <color attach="background" args={['#050505']} />
-      <ambientLight intensity={0.2} />
-      <pointLight position={[10, 10, 10]} intensity={0.5} />
-      <Grid
-        position={[0, -2, 0]}
-        args={[100, 100]}
-        cellSize={1}
-        cellThickness={1}
-        cellColor={'#6f6f6f'}
-        sectionSize={5}
-        sectionThickness={1.5}
-        sectionColor={'#00BFFF'}
-        fadeDistance={50}
-        fadeStrength={1}
-        infiniteGrid
+    <mesh
+      ref={gridRef}
+      geometry={geometry}
+      material={material}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, -4, 0]}
+    />
+  );
+};
+
+// Glowing Particles with gradient
+const GradientParticles = () => {
+  const particlesRef = useRef<THREE.Points>(null);
+  const particleCount = 200;
+
+  const { positions, colors, sizes } = useMemo(() => {
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+
+    const color1 = new THREE.Color('#0ea5e9');
+    const color2 = new THREE.Color('#10b981');
+
+    for (let i = 0; i < particleCount; i++) {
+      const x = (Math.random() - 0.5) * 30;
+      const y = Math.random() * 15 - 2;
+      const z = (Math.random() - 0.5) * 30;
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      // Gradient from blue to green based on x position
+      const mixRatio = (x + 15) / 30;
+      const color = color1.clone().lerp(color2, mixRatio);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+
+      sizes[i] = Math.random() * 0.1 + 0.05;
+    }
+
+    return { positions, colors, sizes };
+  }, []);
+
+  useFrame(() => {
+    if (particlesRef.current) {
+      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
+
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3 + 1] += 0.01;
+
+        if (positions[i * 3 + 1] > 13) {
+          positions[i * 3 + 1] = -2;
+        }
+      }
+
+      particlesRef.current.geometry.attributes.position.needsUpdate = true;
+    }
+  });
+
+  return (
+    <points ref={particlesRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={particleCount}
+          array={positions}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          count={particleCount}
+          array={colors}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-size"
+          count={particleCount}
+          array={sizes}
+          itemSize={1}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.1}
+        vertexColors
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
       />
+    </points>
+  );
+};
+
+// Central "T" Logo Formation
+const CentralLogo = () => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (groupRef.current) {
+      const time = clock.getElapsedTime();
+      groupRef.current.rotation.y = time * 0.2;
       
-      <DataLine />
+      groupRef.current.children.forEach((child, index) => {
+        const mesh = child as THREE.Mesh;
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.opacity = 0.5 + Math.sin(time * 2 + index) * 0.2;
+      });
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0, 0]}>
+      {/* Left T shape (blue) */}
+      <mesh position={[-1.5, 0, 0]}>
+        <boxGeometry args={[0.1, 4, 2]} />
+        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.5} />
+      </mesh>
       
-      <OrbitControls
-        enableZoom={false}
-        enablePan={false}
-        autoRotate
-        autoRotateSpeed={0.3}
-        maxPolarAngle={Math.PI / 2.2}
-        minPolarAngle={Math.PI / 4}
-      />
+      <mesh position={[-2.5, 1.5, 0]}>
+        <boxGeometry args={[2, 0.1, 2]} />
+        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.5} />
+      </mesh>
+
+      {/* Right T shape (green) */}
+      <mesh position={[1.5, 0, 0]}>
+        <boxGeometry args={[0.1, 4, 2]} />
+        <meshBasicMaterial color="#10b981" transparent opacity={0.5} />
+      </mesh>
+      
+      <mesh position={[2.5, 1.5, 0]}>
+        <boxGeometry args={[2, 0.1, 2]} />
+        <meshBasicMaterial color="#10b981" transparent opacity={0.5} />
+      </mesh>
+
+      {/* Connecting lines */}
+      <mesh position={[0, -2, 0]}>
+        <boxGeometry args={[3, 0.05, 0.05]} />
+        <meshBasicMaterial color="#06b6d4" transparent opacity={0.6} />
+      </mesh>
+    </group>
+  );
+};
+
+// Orbiting Rings
+const OrbitingRings = () => {
+  const ringsRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (ringsRef.current) {
+      ringsRef.current.rotation.y = clock.getElapsedTime() * 0.15;
+      ringsRef.current.rotation.x = Math.sin(clock.getElapsedTime() * 0.3) * 0.1;
+    }
+  });
+
+  return (
+    <group ref={ringsRef}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[5, 0.02, 16, 100]} />
+        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.4} />
+      </mesh>
+      
+      <mesh rotation={[Math.PI / 3, 0, 0]}>
+        <torusGeometry args={[6, 0.02, 16, 100]} />
+        <meshBasicMaterial color="#10b981" transparent opacity={0.3} />
+      </mesh>
+
+      <mesh rotation={[0, Math.PI / 4, 0]}>
+        <torusGeometry args={[7, 0.02, 16, 100]} />
+        <meshBasicMaterial color="#06b6d4" transparent opacity={0.2} />
+      </mesh>
+    </group>
+  );
+};
+
+// Main Scene
+const TethraTradingScene = () => {
+  return (
+    <Canvas
+      camera={{ position: [0, 2, 15], fov: 50 }}
+      style={{ background: 'transparent' }}
+    >
+      <color attach="background" args={['#0a0a0a']} />
+      
+      {/* Lighting */}
+      <ambientLight intensity={0.3} />
+      <pointLight position={[-10, 5, 5]} intensity={1} color="#0ea5e9" />
+      <pointLight position={[10, 5, 5]} intensity={1} color="#10b981" />
+      <pointLight position={[0, 10, -5]} intensity={0.5} color="#06b6d4" />
+
+      {/* Scene Elements */}
+      <GridFloor />
+      <WireframePlanes />
+      <CentralLogo />
+      <OrbitingRings />
+      <GradientParticles />
+
+      {/* Fog */}
+      <fog attach="fog" args={['#0a0a0a', 15, 35]} />
     </Canvas>
   );
 };
 
-export default FinancialDataScene;
-
+export default TethraTradingScene;
