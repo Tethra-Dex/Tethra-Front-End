@@ -10,6 +10,15 @@ interface Market {
     binanceSymbol: string; 
 }
 
+interface MarketData {
+    price: string;
+    priceChange: string;
+    priceChangePercent: string;
+    high24h: string;
+    low24h: string;
+    volume24h: string;
+}
+
 const ALL_MARKETS: Market[] = [
     { symbol: 'BTC', tradingViewSymbol: 'BITSTAMP:BTCUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
     { symbol: 'ETH', tradingViewSymbol: 'BITSTAMP:ETHUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
@@ -36,6 +45,14 @@ const formatPrice = (price: number) => {
         minimumFractionDigits: 2, 
         maximumFractionDigits: 2 
     }).format(price);
+};
+
+const formatVolume = (volume: number) => {
+    if (volume === 0) return '--';
+    if (volume >= 1e9) return `$${(volume / 1e9).toFixed(2)}B`;
+    if (volume >= 1e6) return `$${(volume / 1e6).toFixed(2)}M`;
+    if (volume >= 1e3) return `$${(volume / 1e3).toFixed(2)}K`;
+    return `$${volume.toFixed(2)}`;
 };
 
 interface MarketSelectorProps {
@@ -128,7 +145,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
 
 interface ChartHeaderProps {
     activeMarket: Market | null;
-    currentPrice: string | null;
+    marketData: MarketData | null;
     allPrices: Record<string, string>;
     onSymbolChangeClick: () => void;
     isMarketSelectorOpen: boolean;
@@ -137,55 +154,94 @@ interface ChartHeaderProps {
     onSelect: (symbol: string) => void;
 }
 
-const ChartHeader: React.FC<ChartHeaderProps> = (props) => (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
-        <div className="flex items-center gap-x-4">
-            <div className="relative">
-                <button 
-                    onClick={props.onSymbolChangeClick} 
-                    className="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                    {props.activeMarket && (
-                        <img 
-                            src={props.activeMarket.logoUrl} 
-                            alt={props.activeMarket.symbol} 
-                            className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-600" 
-                            onError={(e) => { 
-                                const target = e.currentTarget; 
-                                target.onerror = null; 
-                                target.style.visibility = 'hidden'; 
-                            }} 
-                        />
-                    )}
-                    <span className="text-base">{props.activeMarket?.symbol}/USD</span>
-                    <svg 
-                        className={`w-4 h-4 transition-transform duration-200 ${props.isMarketSelectorOpen ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
+const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
+    const priceChangePercent = props.marketData?.priceChangePercent ? parseFloat(props.marketData.priceChangePercent) : 0;
+    const isPositive = priceChangePercent >= 0;
+    
+    return (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
+            <div className="flex items-center gap-x-6">
+                <div className="relative">
+                    <button 
+                        onClick={props.onSymbolChangeClick} 
+                        className="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl"
                     >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                <MarketSelector 
-                    isOpen={props.isMarketSelectorOpen} 
-                    onClose={props.onClose} 
-                    markets={props.markets} 
-                    onSelect={props.onSelect} 
-                    allPrices={props.allPrices} 
-                />
+                        {props.activeMarket && (
+                            <img 
+                                src={props.activeMarket.logoUrl} 
+                                alt={props.activeMarket.symbol} 
+                                className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-600" 
+                                onError={(e) => { 
+                                    const target = e.currentTarget; 
+                                    target.onerror = null; 
+                                    target.style.visibility = 'hidden'; 
+                                }} 
+                            />
+                        )}
+                        <span className="text-base">{props.activeMarket?.symbol}/USD</span>
+                        <svg 
+                            className={`w-4 h-4 transition-transform duration-200 ${props.isMarketSelectorOpen ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <MarketSelector 
+                        isOpen={props.isMarketSelectorOpen} 
+                        onClose={props.onClose} 
+                        markets={props.markets} 
+                        onSelect={props.onSelect} 
+                        allPrices={props.allPrices} 
+                    />
+                </div>
+                
+                <div className="flex flex-col">
+                    <span className="text-xs text-slate-400">Price</span>
+                    <span className="font-semibold font-mono text-lg text-white">
+                        {props.marketData?.price ? formatPrice(parseFloat(props.marketData.price)) : '$--'}
+                    </span>
+                </div>
+
+                <div className="flex flex-col">
+                    <span className="text-xs text-slate-400">24h Change</span>
+                    <div className="flex items-center gap-1">
+                        <span className={`font-semibold font-mono text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                            {props.marketData?.priceChangePercent ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(2)}%` : '--'}
+                        </span>
+                        <span className={`text-xs font-mono ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                            {props.marketData?.priceChange ? `(${isPositive ? '+' : ''}${formatPrice(parseFloat(props.marketData.priceChange))})` : ''}
+                        </span>
+                    </div>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-xs text-slate-400">24h High</span>
+                    <span className="font-semibold font-mono text-sm text-slate-200">
+                        {props.marketData?.high24h ? formatPrice(parseFloat(props.marketData.high24h)) : '$--'}
+                    </span>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-xs text-slate-400">24h Low</span>
+                    <span className="font-semibold font-mono text-sm text-slate-200">
+                        {props.marketData?.low24h ? formatPrice(parseFloat(props.marketData.low24h)) : '$--'}
+                    </span>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-xs text-slate-400">24h Volume</span>
+                    <span className="font-semibold font-mono text-sm text-slate-200">
+                        {props.marketData?.volume24h ? formatVolume(parseFloat(props.marketData.volume24h)) : '--'}
+                    </span>
+                </div>
             </div>
-            <span className="font-semibold font-mono text-lg text-white">
-                {props.currentPrice ? formatPrice(parseFloat(props.currentPrice)) : '$--'}
-            </span>
-        </div>
-        <div className="flex items-center gap-x-2">
-            <div className="flex-shrink-0">
-                <WalletConnectButton />
+            <div className="flex items-center gap-x-2">
+                <div className="flex-shrink-0">
+                    <WalletConnectButton />
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 interface TVChartProps {
     symbol: string;
@@ -279,6 +335,7 @@ const TradingChart: React.FC = () => {
     const [activeInterval, setActiveInterval] = useState<string>('1');
     const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
     const [allPrices, setAllPrices] = useState<Record<string, string>>({});
+    const [marketDataMap, setMarketDataMap] = useState<Record<string, MarketData>>({});
 
     useEffect(() => {
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
@@ -287,13 +344,23 @@ const TradingChart: React.FC = () => {
 
         ws.onmessage = (event) => {
             const tickers = JSON.parse(event.data);
-            setAllPrices(prevPrices => {
-                const newPrices = { ...prevPrices };
-                for (const ticker of tickers) {
-                    newPrices[ticker.s] = parseFloat(ticker.c).toString();
-                }
-                return newPrices;
-            });
+            const newPrices: Record<string, string> = {};
+            const newMarketData: Record<string, MarketData> = {};
+            
+            for (const ticker of tickers) {
+                newPrices[ticker.s] = parseFloat(ticker.c).toString();
+                newMarketData[ticker.s] = {
+                    price: parseFloat(ticker.c).toString(),
+                    priceChange: parseFloat(ticker.p).toString(),
+                    priceChangePercent: parseFloat(ticker.P).toString(),
+                    high24h: parseFloat(ticker.h).toString(),
+                    low24h: parseFloat(ticker.l).toString(),
+                    volume24h: (parseFloat(ticker.q)).toString()
+                };
+            }
+            
+            setAllPrices(newPrices);
+            setMarketDataMap(newMarketData);
         };
 
         ws.onerror = (error) => console.error('WebSocket Error:', error);
@@ -311,7 +378,7 @@ const TradingChart: React.FC = () => {
         [markets, activeSymbol]
     );
 
-    const currentPrice = activeMarket ? allPrices[activeMarket.binanceSymbol] : null;
+    const currentMarketData = activeMarket ? marketDataMap[activeMarket.binanceSymbol] : null;
 
     const handleMarketSelect = (symbol: string) => {
         setActiveSymbol(symbol);
@@ -322,7 +389,7 @@ const TradingChart: React.FC = () => {
         <div className="w-full h-full flex flex-col bg-black text-slate-100">
             <ChartHeader
                 activeMarket={activeMarket}
-                currentPrice={currentPrice}
+                marketData={currentMarketData}
                 allPrices={allPrices}
                 onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
                 isMarketSelectorOpen={isMarketSelectorOpen}
