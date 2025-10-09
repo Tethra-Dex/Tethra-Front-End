@@ -4,7 +4,9 @@ import React from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { baseSepolia } from 'wagmi/chains'; 
+import { baseSepolia } from 'wagmi/chains';
+import { Toaster } from 'react-hot-toast';
+
 export const config = createConfig({
   chains: [baseSepolia],
   transports: { [baseSepolia.id]: http() },
@@ -23,14 +25,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
         loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {
-  ethereum: { 
+  ethereum: {
     createOnLogin: 'users-without-wallets',
   },
 },
       }}
     >
       <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#1e293b',
+                color: '#fff',
+              },
+            }}
+          />
+          {children}
+        </QueryClientProvider>
       </WagmiProvider>
     </PrivyProvider>
   );

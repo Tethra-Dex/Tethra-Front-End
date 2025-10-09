@@ -129,12 +129,12 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                     filteredMarkets.map(market => {
                         const price = allPrices[market.binanceSymbol];
                         return (
-                            <div 
-                                key={market.symbol} 
-                                onClick={() => { 
-                                    onSelect(market.symbol); 
-                                    onClose(); 
-                                }} 
+                            <div
+                                key={market.symbol}
+                                onClick={() => {
+                                    onSelect(market.symbol);
+                                    onClose();
+                                }}
                                 className="grid grid-cols-2 items-center gap-3 px-4 py-3 text-sm border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition-colors"
                             >
                                 <div className="flex items-center gap-3">
@@ -188,9 +188,9 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
             <div className="flex items-center gap-x-6">
                 <div className="relative">
-                    <button 
-                        onClick={props.onSymbolChangeClick} 
-                        className="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    <button
+                        onClick={props.onSymbolChangeClick}
+                        className="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
                     >
                         {props.activeMarket && (
                             <img 
@@ -381,7 +381,10 @@ const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval }) => {
 
 TVChart.displayName = 'TVChart';
 
+import { useMarket } from '../contexts/MarketContext';
+
 const TradingChart: React.FC = () => {
+    const { setActiveMarket, setCurrentPrice } = useMarket();
     const [markets] = useState<Market[]>(ALL_MARKETS);
     const [activeSymbol, setActiveSymbol] = useState<string>(ALL_MARKETS[0].symbol);
     const [activeInterval, setActiveInterval] = useState<string>('1');
@@ -492,6 +495,20 @@ const TradingChart: React.FC = () => {
 
     const currentMarketData = activeMarket ? marketDataMap[activeMarket.binanceSymbol] : null;
     const currentFuturesData = activeMarket ? futuresDataMap[activeMarket.binanceSymbol] : null;
+
+    // Update context when market changes
+    useEffect(() => {
+        if (activeMarket) {
+            setActiveMarket(activeMarket);
+        }
+    }, [activeMarket, setActiveMarket]);
+
+    // Update context when price changes
+    useEffect(() => {
+        if (currentMarketData?.price) {
+            setCurrentPrice(currentMarketData.price);
+        }
+    }, [currentMarketData?.price, setCurrentPrice]);
 
     const handleMarketSelect = (symbol: string) => {
         setActiveSymbol(symbol);

@@ -1,56 +1,190 @@
 'use client';
 import React, { useState } from 'react';
+import { ChevronDown, Info } from 'lucide-react';
+import { useMarket } from '../../contexts/MarketContext';
 
-const MarketOrder: React.FC = () => {
-  const [orderSide, setOrderSide] = useState<'buy' | 'sell'>('buy');
+interface MarketOrderProps {
+  activeTab: 'long' | 'short' | 'swap';
+}
+
+const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab }) => {
+  const { activeMarket, currentPrice } = useMarket();
+  const [leverage, setLeverage] = useState(50);
+  const leverageOptions = [0.1, 1, 2, 5, 10, 25, 50, 100];
+
+  const formatPrice = (price: string) => {
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum === 0) return '$0.00';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(priceNum);
+  };
 
   return (
-    <div className="flex flex-col gap-5 pt-2">
-      <div className="grid grid-cols-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
-        <button
-          onClick={() => setOrderSide('buy')}
-          className={`py-2 border-none rounded-md font-semibold cursor-pointer transition-colors ${
-            orderSide === 'buy' ? 'bg-teal-500 text-white' : 'bg-transparent text-slate-400'
-          }`}
-        >
-          Buy
-        </button>
-        <button
-          onClick={() => setOrderSide('sell')}
-          className={`py-2 border-none rounded-md font-semibold cursor-pointer transition-colors ${
-            orderSide === 'sell' ? 'bg-red-600 text-white' : 'bg-transparent text-slate-400'
-          }`}
-        >
-          Sell
-        </button>
-      </div>
-
+    <div className="flex flex-col gap-3 px-4 py-4">
+      {/* Pay Section */}
       <div>
-        <label htmlFor="market-amount" className="text-sm text-slate-400 mb-2 block">Amount</label>
-        <div className="flex items-center bg-slate-800 border border-slate-700 rounded-md">
-          <input id="market-amount" type="number" placeholder="0.00" className="bg-transparent border-none w-full p-2 text-white focus:ring-0 focus:outline-none" />
-          <span className="px-3 font-semibold text-slate-200 border-l border-slate-700">BTC</span>
+        <label className="text-xs text-gray-400 mb-1 block">Pay</label>
+        <div className="bg-[#1A2332] rounded-lg p-3">
+          <div className="flex justify-between items-center mb-2">
+            <input
+              type="text"
+              placeholder="0.0"
+              className="bg-transparent text-2xl text-white outline-none w-full"
+            />
+            <button className="flex items-center gap-2 bg-[#2D3748] rounded-lg px-3 py-1 text-sm cursor-pointer">
+              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-xs">$</div>
+              USDC
+              <ChevronDown size={14} />
+            </button>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-500">$0.00</span>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">1.34 USDC</span>
+              <button className="bg-[#2D3748] px-2 py-0.5 rounded text-xs cursor-pointer">Max</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        <button className="bg-slate-700 text-slate-300 py-2 rounded-md cursor-pointer transition-colors hover:bg-slate-600">25%</button>
-        <button className="bg-slate-700 text-slate-300 py-2 rounded-md cursor-pointer transition-colors hover:bg-slate-600">50%</button>
-        <button className="bg-slate-700 text-slate-300 py-2 rounded-md cursor-pointer transition-colors hover:bg-slate-600">75%</button>
-        <button className="bg-slate-700 text-slate-300 py-2 rounded-md cursor-pointer transition-colors hover:bg-slate-600">100%</button>
+      {/* Long/Short Section */}
+      <div>
+        <label className="text-xs text-gray-400 mb-1 block">{activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}</label>
+        <div className="bg-[#1A2332] rounded-lg p-3">
+          <div className="flex justify-between items-center mb-2">
+            <input
+              type="text"
+              placeholder="0.0"
+              className="bg-transparent text-2xl text-white outline-none w-full"
+            />
+            <button className="flex items-center gap-2 bg-[#2D3748] rounded-lg px-3 py-1 text-sm cursor-pointer">
+              <img
+                src={activeMarket.logoUrl}
+                alt={activeMarket.symbol}
+                className="w-5 h-5 rounded-full"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                }}
+              />
+              {activeMarket.symbol}/USD
+              <ChevronDown size={14} />
+            </button>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-500">{formatPrice(currentPrice)}</span>
+            <span className="text-gray-400">Leverage: {leverage}.00x</span>
+          </div>
+        </div>
       </div>
 
-      <button className={`py-3 border-none rounded-md text-white text-base font-bold cursor-pointer transition-opacity hover:opacity-90 ${
-        orderSide === 'buy' ? 'bg-teal-500' : 'bg-red-600'
-      }`}>
-        {orderSide === 'buy' ? 'Buy BTC' : 'Sell BTC'}
-      </button>
+      {/* Leverage Slider */}
+      <div className="bg-[#1A2332] rounded-lg p-3">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs text-gray-400">Leverage</span>
+          <span className="text-sm font-semibold text-white">{leverage}x</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="7"
+          step="1"
+          value={leverageOptions.indexOf(leverage)}
+          onChange={(e) => setLeverage(leverageOptions[parseInt(e.target.value)])}
+          className="w-full accent-blue-500"
+        />
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>0.1X</span>
+          <span>1X</span>
+          <span>2X</span>
+          <span>5X</span>
+          <span>10X</span>
+          <span>25X</span>
+          <span>50X</span>
+          <span>100X</span>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-4 gap-4 pt-4 border-t border-slate-700">
-        <div className="flex flex-col text-center gap-1"><span className="text-xs text-slate-400">Bought</span><span className="text-sm font-semibold">--</span></div>
-        <div className="flex flex-col text-center gap-1"><span className="text-xs text-slate-400">Sold</span><span className="text-sm font-semibold">--</span></div>
-        <div className="flex flex-col text-center gap-1"><span className="text-xs text-slate-400">Holding</span><span className="text-sm font-semibold">--</span></div>
-        <div className="flex flex-col text-center gap-1"><span className="text-xs text-slate-400">PnL</span><span className="text-sm font-semibold">--</span></div>
+      {/* Pool */}
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-gray-400">Pool</span>
+        <button className="flex items-center gap-1 text-white cursor-pointer">
+          {activeMarket.symbol}-USDC
+          <ChevronDown size={14} />
+        </button>
+      </div>
+
+      {/* Collateral In */}
+      <div className="flex justify-between items-center text-sm">
+        <div className="flex items-center gap-1">
+          <span className="text-gray-400">Collateral In</span>
+          <Info size={12} className="text-gray-500" />
+        </div>
+        <button className="flex items-center gap-1 text-white">
+          USDC
+          <ChevronDown size={14} />
+        </button>
+      </div>
+
+      {/* Take Profit / Stop Loss */}
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-gray-400">Take Profit / Stop Loss</span>
+        <label className="relative inline-block w-10 h-5">
+          <input type="checkbox" className="opacity-0 w-0 h-0" />
+          <span className="absolute cursor-pointer inset-0 bg-[#2D3748] rounded-full transition-all"></span>
+        </label>
+      </div>
+
+      {/* Enter an amount placeholder */}
+      <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
+        Enter an amount
+      </div>
+
+      {/* Collapsible sections */}
+      <div className="space-y-2 text-sm border-t border-[#1A202C] pt-3">
+        <div className="flex justify-between">
+          <span className="text-gray-400">Liquidation Price</span>
+          <span className="text-white">-</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-400">Price Impact / Fees</span>
+          <span className="text-white">0.000% / 0.000%</span>
+        </div>
+
+        {/* Execution Details - Collapsible */}
+        <details className="cursor-pointer">
+          <summary className="flex justify-between items-center">
+            <span className="text-gray-400">Execution Details</span>
+          </summary>
+          <div className="mt-2 ml-4 space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Fees</span>
+              <span className="text-white">-</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">Network Fee</span>
+                <Info size={10} className="text-gray-600" />
+              </div>
+              <span className="text-white">-$0.94</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Collateral Spread</span>
+              <span className="text-white">0.00%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">Allowed Slippage</span>
+                <Info size={10} className="text-gray-600" />
+              </div>
+              <span className="text-white">- 1%</span>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   );

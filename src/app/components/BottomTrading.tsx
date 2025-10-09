@@ -43,7 +43,7 @@ const BottomTrading = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-3 text-sm font-medium transition-colors duration-200 ${
+              className={`py-3 text-sm font-medium transition-colors duration-200 cursor-pointer ${
                 activeTab === tab
                   ? 'text-white border-b-2 border-blue-500'
                   : 'text-gray-400 hover:text-white border-b-2 border-transparent'
