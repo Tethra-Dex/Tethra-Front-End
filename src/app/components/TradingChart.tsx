@@ -345,10 +345,9 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
 interface TVChartProps {
     symbol: string;
     interval: string;
-    oraclePrice?: number | null;
 }
 
-const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval, oraclePrice }) => {
+const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval }) => {
     const container = useRef<HTMLDivElement>(null);
     
     useEffect(() => {
@@ -362,7 +361,9 @@ const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval, oraclePrice })
         script.async = true;
         
         script.onload = () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (typeof (window as any).TradingView !== 'undefined' && container.current) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 new (window as any).TradingView.widget({
                     autosize: true,
                     symbol: symbol,
@@ -432,17 +433,22 @@ TVChart.displayName = 'TVChart';
 import { useMarket } from '../contexts/MarketContext';
 
 const TradingChart: React.FC = () => {
-    const { setActiveMarket, setCurrentPrice } = useMarket();
+    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice } = useMarket();
     const [markets] = useState<Market[]>(ALL_MARKETS);
-    const [activeSymbol, setActiveSymbol] = useState<string>(ALL_MARKETS[0].symbol);
-    const [activeInterval, setActiveInterval] = useState<string>('1');
+    const [activeSymbol, setActiveSymbol] = useState<string>(contextActiveMarket?.symbol || ALL_MARKETS[0].symbol);
+    const [activeInterval] = useState<string>('1');
     const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
     const [allPrices, setAllPrices] = useState<Record<string, string>>({});
     const [marketDataMap, setMarketDataMap] = useState<Record<string, MarketData>>({});
     const [futuresDataMap, setFuturesDataMap] = useState<Record<string, FuturesData>>({});
     const [oraclePrices, setOraclePrices] = useState<Record<string, OraclePrice>>({});
-    const chartContainerRef = useRef<HTMLDivElement>(null);
-    const [oracleLinePosition, setOracleLinePosition] = useState<number>(50);
+
+    // Sync activeSymbol with context activeMarket (when changed from MarketOrder)
+    useEffect(() => {
+        if (contextActiveMarket && contextActiveMarket.symbol !== activeSymbol) {
+            setActiveSymbol(contextActiveMarket.symbol);
+        }
+    }, [contextActiveMarket, activeSymbol]);
 
     // Fetch Futures Data (Funding Rate, Open Interest)
     useEffect(() => {
@@ -596,30 +602,6 @@ const TradingChart: React.FC = () => {
     const currentFuturesData = activeMarket ? futuresDataMap[activeMarket.binanceSymbol] : null;
     const currentOraclePrice = activeMarket ? oraclePrices[activeMarket.symbol] : null;
 
-    // Calculate oracle line position using current price as reference
-    useEffect(() => {
-        if (!currentOraclePrice || !currentMarketData) return;
-
-        const oraclePrice = currentOraclePrice.price;
-        const currentPrice = parseFloat(currentMarketData.price);
-        
-        // Calculate price difference percentage
-        const priceDiffPercent = ((oraclePrice - currentPrice) / currentPrice) * 100;
-        
-        // Assume center of chart (50%) is current price
-        // Each 1% price difference = ~5% screen movement (adjust multiplier as needed)
-        const pixelMultiplier = 8; // Adjust this for sensitivity
-        const offset = priceDiffPercent * pixelMultiplier;
-        
-        // Position from center (50%), with offset
-        const position = 50 - offset;
-        
-        // Clamp between 10% and 90% to stay on screen
-        const clampedPosition = Math.max(10, Math.min(90, position));
-        
-        setOracleLinePosition(clampedPosition);
-    }, [currentOraclePrice, currentMarketData]);
-
     // Update context when market changes
     useEffect(() => {
         if (activeMarket) {
@@ -627,15 +609,22 @@ const TradingChart: React.FC = () => {
         }
     }, [activeMarket, setActiveMarket]);
 
-    // Update context when price changes
+    // Update context when price changes - prioritize Oracle price
     useEffect(() => {
-        if (currentMarketData?.price) {
+        // Use Oracle price if available, fallback to Binance price
+        if (currentOraclePrice?.price) {
+            setCurrentPrice(currentOraclePrice.price.toString());
+        } else if (currentMarketData?.price) {
             setCurrentPrice(currentMarketData.price);
         }
-    }, [currentMarketData?.price, setCurrentPrice]);
+    }, [currentOraclePrice?.price, currentMarketData?.price, setCurrentPrice]);
 
     const handleMarketSelect = (symbol: string) => {
-        setActiveSymbol(symbol);
+        const selectedMarket = markets.find(m => m.symbol === symbol);
+        if (selectedMarket) {
+            setActiveSymbol(symbol);
+            setActiveMarket(selectedMarket); // Update context untuk sinkronisasi dengan komponen lain
+        }
         setIsMarketSelectorOpen(false);
     };
 
@@ -655,10 +644,9 @@ const TradingChart: React.FC = () => {
             />
             <div className="relative w-full flex-grow">
                 {activeMarket && (
-                    <TVChart 
-                        symbol={activeMarket.tradingViewSymbol} 
+                    <TVChart
+                        symbol={activeMarket.tradingViewSymbol}
                         interval={activeInterval}
-                        oraclePrice={currentOraclePrice?.price}
                     />
                 )}
             </div>

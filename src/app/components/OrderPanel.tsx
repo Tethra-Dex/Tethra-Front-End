@@ -15,13 +15,13 @@ const OrderPanel: React.FC = () => {
 
       <div className="flex border-b border-[#1A202C] bg-[#0B1017]">
         {[
-          { key: 'long', label: 'Long', icon: <TrendingUp size={16} /> },
-          { key: 'short', label: 'Short', icon: <TrendingDown size={16} /> },
-          { key: 'swap', label: 'Swap', icon: <Zap size={16} /> },
+          { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} /> },
+          { key: 'short' as const, label: 'Short', icon: <TrendingDown size={16} /> },
+          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} /> },
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key)}
             className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative border-b-2 cursor-pointer ${
               activeTab === tab.key
                 ? 'text-white border-[#F7931A]'
@@ -38,10 +38,10 @@ const OrderPanel: React.FC = () => {
 
       <div className="flex items-center justify-between px-4 py-4 border-b border-[#1A202C] bg-[#0B1017]">
         <div className="inline-flex gap-1.5 bg-[#0D1117] p-1 rounded-lg">
-          {['market', 'limit', 'Tap to Trade', 'more'].map((type) => (
+          {(['market', 'limit', 'Tap to Trade', 'more'] as const).map((type) => (
             <button
               key={type}
-              onClick={() => setActiveOrderType(type as any)}
+              onClick={() => setActiveOrderType(type)}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap min-w-fit ${
                 activeOrderType === type
                   ? 'bg-[#1E2836] text-white shadow-sm'
