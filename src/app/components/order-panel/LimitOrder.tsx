@@ -338,7 +338,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       </div>
 
       {/* Leverage Slider */}
-      <div className="bg-[#1A2332] rounded-lg p-3">
+      <div>
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs text-gray-400">Leverage</span>
           <span className="text-sm font-semibold text-white">{leverage}x</span>
@@ -364,12 +364,14 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       </div>
 
       {/* Pool */}
+      <div className="mb-4">
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-400">Pool</span>
         <button className="flex items-center gap-1 text-white cursor-pointer">
           {activeMarket.symbol}-USDC
           <ChevronDown size={14} />
         </button>
+      </div>
       </div>
 
       {/* Collateral In */}
