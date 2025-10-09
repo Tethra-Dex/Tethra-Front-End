@@ -1,7 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Info } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
+import { usePrivy } from '@privy-io/react-auth';
+import { createPublicClient, http, formatUnits } from 'viem';
+import { baseSepolia } from 'wagmi/chains';
+
+// USDC Contract Address on Base Sepolia
+const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 interface LimitOrderProps {
   activeTab?: 'long' | 'short' | 'swap';
@@ -9,8 +15,55 @@ interface LimitOrderProps {
 
 const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const { activeMarket, currentPrice } = useMarket();
+  const { authenticated, user } = usePrivy();
   const [leverage, setLeverage] = useState(50);
-  const leverageOptions = [0.1, 1, 2, 5, 10, 25, 50, 100];
+  const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const leverageOptions = [1, 2, 5, 10, 25, 50, 100]; // Removed 0.1
+
+  // Fetch USDC balance
+  useEffect(() => {
+    const fetchUsdcBalance = async () => {
+      if (!authenticated || !user?.wallet?.address) {
+        setUsdcBalance('0.00');
+        return;
+      }
+      
+      setIsLoadingBalance(true);
+      try {
+        const publicClient = createPublicClient({
+          chain: baseSepolia,
+          transport: http(),
+        });
+
+        const balance = await publicClient.readContract({
+          address: USDC_ADDRESS,
+          abi: [
+            {
+              constant: true,
+              inputs: [{ name: '_owner', type: 'address' }],
+              name: 'balanceOf',
+              outputs: [{ name: 'balance', type: 'uint256' }],
+              type: 'function',
+            },
+          ],
+          functionName: 'balanceOf',
+          args: [user.wallet.address as `0x${string}`],
+        }) as bigint;
+
+        // USDC has 6 decimals
+        const formattedBalance = formatUnits(balance, 6);
+        setUsdcBalance(parseFloat(formattedBalance).toFixed(2));
+      } catch (error) {
+        console.error('Error fetching USDC balance:', error);
+        setUsdcBalance('0.00');
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchUsdcBalance();
+  }, [authenticated, user?.wallet?.address]);
 
   const formatPrice = (price: string) => {
     const priceNum = parseFloat(price);
@@ -44,7 +97,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">$0.00</span>
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">1.34 USDC</span>
+              <span className="text-gray-400">
+                {isLoadingBalance ? 'Loading...' : `${usdcBalance} USDC`}
+              </span>
               <button className="bg-[#2D3748] px-2 py-0.5 rounded text-xs cursor-pointer">Max</button>
             </div>
           </div>
@@ -107,14 +162,13 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         <input
           type="range"
           min="0"
-          max="7"
+          max="6"
           step="1"
           value={leverageOptions.indexOf(leverage)}
           onChange={(e) => setLeverage(leverageOptions[parseInt(e.target.value)])}
           className="w-full accent-blue-500"
         />
         <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>0.1X</span>
           <span>1X</span>
           <span>2X</span>
           <span>5X</span>
