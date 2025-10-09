@@ -19,7 +19,42 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const [leverage, setLeverage] = useState(50);
   const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [oraclePrice, setOraclePrice] = useState<number | null>(null);
   const leverageOptions = [1, 2, 5, 10, 25, 50, 100]; // Removed 0.1
+
+  // Fetch Pyth Oracle price via WebSocket
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:3001/ws/price');
+
+    ws.onopen = () => {
+      console.log('✅ Limit Order connected to Pyth Oracle');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'price_update' && message.data && activeMarket) {
+          const priceData = message.data[activeMarket.symbol];
+          if (priceData) {
+            setOraclePrice(priceData.price);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing Oracle message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('❌ Limit Order Oracle WebSocket error:', error);
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [activeMarket]);
 
   // Fetch USDC balance
   useEffect(() => {
@@ -131,7 +166,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             </button>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-gray-500">{formatPrice(currentPrice)}</span>
+            <span className="text-gray-500">
+              {oraclePrice ? `$${oraclePrice.toFixed(2)}` : formatPrice(currentPrice)}
+            </span>
             <span className="text-gray-400">Leverage: {leverage}.00x</span>
           </div>
         </div>
@@ -141,7 +178,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       <div>
         <div className="flex justify-between items-center mb-1">
           <label className="text-xs text-gray-400">Limit Price</label>
-          <span className="text-xs text-blue-400">Mark: {formatPrice(currentPrice)}</span>
+          <span className="text-xs text-blue-400">
+            Mark: {oraclePrice ? `$${oraclePrice.toFixed(2)}` : formatPrice(currentPrice)}
+          </span>
         </div>
         <div className="bg-[#1A2332] rounded-lg p-3 flex items-center justify-between">
           <input

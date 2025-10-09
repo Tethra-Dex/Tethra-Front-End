@@ -19,7 +19,42 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab }) => {
   const [leverage, setLeverage] = useState(50);
   const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [oraclePrice, setOraclePrice] = useState<number | null>(null);
   const leverageOptions = [1, 2, 5, 10, 25, 50, 100]; // Removed 0.1
+
+  // Fetch Pyth Oracle price via WebSocket
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:3001/ws/price');
+
+    ws.onopen = () => {
+      console.log('✅ Order Panel connected to Pyth Oracle');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'price_update' && message.data && activeMarket) {
+          const priceData = message.data[activeMarket.symbol];
+          if (priceData) {
+            setOraclePrice(priceData.price);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing Oracle message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('❌ Order Panel Oracle WebSocket error:', error);
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [activeMarket]);
 
   // Fetch USDC balance
   useEffect(() => {
@@ -131,7 +166,9 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab }) => {
             </button>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-gray-500">{formatPrice(currentPrice)}</span>
+            <span className="text-gray-500">
+              {oraclePrice ? `$${oraclePrice.toFixed(2)}` : formatPrice(currentPrice)}
+            </span>
             <span className="text-gray-400">Leverage: {leverage}.00x</span>
           </div>
         </div>

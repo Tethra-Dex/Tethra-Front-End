@@ -27,13 +27,13 @@ interface FuturesData {
 }
 
 const ALL_MARKETS: Market[] = [
-    { symbol: 'BTC', tradingViewSymbol: 'BITSTAMP:BTCUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
-    { symbol: 'ETH', tradingViewSymbol: 'BITSTAMP:ETHUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
+    { symbol: 'BTC', tradingViewSymbol: 'BINANCE:BTCUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
+    { symbol: 'ETH', tradingViewSymbol: 'BINANCE:ETHUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
     { symbol: 'SOL', tradingViewSymbol: 'BINANCE:SOLUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', binanceSymbol: 'SOLUSDT' },
     { symbol: 'AVAX', tradingViewSymbol: 'BINANCE:AVAXUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png', binanceSymbol: 'AVAXUSDT' },
     { symbol: 'NEAR', tradingViewSymbol: 'BINANCE:NEARUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png', binanceSymbol: 'NEARUSDT' },
     { symbol: 'BNB', tradingViewSymbol: 'BINANCE:BNBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png', binanceSymbol: 'BNBUSDT' },
-    { symbol: 'XRP', tradingViewSymbol: 'BITSTAMP:XRPUSD', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png', binanceSymbol: 'XRPUSDT' },
+    { symbol: 'XRP', tradingViewSymbol: 'BINANCE:XRPUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png', binanceSymbol: 'XRPUSDT' },
     { symbol: 'AAVE', tradingViewSymbol: 'BINANCE:AAVEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9/logo.png', binanceSymbol: 'AAVEUSDT' },
     { symbol: 'ARB', tradingViewSymbol: 'BINANCE:ARBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png', binanceSymbol: 'ARBUSDT' },
     { symbol: 'CRV', tradingViewSymbol: 'BINANCE:CRVUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xD533a949740bb3306d119CC777fa900bA034cd52/logo.png', binanceSymbol: 'CRVUSDT' },
@@ -166,11 +166,20 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
     );
 };
 
+interface OraclePrice {
+    symbol: string;
+    price: number;
+    confidence?: number;
+    timestamp: number;
+    source: string;
+}
+
 interface ChartHeaderProps {
     activeMarket: Market | null;
     marketData: MarketData | null;
     futuresData: FuturesData | null;
     allPrices: Record<string, string>;
+    oraclePrice: OraclePrice | null;
     onSymbolChangeClick: () => void;
     isMarketSelectorOpen: boolean;
     onClose: () => void;
@@ -183,6 +192,13 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
     const isPositive = priceChangePercent >= 0;
     const fundingRate = props.futuresData ? parseFloat(props.futuresData.fundingRate) : 0;
     const isFundingPositive = fundingRate >= 0;
+    
+    // Calculate price difference between Binance and Oracle
+    // Positive = Binance higher than Oracle
+    // Negative = Binance lower than Oracle
+    const binancePrice = props.marketData?.price ? parseFloat(props.marketData.price) : 0;
+    const oraclePrice = props.oraclePrice?.price || 0;
+    const priceDiff = binancePrice && oraclePrice ? ((binancePrice - oraclePrice) / oraclePrice * 100) : 0;
     
     return (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
@@ -263,6 +279,37 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                     </span>
                 </div>
                 
+                {/* Oracle Price - Pyth Network */}
+                {props.oraclePrice && (
+                    <div className="flex flex-col px-3 py-2 bg-yellow-400/10 border border-yellow-400/30 rounded">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider">PYTH Oracle</span>
+                            {props.oraclePrice.confidence && (
+                                <span className="text-[9px] text-yellow-400/60">
+                                    (±${props.oraclePrice.confidence.toFixed(2)})
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold font-mono text-lg text-yellow-400">
+                                ${props.oraclePrice.price.toFixed(2)}
+                            </span>
+                            {priceDiff !== 0 && (
+                                <div className="flex flex-col text-[10px]">
+                                    <span className={`font-semibold ${
+                                        priceDiff > 0 
+                                            ? 'text-red-400'    // Binance higher = Oracle lower (red down)
+                                            : 'text-green-400'  // Binance lower = Oracle higher (green up)
+                                    }`}>
+                                        {priceDiff > 0 ? '▼' : '▲'} {Math.abs(priceDiff).toFixed(3)}%
+                                    </span>
+                                    <span className="text-slate-500">vs Binance</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
                 {/* Futures Data */}
                 {props.futuresData && (
                     <>
@@ -298,9 +345,10 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
 interface TVChartProps {
     symbol: string;
     interval: string;
+    oraclePrice?: number | null;
 }
 
-const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval }) => {
+const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval, oraclePrice }) => {
     const container = useRef<HTMLDivElement>(null);
     
     useEffect(() => {
@@ -392,6 +440,9 @@ const TradingChart: React.FC = () => {
     const [allPrices, setAllPrices] = useState<Record<string, string>>({});
     const [marketDataMap, setMarketDataMap] = useState<Record<string, MarketData>>({});
     const [futuresDataMap, setFuturesDataMap] = useState<Record<string, FuturesData>>({});
+    const [oraclePrices, setOraclePrices] = useState<Record<string, OraclePrice>>({});
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const [oracleLinePosition, setOracleLinePosition] = useState<number>(50);
 
     // Fetch Futures Data (Funding Rate, Open Interest)
     useEffect(() => {
@@ -451,11 +502,11 @@ const TradingChart: React.FC = () => {
         return () => clearInterval(interval);
     }, [markets]);
 
-    // WebSocket for real-time spot prices
+    // WebSocket for real-time spot prices (Binance)
     useEffect(() => {
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
 
-        ws.onopen = () => console.log('Koneksi WebSocket Binance terbuka');
+        ws.onopen = () => console.log('✅ Binance WebSocket connected');
 
         ws.onmessage = (event) => {
             const tickers = JSON.parse(event.data);
@@ -478,8 +529,56 @@ const TradingChart: React.FC = () => {
             setMarketDataMap(newMarketData);
         };
 
-        ws.onerror = (error) => console.error('WebSocket Error:', error);
-        ws.onclose = () => console.log('Koneksi WebSocket Binance ditutup');
+        ws.onerror = (error) => console.error('❌ Binance WebSocket error:', error);
+        ws.onclose = () => console.log('🔌 Binance WebSocket closed');
+
+        return () => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+        };
+    }, []);
+
+    // WebSocket for Pyth Oracle prices
+    useEffect(() => {
+        const ws = new WebSocket('ws://localhost:3001/ws/price');
+
+        ws.onopen = () => {
+            console.log('✅ Pyth Oracle WebSocket connected');
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'price_update' && message.data) {
+                    const newOraclePrices: Record<string, OraclePrice> = {};
+                    
+                    Object.keys(message.data).forEach(symbol => {
+                        const priceData = message.data[symbol];
+                        newOraclePrices[symbol] = {
+                            symbol: priceData.symbol,
+                            price: priceData.price,
+                            confidence: priceData.confidence,
+                            timestamp: priceData.timestamp,
+                            source: priceData.source
+                        };
+                    });
+                    
+                    setOraclePrices(newOraclePrices);
+                }
+            } catch (error) {
+                console.error('Error parsing Oracle message:', error);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('❌ Oracle WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log('🔌 Oracle WebSocket closed');
+        };
 
         return () => {
             if (ws.readyState === WebSocket.OPEN) {
@@ -495,6 +594,31 @@ const TradingChart: React.FC = () => {
 
     const currentMarketData = activeMarket ? marketDataMap[activeMarket.binanceSymbol] : null;
     const currentFuturesData = activeMarket ? futuresDataMap[activeMarket.binanceSymbol] : null;
+    const currentOraclePrice = activeMarket ? oraclePrices[activeMarket.symbol] : null;
+
+    // Calculate oracle line position using current price as reference
+    useEffect(() => {
+        if (!currentOraclePrice || !currentMarketData) return;
+
+        const oraclePrice = currentOraclePrice.price;
+        const currentPrice = parseFloat(currentMarketData.price);
+        
+        // Calculate price difference percentage
+        const priceDiffPercent = ((oraclePrice - currentPrice) / currentPrice) * 100;
+        
+        // Assume center of chart (50%) is current price
+        // Each 1% price difference = ~5% screen movement (adjust multiplier as needed)
+        const pixelMultiplier = 8; // Adjust this for sensitivity
+        const offset = priceDiffPercent * pixelMultiplier;
+        
+        // Position from center (50%), with offset
+        const position = 50 - offset;
+        
+        // Clamp between 10% and 90% to stay on screen
+        const clampedPosition = Math.max(10, Math.min(90, position));
+        
+        setOracleLinePosition(clampedPosition);
+    }, [currentOraclePrice, currentMarketData]);
 
     // Update context when market changes
     useEffect(() => {
@@ -522,6 +646,7 @@ const TradingChart: React.FC = () => {
                     marketData={currentMarketData}
                     futuresData={currentFuturesData}
                     allPrices={allPrices}
+                    oraclePrice={currentOraclePrice}
                     onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
                     isMarketSelectorOpen={isMarketSelectorOpen}
                     onClose={() => setIsMarketSelectorOpen(false)}
@@ -532,10 +657,10 @@ const TradingChart: React.FC = () => {
                 {activeMarket && (
                     <TVChart 
                         symbol={activeMarket.tradingViewSymbol} 
-                        interval={activeInterval} 
+                        interval={activeInterval}
+                        oraclePrice={currentOraclePrice?.price}
                     />
                 )}
-                
             </div>
         </div>
     );
