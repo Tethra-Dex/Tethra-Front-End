@@ -309,7 +309,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         </div>
       </div>
 
-      <div className="bg-[#1A2332] rounded-lg p-3">
+      <div>
         <div className="flex justify-between items-center mb-3">
           <span className="text-xs text-gray-400">Leverage</span>
           <div className="flex items-center gap-1">
@@ -376,7 +376,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
           </div>
         </div>
       </div>
-
+<div className="mb-4"></div>
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-400">Pool</span>
         <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-400 transition-colors">
