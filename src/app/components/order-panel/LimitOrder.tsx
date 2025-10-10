@@ -79,7 +79,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
           autoFocus
         />
       </div>
-      <div className="overflow-y-auto max-h-48">
+      <div className="overflow-y-auto max-h-48 custom-scrollbar-dark">
         {filteredMarkets.map(market => (
           <div
             key={market.symbol}
@@ -114,18 +114,40 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const { activeMarket, setActiveMarket, currentPrice } = useMarket();
   const { authenticated, user } = usePrivy();
   const [leverage, setLeverage] = useState(50);
+  const [leverageInput, setLeverageInput] = useState<string>('50.0');
   const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [oraclePrice, setOraclePrice] = useState<number | null>(null);
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [payAmount, setPayAmount] = useState<string>('');
-  const leverageOptions = [1, 2, 5, 10, 25, 50, 100]; // Removed 0.1
+
+  const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
 
   // Handler untuk mengganti market
   const handleMarketSelect = (market: Market) => {
     setActiveMarket(market);
     setIsMarketSelectorOpen(false);
   };
+
+  // Generate leverage values
+  const generateLeverageValues = () => {
+    const values: number[] = [];
+    for (let i = 0; i < leverageMarkers.length - 1; i++) {
+      const start = leverageMarkers[i];
+      const end = leverageMarkers[i + 1];
+      const step = (end - start) / 10;
+
+      for (let j = 0; j < 10; j++) {
+        const value = start + (step * j);
+        values.push(Number(value.toFixed(2)));
+      }
+    }
+    values.push(leverageMarkers[leverageMarkers.length - 1]);
+    return values;
+  };
+
+  const leverageValues = generateLeverageValues();
+  const maxSliderValue = leverageValues.length - 1;
 
   // Calculate values - use oracle price if available, fallback to context price
   const effectiveOraclePrice = oraclePrice || (currentPrice ? parseFloat(currentPrice) : 0);
@@ -144,6 +166,55 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   // Handle max click
   const handleMaxClick = () => {
     setPayAmount(usdcBalance);
+  };
+
+  // Handle leverage input change
+  const handleLeverageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    if (value === '' || /^\d*\.?\d{0,1}$/.test(value)) {
+      setLeverageInput(value);
+
+      if (value === '' || value === '.') {
+        setLeverage(1);
+      } else {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 100) {
+          setLeverage(numValue);
+        }
+      }
+    }
+  };
+
+  const handleLeverageInputBlur = () => {
+    if (leverageInput === '' || leverageInput === '.') {
+      setLeverageInput('1.0');
+      setLeverage(1);
+    } else {
+      setLeverageInput(leverage.toFixed(1));
+    }
+  };
+
+  const handleLeverageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const index = parseInt(e.target.value);
+    const value = leverageValues[index];
+    setLeverage(value);
+    setLeverageInput(value.toFixed(1));
+  };
+
+  const getCurrentSliderIndex = () => {
+    let closestIndex = 0;
+    let minDiff = Math.abs(leverageValues[0] - leverage);
+
+    for (let i = 1; i < leverageValues.length; i++) {
+      const diff = Math.abs(leverageValues[i] - leverage);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIndex = i;
+      }
+    }
+
+    return closestIndex;
   };
 
   // Fetch Pyth Oracle price via WebSocket
@@ -239,6 +310,10 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
     return amount.toFixed(6);
   };
 
+  const formatLeverage = (lev: number) => {
+    return lev.toFixed(1);
+  };
+
   return (
     <div className="flex flex-col gap-3 px-4 py-4">
       {/* Pay Section */}
@@ -314,7 +389,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             <span className="text-gray-500">
               {activeTab === 'swap' ? formatPrice(payUsdValue) : formatPrice(longShortUsdValue)}
             </span>
-            {activeTab !== 'swap' && <span className="text-gray-400">Leverage: {leverage}.00x</span>}
+            {activeTab !== 'swap' && <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>}
           </div>
         </div>
       </div>
@@ -340,33 +415,76 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       {/* Leverage Slider */}
       {activeTab !== 'swap' && (
       <div>
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-3">
           <span className="text-xs text-gray-400">Leverage</span>
-          <span className="text-sm font-semibold text-white">{leverage}x</span>
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={leverageInput}
+              onChange={handleLeverageInputChange}
+              onBlur={handleLeverageInputBlur}
+              className="bg-[#2D3748] text-sm font-semibold text-white outline-none w-14 px-2 py-1 rounded text-right"
+            />
+            <span className="text-sm font-semibold text-white">x</span>
+          </div>
         </div>
-        <input
-          type="range"
-          min="0"
-          max="6"
-          step="1"
-          value={leverageOptions.indexOf(leverage)}
-          onChange={(e) => setLeverage(leverageOptions[parseInt(e.target.value)])}
-          className="w-full accent-blue-500"
-        />
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>1X</span>
-          <span>2X</span>
-          <span>5X</span>
-          <span>10X</span>
-          <span>25X</span>
-          <span>50X</span>
-          <span>100X</span>
+        <div className="relative pt-1 pb-4">
+          <div className="relative h-0.5 bg-[#2D3748] rounded-full">
+            {leverageMarkers.map((marker, index) => {
+              const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
+              const position = (markerIndex / maxSliderValue) * 100;
+              return (
+                <div
+                  key={index}
+                  className="absolute top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
+                  style={{
+                    left: `${position}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                />
+              );
+            })}
+
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
+              style={{
+                left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                transform: 'translate(-50%, -50%)'
+              }}
+            />
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max={maxSliderValue}
+            step="1"
+            value={getCurrentSliderIndex()}
+            onChange={handleLeverageChange}
+            className="absolute inset-0 w-full opacity-0 cursor-pointer"
+          />
+
+          <div className="absolute top-full mt-0.5 left-0 right-0">
+            {leverageMarkers.map((marker, index) => {
+              const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
+              const position = (markerIndex / maxSliderValue) * 100;
+              return (
+                <span
+                  key={index}
+                  className="absolute text-xs text-gray-500 -translate-x-1/2"
+                  style={{ left: `${position}%` }}
+                >
+                  {marker < 1 ? marker.toFixed(1) : marker}x
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
       )}
-
+      <div className="mb-4"></div>
       {/* Pool */}
-      <div className="mb-4">
+      <div>
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-400">Pool</span>
         <button className="flex items-center gap-1 text-white cursor-pointer">
