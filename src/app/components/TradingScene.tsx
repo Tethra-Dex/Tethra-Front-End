@@ -5,13 +5,25 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // Wireframe Grid Planes (inspired by logo)
-const WireframePlanes = () => {
+const WireframePlanes = ({ scrollProgress = 0 }: { scrollProgress?: number }) => {
   const groupRef = useRef<THREE.Group>(null);
+  const leftPlaneRef = useRef<THREE.Mesh>(null);
+  const rightPlaneRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
     if (groupRef.current) {
       const time = clock.getElapsedTime();
-      groupRef.current.rotation.y = Math.sin(time * 0.3) * 0.2;
+      groupRef.current.rotation.y = Math.sin(time * 0.3) * 0.2 * (1 - scrollProgress);
+    }
+
+    // Move planes apart as we zoom through
+    if (leftPlaneRef.current) {
+      const targetX = -3 - scrollProgress * 8;
+      leftPlaneRef.current.position.x += (targetX - leftPlaneRef.current.position.x) * 0.1;
+    }
+    if (rightPlaneRef.current) {
+      const targetX = 3 + scrollProgress * 8;
+      rightPlaneRef.current.position.x += (targetX - rightPlaneRef.current.position.x) * 0.1;
     }
   });
 
@@ -23,24 +35,24 @@ const WireframePlanes = () => {
   return (
     <group ref={groupRef}>
       {/* Left plane (blue side) */}
-      <mesh position={[-3, 0, 0]} rotation={[0, Math.PI / 6, 0]}>
+      <mesh ref={leftPlaneRef} position={[-3, 0, 0]} rotation={[0, Math.PI / 6, 0]}>
         <primitive object={createGridPlane(6, 8, 20)} />
         <meshBasicMaterial
           color="#0ea5e9"
           wireframe
           transparent
-          opacity={0.6}
+          opacity={0.6 * (1 - scrollProgress * 0.5)}
         />
       </mesh>
 
       {/* Right plane (green side) */}
-      <mesh position={[3, 0, 0]} rotation={[0, -Math.PI / 6, 0]}>
+      <mesh ref={rightPlaneRef} position={[3, 0, 0]} rotation={[0, -Math.PI / 6, 0]}>
         <primitive object={createGridPlane(6, 8, 20)} />
         <meshBasicMaterial
           color="#10b981"
           wireframe
           transparent
-          opacity={0.6}
+          opacity={0.6 * (1 - scrollProgress * 0.5)}
         />
       </mesh>
 
@@ -51,7 +63,7 @@ const WireframePlanes = () => {
           color="#0ea5e9"
           wireframe
           transparent
-          opacity={0.4}
+          opacity={0.4 * (1 - scrollProgress * 0.7)}
         />
       </mesh>
 
@@ -62,7 +74,7 @@ const WireframePlanes = () => {
           color="#10b981"
           wireframe
           transparent
-          opacity={0.4}
+          opacity={0.4 * (1 - scrollProgress * 0.7)}
         />
       </mesh>
     </group>
@@ -300,15 +312,45 @@ const OrbitingRings = () => {
   );
 };
 
+// Camera Controller with Zoom Animation
+const CameraController = ({ scrollProgress }: { scrollProgress: number }) => {
+  useFrame((state) => {
+    const { camera } = state;
+
+    // Smooth zoom in through the gap between planes
+    const targetZ = 15 - scrollProgress * 20; // Move from 15 to -5 (zoom through)
+    const targetY = 2 - scrollProgress * 2; // Lower camera slightly
+    const targetFov = 50 + scrollProgress * 30; // Widen FOV for tunnel effect
+
+    // Smooth interpolation
+    camera.position.z += (targetZ - camera.position.z) * 0.1;
+    camera.position.y += (targetY - camera.position.y) * 0.1;
+
+    if ('fov' in camera) {
+      (camera as THREE.PerspectiveCamera).fov += (targetFov - (camera as THREE.PerspectiveCamera).fov) * 0.1;
+      (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
+    }
+  });
+
+  return null;
+};
+
 // Main Scene
-const TethraTradingScene = () => {
+interface TethraTradingSceneProps {
+  scrollProgress?: number;
+}
+
+const TethraTradingScene = ({ scrollProgress = 0 }: TethraTradingSceneProps) => {
   return (
     <Canvas
       camera={{ position: [0, 2, 15], fov: 50 }}
       style={{ background: 'transparent' }}
     >
       <color attach="background" args={['#0a0a0a']} />
-      
+
+      {/* Camera Animation Controller */}
+      <CameraController scrollProgress={scrollProgress} />
+
       {/* Lighting */}
       <ambientLight intensity={0.3} />
       <pointLight position={[-10, 5, 5]} intensity={1} color="#0ea5e9" />
@@ -317,7 +359,7 @@ const TethraTradingScene = () => {
 
       {/* Scene Elements */}
       <GridFloor />
-      <WireframePlanes />
+      <WireframePlanes scrollProgress={scrollProgress} />
       <CentralLogo />
       <OrbitingRings />
       <GradientParticles />
