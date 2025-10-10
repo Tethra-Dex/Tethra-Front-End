@@ -25,10 +25,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
         loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {
-  ethereum: {
-    createOnLogin: 'users-without-wallets',
-  },
-},
+          createOnLogin: 'all-users',
+        },
       }}
     >
       <WagmiProvider config={config}>

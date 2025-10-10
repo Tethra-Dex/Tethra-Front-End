@@ -5,14 +5,14 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useSwitchChain, useChainId } from 'wagmi';
 import { baseSepolia } from 'wagmi/chains';
 import { toast } from 'react-hot-toast';
-import { Copy, ExternalLink, LogOut, ChevronDown, Key, Wallet } from 'lucide-react';
+import { Copy, ExternalLink, LogOut, ChevronDown, Wallet, Key } from 'lucide-react';
 import { createPublicClient, http, formatUnits } from 'viem';
 
 // USDC Contract Address on Base Sepolia
 const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 const WalletConnectButton: React.FC = () => {
-  const { ready, authenticated, login, logout, user, exportWallet } = usePrivy();
+  const { ready, authenticated, login, logout, user, exportWallet, createWallet } = usePrivy();
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -107,11 +107,88 @@ const WalletConnectButton: React.FC = () => {
 
   const handleExportPrivateKey = async () => {
     try {
-      await exportWallet();
+      // Debug logging
+      console.log('=== Export Private Key Attempt ===');
+      console.log('All linked accounts:', user?.linkedAccounts);
+
+      // Find embedded wallet (type as any to avoid TS errors)
+      const embeddedWallets = user?.linkedAccounts?.filter(
+        (account: any) => {
+          console.log('Checking account:', account);
+          console.log('  - type:', account.type);
+          console.log('  - walletClient:', account.walletClient);
+          console.log('  - walletClientType:', account.walletClientType);
+          console.log('  - imported:', account.imported);
+          console.log('  - delegated:', account.delegated);
+          console.log('  - has id:', account.id !== undefined);
+
+          // Embedded wallets have imported: false and have an id
+          // External wallets (MetaMask, Coinbase) have imported: undefined and id: undefined
+          const isEmbeddedWallet = account.type === 'wallet' &&
+                                   account.imported === false &&
+                                   account.id !== undefined;
+
+          console.log('  - Is embedded wallet:', isEmbeddedWallet);
+          return isEmbeddedWallet;
+        }
+      ) as any[];
+
+      console.log('Found embedded wallets:', embeddedWallets);
+      console.log('Number of embedded wallets:', embeddedWallets?.length);
+
+      // Check if user has embedded wallet first
+      if (!embeddedWallets || embeddedWallets.length === 0) {
+        console.log('No embedded wallet found, attempting to create one...');
+
+        // Prompt user to create embedded wallet
+        toast.loading('Creating embedded wallet...', { id: 'create-wallet' });
+
+        try {
+          await createWallet();
+          toast.success('Embedded wallet created! Please click Export Private Key again.', {
+            id: 'create-wallet',
+            duration: 5000
+          });
+        } catch (createError: any) {
+          console.error('Create wallet error:', createError);
+
+          // If error says wallet already exists, try to export anyway
+          if (createError?.message?.includes('already has')) {
+            toast.dismiss('create-wallet');
+            toast('Embedded wallet exists, retrying export...', { duration: 2000 });
+
+            // Retry after a short delay to let state update
+            setTimeout(() => {
+              handleExportPrivateKey();
+            }, 1000);
+            return;
+          }
+
+          toast.error(createError?.message || 'Failed to create embedded wallet', {
+            id: 'create-wallet'
+          });
+        }
+        return;
+      }
+
+      // Get the embedded wallet address
+      const embeddedWalletAddress = embeddedWallets[0]?.address;
+      console.log('Exporting embedded wallet address:', embeddedWalletAddress);
+
+      if (!embeddedWalletAddress) {
+        toast.error('Embedded wallet address not found');
+        return;
+      }
+
+      // Export the specific embedded wallet by passing its address
+      console.log('Calling exportWallet with address:', embeddedWalletAddress);
+      await exportWallet({ address: embeddedWalletAddress });
+
       setIsDropdownOpen(false);
-    } catch (error) {
+      toast.success('Private key exported successfully!');
+    } catch (error: any) {
       console.error('Error exporting wallet:', error);
-      toast.error('Failed to export private key');
+      toast.error(error?.message || 'Failed to export private key');
     }
   };
 
@@ -132,7 +209,7 @@ const WalletConnectButton: React.FC = () => {
       : 'Connected';
 
     return (
-      <div className="relative" ref={dropdownRef}>
+      <>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className={buttonClasses}
@@ -141,57 +218,147 @@ const WalletConnectButton: React.FC = () => {
           <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
+        {/* Modal Overlay */}
         {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-2 z-50">
-            {/* USDC Balance Section */}
-            <div className="px-4 py-3 border-b border-slate-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-400 text-xs">
-                  <Wallet className="w-3.5 h-3.5" />
-                  <span>USDC Balance</span>
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsDropdownOpen(false)}
+            />
+
+            {/* Modal Content */}
+            <div
+              ref={dropdownRef}
+              className="relative w-[520px] bg-[#16181D] rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            >
+              {/* Header Section */}
+              <div className="px-6 py-5 border-b border-slate-700/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-slate-100">Tethra Wallet</h2>
+                  <button
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="text-slate-100 font-bold text-sm">
+
+                {/* Wallet Address with Action Buttons */}
+                <div className="flex items-center gap-2">
+                  {/* Address Box */}
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-800/50 rounded-xl flex-1">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                      <Wallet className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-slate-100 font-medium text-sm">{shortAddress}</span>
+                    <button
+                      onClick={handleCopyAddress}
+                      className="p-1 hover:bg-slate-700/50 rounded-md transition-colors ml-auto"
+                      title="Copy Address"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-slate-200" />
+                    </button>
+                  </div>
+
+                  {/* Action Icon Buttons - Separated */}
+                  <button
+                    onClick={handleViewExplorer}
+                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
+                    title="View on Explorer"
+                  >
+                    <ExternalLink className="w-4 h-4 text-slate-400 hover:text-slate-200" />
+                  </button>
+
+                  <button
+                    onClick={handleExportPrivateKey}
+                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
+                    title="Export Private Key"
+                  >
+                    <Key className="w-4 h-4 text-slate-400 hover:text-slate-200" />
+                  </button>
+
+                  <button
+                    onClick={handleDisconnect}
+                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
+                    title="Disconnect"
+                  >
+                    <LogOut className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Balance Section */}
+              <div className="px-6 py-5 border-b border-slate-700/50">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <span>Balance</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-lg">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold">$</span>
+                    </div>
+                    <span className="text-slate-100 text-sm font-medium">USDC</span>
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="text-4xl font-bold text-slate-100 mb-5">
                   {isLoadingBalance ? (
-                    <span className="text-slate-400">Loading...</span>
+                    <span className="text-slate-400 text-2xl">Loading...</span>
                   ) : (
                     <span>${usdcBalance || '0.00'}</span>
                   )}
                 </div>
+
+                {/* Deposit & Withdraw Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors">
+                    Deposit
+                  </button>
+                  <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors">
+                    Withdraw
+                  </button>
+                </div>
+              </div>
+
+              {/* Funding Activity Section */}
+              <div className="px-6 py-4">
+                <h3 className="text-sm font-semibold text-slate-100 mb-3">Funding Activity</h3>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-slate-600 transition-colors"
+                  />
+                  <svg
+                    className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+
+                {/* Empty State */}
+                <div className="py-8 text-center">
+                  <p className="text-slate-500 text-sm">No funding activity yet</p>
+                </div>
               </div>
             </div>
-
-            <button
-              onClick={handleCopyAddress}
-              className="w-full px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 flex items-center gap-3 transition-colors hover:cursor-pointer"
-            >
-              <Copy className="w-4 h-4" />
-              Copy Address
-            </button>
-            <button
-              onClick={handleViewExplorer}
-              className="w-full px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 flex items-center gap-3 transition-colors hover:cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4" />
-              View on Explorer
-            </button>
-            <button
-              onClick={handleExportPrivateKey}
-              className="w-full px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 flex items-center gap-3 transition-colors hover:cursor-pointer"
-            >
-              <Key className="w-4 h-4" />
-              Export Private Key
-            </button>
-            <div className="border-t border-slate-700 my-1" />
-            <button
-              onClick={handleDisconnect}
-              className="w-full px-4 py-2 text-sm text-red-400 hover:bg-slate-700 flex items-center gap-3 transition-colors hover:cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              Disconnect
-            </button>
           </div>
         )}
-      </div>
+      </>
     );
   }
 
