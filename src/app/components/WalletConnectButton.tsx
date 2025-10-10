@@ -22,6 +22,48 @@ const WalletConnectButton: React.FC = () => {
 
   const buttonClasses = "flex items-center justify-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl whitespace-nowrap hover:cursor-pointer";
 
+  // Auto-create embedded wallet when user connects with external wallet
+  useEffect(() => {
+    const autoCreateEmbeddedWallet = async () => {
+      if (!authenticated || !user) return;
+
+      // Check if user has embedded wallet
+      const embeddedWallets = user.linkedAccounts?.filter(
+        (account: any) =>
+          account.type === 'wallet' &&
+          account.imported === false &&
+          account.id !== undefined
+      );
+
+      // If no embedded wallet exists, create one automatically
+      if (!embeddedWallets || embeddedWallets.length === 0) {
+        console.log('No embedded wallet found, auto-creating...');
+        toast.loading('Setting up your embedded wallet...', { id: 'auto-create' });
+
+        try {
+          await createWallet();
+          toast.success('Embedded wallet created successfully!', {
+            id: 'auto-create',
+            duration: 3000
+          });
+        } catch (error: any) {
+          console.error('Auto-create wallet error:', error);
+
+          // Ignore error if wallet already exists
+          if (error?.message?.includes('already has')) {
+            toast.dismiss('auto-create');
+          } else {
+            toast.error('Failed to create embedded wallet', {
+              id: 'auto-create'
+            });
+          }
+        }
+      }
+    };
+
+    autoCreateEmbeddedWallet();
+  }, [authenticated, user, createWallet]);
+
   // Auto-switch to Base when authenticated
   useEffect(() => {
     if (authenticated && chainId !== baseSepolia.id) {
@@ -33,8 +75,20 @@ const WalletConnectButton: React.FC = () => {
   // Fetch USDC balance
   useEffect(() => {
     const fetchUsdcBalance = async () => {
-      if (!authenticated || !user?.wallet?.address) return;
-      
+      if (!authenticated || !user) return;
+
+      // Get embedded wallet address
+      const embeddedWallets = user.linkedAccounts?.filter(
+        (account: any) =>
+          account.type === 'wallet' &&
+          account.imported === false &&
+          account.id !== undefined
+      ) as any[];
+
+      const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
+
+      if (!embeddedWalletAddress) return;
+
       setIsLoadingBalance(true);
       try {
         const publicClient = createPublicClient({
@@ -54,7 +108,7 @@ const WalletConnectButton: React.FC = () => {
             },
           ],
           functionName: 'balanceOf',
-          args: [user.wallet.address as `0x${string}`],
+          args: [embeddedWalletAddress as `0x${string}`],
         }) as bigint;
 
         // USDC has 6 decimals
@@ -68,10 +122,10 @@ const WalletConnectButton: React.FC = () => {
       }
     };
 
-    if (authenticated && user?.wallet?.address) {
+    if (authenticated && user) {
       fetchUsdcBalance();
     }
-  }, [authenticated, user?.wallet?.address]);
+  }, [authenticated, user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -90,90 +144,51 @@ const WalletConnectButton: React.FC = () => {
     };
   }, [isDropdownOpen]);
 
+  const getEmbeddedWalletAddress = () => {
+    const embeddedWallets = user?.linkedAccounts?.filter(
+      (account: any) =>
+        account.type === 'wallet' &&
+        account.imported === false &&
+        account.id !== undefined
+    ) as any[];
+    return embeddedWallets?.[0]?.address || user?.wallet?.address;
+  };
+
   const handleCopyAddress = () => {
-    if (user?.wallet?.address) {
-      navigator.clipboard.writeText(user.wallet.address);
+    const address = getEmbeddedWalletAddress();
+    if (address) {
+      navigator.clipboard.writeText(address);
       toast.success('Address copied!');
       setIsDropdownOpen(false);
     }
   };
 
   const handleViewExplorer = () => {
-    if (user?.wallet?.address) {
-      window.open(`https://sepolia.basescan.org/address/${user.wallet.address}`, '_blank');
+    const address = getEmbeddedWalletAddress();
+    if (address) {
+      window.open(`https://sepolia.basescan.org/address/${address}`, '_blank');
       setIsDropdownOpen(false);
     }
   };
 
   const handleExportPrivateKey = async () => {
     try {
-      // Debug logging
-      console.log('=== Export Private Key Attempt ===');
-      console.log('All linked accounts:', user?.linkedAccounts);
-
-      // Find embedded wallet (type as any to avoid TS errors)
+      // Find embedded wallet
       const embeddedWallets = user?.linkedAccounts?.filter(
-        (account: any) => {
-          console.log('Checking account:', account);
-          console.log('  - type:', account.type);
-          console.log('  - walletClient:', account.walletClient);
-          console.log('  - walletClientType:', account.walletClientType);
-          console.log('  - imported:', account.imported);
-          console.log('  - delegated:', account.delegated);
-          console.log('  - has id:', account.id !== undefined);
-
-          // Embedded wallets have imported: false and have an id
-          // External wallets (MetaMask, Coinbase) have imported: undefined and id: undefined
-          const isEmbeddedWallet = account.type === 'wallet' &&
-                                   account.imported === false &&
-                                   account.id !== undefined;
-
-          console.log('  - Is embedded wallet:', isEmbeddedWallet);
-          return isEmbeddedWallet;
-        }
+        (account: any) =>
+          account.type === 'wallet' &&
+          account.imported === false &&
+          account.id !== undefined
       ) as any[];
 
-      console.log('Found embedded wallets:', embeddedWallets);
-      console.log('Number of embedded wallets:', embeddedWallets?.length);
-
-      // Check if user has embedded wallet first
+      // Check if user has embedded wallet
       if (!embeddedWallets || embeddedWallets.length === 0) {
-        console.log('No embedded wallet found, attempting to create one...');
-
-        // Prompt user to create embedded wallet
-        toast.loading('Creating embedded wallet...', { id: 'create-wallet' });
-
-        try {
-          await createWallet();
-          toast.success('Embedded wallet created! Please click Export Private Key again.', {
-            id: 'create-wallet',
-            duration: 5000
-          });
-        } catch (createError: any) {
-          console.error('Create wallet error:', createError);
-
-          // If error says wallet already exists, try to export anyway
-          if (createError?.message?.includes('already has')) {
-            toast.dismiss('create-wallet');
-            toast('Embedded wallet exists, retrying export...', { duration: 2000 });
-
-            // Retry after a short delay to let state update
-            setTimeout(() => {
-              handleExportPrivateKey();
-            }, 1000);
-            return;
-          }
-
-          toast.error(createError?.message || 'Failed to create embedded wallet', {
-            id: 'create-wallet'
-          });
-        }
+        toast.error('Embedded wallet not found. Please reconnect your wallet.');
         return;
       }
 
       // Get the embedded wallet address
       const embeddedWalletAddress = embeddedWallets[0]?.address;
-      console.log('Exporting embedded wallet address:', embeddedWalletAddress);
 
       if (!embeddedWalletAddress) {
         toast.error('Embedded wallet address not found');
@@ -181,7 +196,6 @@ const WalletConnectButton: React.FC = () => {
       }
 
       // Export the specific embedded wallet by passing its address
-      console.log('Calling exportWallet with address:', embeddedWalletAddress);
       await exportWallet({ address: embeddedWalletAddress });
 
       setIsDropdownOpen(false);
@@ -203,9 +217,17 @@ const WalletConnectButton: React.FC = () => {
   }
 
   if (authenticated) {
-    const walletAddress = user?.wallet?.address;
-    const shortAddress = walletAddress
-      ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`
+    // Get embedded wallet address
+    const embeddedWallets = user?.linkedAccounts?.filter(
+      (account: any) =>
+        account.type === 'wallet' &&
+        account.imported === false &&
+        account.id !== undefined
+    ) as any[];
+
+    const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
+    const shortAddress = embeddedWalletAddress
+      ? `${embeddedWalletAddress.substring(0, 6)}...${embeddedWalletAddress.substring(embeddedWalletAddress.length - 4)}`
       : 'Connected';
 
     return (
