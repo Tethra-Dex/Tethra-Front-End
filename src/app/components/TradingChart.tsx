@@ -546,47 +546,63 @@ const TradingChart: React.FC = () => {
 
     // WebSocket for Pyth Oracle prices
     useEffect(() => {
-        const ws = new WebSocket('ws://localhost:3001/ws/price');
+        let ws: WebSocket | null = null;
+        let reconnectTimeout: NodeJS.Timeout;
 
-        ws.onopen = () => {
-            console.log('✅ Pyth Oracle WebSocket connected');
-        };
-
-        ws.onmessage = (event) => {
+        const connectWebSocket = () => {
             try {
-                const message = JSON.parse(event.data);
-                
-                if (message.type === 'price_update' && message.data) {
-                    const newOraclePrices: Record<string, OraclePrice> = {};
-                    
-                    Object.keys(message.data).forEach(symbol => {
-                        const priceData = message.data[symbol];
-                        newOraclePrices[symbol] = {
-                            symbol: priceData.symbol,
-                            price: priceData.price,
-                            confidence: priceData.confidence,
-                            timestamp: priceData.timestamp,
-                            source: priceData.source
-                        };
-                    });
-                    
-                    setOraclePrices(newOraclePrices);
-                }
+                ws = new WebSocket('ws://localhost:3001/ws/price');
+
+                ws.onopen = () => {
+                    console.log('✅ Pyth Oracle WebSocket connected');
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+
+                        if (message.type === 'price_update' && message.data) {
+                            const newOraclePrices: Record<string, OraclePrice> = {};
+
+                            Object.keys(message.data).forEach(symbol => {
+                                const priceData = message.data[symbol];
+                                newOraclePrices[symbol] = {
+                                    symbol: priceData.symbol,
+                                    price: priceData.price,
+                                    confidence: priceData.confidence,
+                                    timestamp: priceData.timestamp,
+                                    source: priceData.source
+                                };
+                            });
+
+                            setOraclePrices(newOraclePrices);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing Oracle message:', error);
+                    }
+                };
+
+                ws.onerror = () => {
+                    // Silently handle error - backend might not be running
+                    console.warn('⚠️ Oracle WebSocket not available (backend offline?)');
+                };
+
+                ws.onclose = () => {
+                    console.log('🔌 Oracle WebSocket closed');
+                    // Don't auto-reconnect to avoid spam
+                };
             } catch (error) {
-                console.error('Error parsing Oracle message:', error);
+                console.warn('⚠️ Could not connect to Oracle WebSocket:', error);
             }
         };
 
-        ws.onerror = (error) => {
-            console.error('❌ Oracle WebSocket error:', error);
-        };
-
-        ws.onclose = () => {
-            console.log('🔌 Oracle WebSocket closed');
-        };
+        connectWebSocket();
 
         return () => {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+            if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.close();
             }
         };

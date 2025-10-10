@@ -7,7 +7,7 @@ import { createPublicClient, http, formatUnits } from 'viem';
 import { baseSepolia } from 'wagmi/chains';
 
 // USDC Contract Address on Base Sepolia
-const USDC_ADDRESS = '0x71b0C7a96EdAA59caeB614A329d256Ce9F12cC51';
+const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 interface Market {
   symbol: string;

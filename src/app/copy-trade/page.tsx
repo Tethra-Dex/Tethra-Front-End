@@ -1,11 +1,17 @@
 'use client';
 
 import { Copy, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import DashboardTrade from '../components/DashboardTrade';
 import { useSidebar } from '../contexts/SidebarContext';
 
 export default function CopyTradePage() {
   const { isExpanded } = useSidebar();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   return (
     <main className="h-screen bg-black text-white p-2">
@@ -45,24 +51,24 @@ export default function CopyTradePage() {
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full"></div>
                             <div>
                               <div className="font-medium">Trader {idx}</div>
-                              <div className="text-xs text-gray-500">0x{Math.random().toString(36).substring(2, 8)}...</div>
+                              <div className="text-xs text-gray-500">0x{isMounted ? Math.random().toString(36).substring(2, 8) : 'abcdef'}...</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-green-400 font-medium">+{(Math.random() * 50 + 10).toFixed(1)}%</span>
+                          <span className="text-green-400 font-medium">+{isMounted ? (Math.random() * 50 + 10).toFixed(1) : '25.0'}%</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-white">{(Math.random() * 30 + 65).toFixed(1)}%</span>
+                          <span className="text-white">{isMounted ? (Math.random() * 30 + 65).toFixed(1) : '75.0'}%</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <Users size={16} className="text-gray-400" />
-                            <span>{Math.floor(Math.random() * 500 + 100)}</span>
+                            <span>{isMounted ? Math.floor(Math.random() * 500 + 100) : '250'}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-gray-300">{(Math.random() * 5 + 5).toFixed(1)}%</span>
+                          <span className="text-gray-300">{isMounted ? (Math.random() * 5 + 5).toFixed(1) : '7.5'}%</span>
                         </td>
                         <td className="px-6 py-4">
                           <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">

@@ -460,7 +460,7 @@ const TapToTrade: React.FC = () => {
       </div>
 
       {/* Action Button */}
-      <button className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30">
+      <button className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer">
         Start Tap to Trade
       </button>
 
