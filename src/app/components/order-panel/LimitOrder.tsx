@@ -284,7 +284,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             <input
               type="text"
               placeholder="0.0"
-              value={tokenAmount > 0 ? formatTokenAmount(tokenAmount) : ''}
+              value={activeTab === 'swap' ? (payAmount && effectiveOraclePrice > 0 ? formatTokenAmount(payUsdValue / effectiveOraclePrice) : '') : (tokenAmount > 0 ? formatTokenAmount(tokenAmount) : '')}
               readOnly
               className="bg-transparent text-2xl text-white outline-none w-full"
             />
@@ -312,9 +312,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">
-              {formatPrice(longShortUsdValue)}
+              {activeTab === 'swap' ? formatPrice(payUsdValue) : formatPrice(longShortUsdValue)}
             </span>
-            <span className="text-gray-400">Leverage: {leverage}.00x</span>
+            {activeTab !== 'swap' && <span className="text-gray-400">Leverage: {leverage}.00x</span>}
           </div>
         </div>
       </div>
@@ -338,6 +338,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       </div>
 
       {/* Leverage Slider */}
+      {activeTab !== 'swap' && (
       <div>
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs text-gray-400">Leverage</span>
@@ -362,6 +363,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           <span>100X</span>
         </div>
       </div>
+      )}
 
       {/* Pool */}
       <div className="mb-4">
@@ -397,7 +399,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
       {/* Enter an amount / Position Size */}
       <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
-        {payAmount ? `Position Size: ${formatPrice(longShortUsdValue)}` : 'Enter an amount'}
+        {payAmount ? (activeTab === 'swap' ? `Swap Amount: ${formatPrice(payUsdValue)}` : `Position Size: ${formatPrice(longShortUsdValue)}`) : 'Enter an amount'}
       </div>
 
       {/* Collapsible sections */}

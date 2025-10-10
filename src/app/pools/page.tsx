@@ -128,7 +128,7 @@ export default function PoolsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white p-2">
       <div className="flex w-full h-screen">
         {/* Sidebar */}
         <div className="w-[180px] shrink-0">

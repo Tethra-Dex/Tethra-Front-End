@@ -271,14 +271,14 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             <input
               type="text"
               placeholder="0.0"
-              value={tokenAmount > 0 ? formatTokenAmount(tokenAmount) : ''}
+              value={activeTab === 'swap' ? (payAmount && oraclePrice > 0 ? formatTokenAmount(payUsdValue / oraclePrice) : '') : (tokenAmount > 0 ? formatTokenAmount(tokenAmount) : '')}
               readOnly
               className="bg-transparent text-2xl text-white outline-none w-full"
             />
             <button
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
               className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative"
-              
+
             >
               {activeMarket && (
                 <img
@@ -302,13 +302,14 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">
-              {formatPrice(longShortUsdValue)}
+              {activeTab === 'swap' ? formatPrice(payUsdValue) : formatPrice(longShortUsdValue)}
             </span>
-            <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>
+            {activeTab !== 'swap' && <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>}
           </div>
         </div>
       </div>
 
+{activeTab !== 'swap' && (
       <div>
         <div className="flex justify-between items-center mb-3">
           <span className="text-xs text-gray-400">Leverage</span>
@@ -339,8 +340,8 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                 />
               );
             })}
-            
-            <div 
+
+            <div
               className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
               style={{
                 left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
@@ -348,7 +349,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               }}
             />
           </div>
-          
+
           <input
             type="range"
             min="0"
@@ -358,7 +359,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             onChange={handleLeverageChange}
             className="absolute inset-0 w-full opacity-0 cursor-pointer"
           />
-          
+
           <div className="absolute top-full mt-0.5 left-0 right-0">
             {leverageMarkers.map((marker, index) => {
               const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
@@ -376,6 +377,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
           </div>
         </div>
       </div>
+      )}
 <div className="mb-4"></div>
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-400">Pool</span>
@@ -405,7 +407,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
       </div>
 
       <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
-        {payAmount ? `Position Size: ${formatPrice(longShortUsdValue)}` : 'Enter an amount'}
+        {payAmount ? (activeTab === 'swap' ? `Swap Amount: ${formatPrice(payUsdValue)}` : `Position Size: ${formatPrice(longShortUsdValue)}`) : 'Enter an amount'}
       </div>
 
       <div className="space-y-2 text-sm border-t border-[#1A202C] pt-3">
