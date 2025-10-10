@@ -15,18 +15,21 @@ const OrderPanel: React.FC = () => {
 
       <div className="flex border-b border-[#1A202C] bg-[#0B1017]">
         {[
-          { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} /> },
-          { key: 'short' as const, label: 'Short', icon: <TrendingDown size={16} /> },
-          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} /> },
+          { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} />, color: '#10B981' },
+          { key: 'short' as const, label: 'Short', icon: <TrendingDown size={16} />, color: '#EF4444' },
+          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} />, color: '#3B82F6' },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative border-b-2 cursor-pointer ${
               activeTab === tab.key
-                ? 'text-white border-[#F7931A]'
+                ? 'text-white'
                 : 'text-gray-400 hover:text-gray-200 border-transparent'
             }`}
+            style={{
+              borderBottomColor: activeTab === tab.key ? tab.color : 'transparent'
+            }}
           >
             <div className="flex items-center justify-center gap-2">
               {tab.icon}
@@ -68,7 +71,7 @@ const OrderPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto custom-scrollbar-dark">
         {/* Render different components based on activeOrderType */}
         {activeOrderType === 'market' && <MarketOrder activeTab={activeTab} />}
         {activeOrderType === 'limit' && <LimitOrder activeTab={activeTab} />}

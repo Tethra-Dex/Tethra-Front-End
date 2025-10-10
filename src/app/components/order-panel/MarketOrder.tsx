@@ -282,7 +282,6 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             <button
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
               className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative"
-
             >
               {activeMarket && (
                 <img
@@ -295,7 +294,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                   }}
                 />
               )}
-              {activeMarket?.symbol || 'BTC'}/USD
+              {activeTab === 'swap' ? activeMarket?.symbol || 'BTC' : `${activeMarket?.symbol || 'BTC'}/USD`}
               <ChevronDown size={14} />
             </button>
             <MarketSelector
@@ -382,116 +381,132 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         </div>
       </div>
       )}
-<div className="mb-4"></div>
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-gray-400">Pool</span>
-        <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-400 transition-colors">
-          {activeMarket?.symbol || 'BTC'}-USDC
-          <ChevronDown size={14} />
-        </button>
-      </div>
 
-      <div className="flex justify-between items-center text-sm">
-        <div className="flex items-center gap-1">
-          <span className="text-gray-400">Collateral In</span>
-          <Info size={12} className="text-gray-500" />
+      {/* Select different tokens message - Only show for Swap */}
+      {activeTab === 'swap' && (
+        <div className="text-center py-3 text-gray-500 text-sm">
+          Select different tokens
         </div>
-        <button className="flex items-center gap-1 text-white hover:text-blue-400 transition-colors">
-          USDC
-          <ChevronDown size={14} />
-        </button>
-      </div>
+      )}
 
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-gray-400">Take Profit / Stop Loss</span>
-        <label className="relative inline-block w-10 h-5">
-          <input
-            type="checkbox"
-            className="opacity-0 w-0 h-0 peer"
-            checked={isTpSlEnabled}
-            onChange={(e) => setIsTpSlEnabled(e.target.checked)}
-          />
-          <span className={`absolute cursor-pointer inset-0 rounded-full transition-all ${isTpSlEnabled ? 'bg-blue-500' : 'bg-[#2D3748]'}`}>
-            <span className={`absolute left-0.5 top-0.5 h-4 w-4 bg-white rounded-full transition-transform ${isTpSlEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
-          </span>
-        </label>
-      </div>
-
-      {/* Take Profit / Stop Loss Form */}
-      {isTpSlEnabled && (
-        <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
-          {/* Take Profit */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs text-gray-400">Take Profit</label>
-              <button
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
-                onClick={() => setTakeProfitPrice('')}
-              >
-                + Add
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                <span className="text-xs text-gray-400 mr-2">$</span>
-                <input
-                  type="text"
-                  placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
-                  value={takeProfitPrice}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                      setTakeProfitPrice(value);
-                    }
-                  }}
-                  className="bg-transparent text-sm text-white outline-none w-full"
-                />
-              </div>
-              <button
-                onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
-                className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
-              >
-                {tpSlUnit === 'price' ? 'Price' : '%'}
-              </button>
-            </div>
+      {activeTab !== 'swap' && (
+        <>
+          <div className="mb-4"></div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-400">Pool</span>
+            <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-400 transition-colors">
+              {activeMarket?.symbol || 'BTC'}-USDC
+              <ChevronDown size={14} />
+            </button>
           </div>
 
-          {/* Stop Loss */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs text-gray-400">Stop Loss</label>
-              <button
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
-                onClick={() => setStopLossPrice('')}
-              >
-                + Add
-              </button>
+          <div className="flex justify-between items-center text-sm">
+            <div className="flex items-center gap-1">
+              <span className="text-gray-400">Collateral In</span>
+              <Info size={12} className="text-gray-500" />
             </div>
-            <div className="flex gap-2">
-              <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                <span className="text-xs text-gray-400 mr-2">$</span>
-                <input
-                  type="text"
-                  placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
-                  value={stopLossPrice}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                      setStopLossPrice(value);
-                    }
-                  }}
-                  className="bg-transparent text-sm text-white outline-none w-full"
-                />
-              </div>
-              <button
-                onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
-                className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
-              >
-                {tpSlUnit === 'price' ? 'Price' : '%'}
-              </button>
-            </div>
+            <button className="flex items-center gap-1 text-white hover:text-blue-400 transition-colors">
+              USDC
+              <ChevronDown size={14} />
+            </button>
           </div>
-        </div>
+        </>
+      )}
+
+      {activeTab !== 'swap' && (
+        <>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-400">Take Profit / Stop Loss</span>
+            <label className="relative inline-block w-10 h-5">
+              <input
+                type="checkbox"
+                className="opacity-0 w-0 h-0 peer"
+                checked={isTpSlEnabled}
+                onChange={(e) => setIsTpSlEnabled(e.target.checked)}
+              />
+              <span className={`absolute cursor-pointer inset-0 rounded-full transition-all ${isTpSlEnabled ? 'bg-blue-500' : 'bg-[#2D3748]'}`}>
+                <span className={`absolute left-0.5 top-0.5 h-4 w-4 bg-white rounded-full transition-transform ${isTpSlEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
+              </span>
+            </label>
+          </div>
+
+          {/* Take Profit / Stop Loss Form */}
+          {isTpSlEnabled && (
+            <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
+              {/* Take Profit */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs text-gray-400">Take Profit</label>
+                  <button
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                    onClick={() => setTakeProfitPrice('')}
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+                    <span className="text-xs text-gray-400 mr-2">$</span>
+                    <input
+                      type="text"
+                      placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
+                      value={takeProfitPrice}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          setTakeProfitPrice(value);
+                        }
+                      }}
+                      className="bg-transparent text-sm text-white outline-none w-full"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
+                    className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
+                  >
+                    {tpSlUnit === 'price' ? 'Price' : '%'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Stop Loss */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs text-gray-400">Stop Loss</label>
+                  <button
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                    onClick={() => setStopLossPrice('')}
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+                    <span className="text-xs text-gray-400 mr-2">$</span>
+                    <input
+                      type="text"
+                      placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
+                      value={stopLossPrice}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          setStopLossPrice(value);
+                        }
+                      }}
+                      className="bg-transparent text-sm text-white outline-none w-full"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
+                    className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
+                  >
+                    {tpSlUnit === 'price' ? 'Price' : '%'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
