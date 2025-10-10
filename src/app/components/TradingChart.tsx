@@ -547,7 +547,7 @@ const TradingChart: React.FC = () => {
     // WebSocket for Pyth Oracle prices
     useEffect(() => {
         let ws: WebSocket | null = null;
-        let reconnectTimeout: NodeJS.Timeout;
+        let reconnectTimeout: NodeJS.Timeout | null = null;
 
         const connectWebSocket = () => {
             try {

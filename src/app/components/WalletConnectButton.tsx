@@ -7,9 +7,7 @@ import { baseSepolia } from 'wagmi/chains';
 import { toast } from 'react-hot-toast';
 import { Copy, ExternalLink, LogOut, ChevronDown, Wallet, Key } from 'lucide-react';
 import { createPublicClient, http, formatUnits } from 'viem';
-
-// USDC Contract Address on Base Sepolia
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+import { USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
 
 const WalletConnectButton: React.FC = () => {
   const { ready, authenticated, login, logout, user, exportWallet, createWallet } = usePrivy();
@@ -111,8 +109,8 @@ const WalletConnectButton: React.FC = () => {
           args: [embeddedWalletAddress as `0x${string}`],
         }) as bigint;
 
-        // USDC has 6 decimals
-        const formattedBalance = formatUnits(balance, 6);
+        // Format USDC balance using configured decimals
+        const formattedBalance = formatUnits(balance, USDC_DECIMALS);
         setUsdcBalance(parseFloat(formattedBalance).toFixed(2));
       } catch (error) {
         console.error('Error fetching USDC balance:', error);

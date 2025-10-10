@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import { WagmiProvider } from '@privy-io/wagmi';
+import { createConfig, http } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { baseSepolia } from 'wagmi/chains';
 import { Toaster } from 'react-hot-toast';
@@ -27,10 +28,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         embeddedWallets: {
           createOnLogin: 'all-users',
         },
+        defaultChain: baseSepolia,
+        supportedChains: [baseSepolia],
       }}
     >
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={config}>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -41,8 +44,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             }}
           />
           {children}
-        </QueryClientProvider>
-      </WagmiProvider>
+        </WagmiProvider>
+      </QueryClientProvider>
     </PrivyProvider>
   );
 }

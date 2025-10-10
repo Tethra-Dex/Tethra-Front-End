@@ -1,7 +1,15 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Info } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { baseSepolia } from 'wagmi/chains';
+import { parseUnits } from 'viem';
+import { useMarketOrderFlow, useRelayMarketOrder, useApproveUSDCForTrading, calculatePositionCost } from '@/hooks/useMarketOrder';
+import { usePaymasterFlow } from '@/hooks/usePaymaster';
+import { useEmbeddedWallet } from '@/hooks/useEmbeddedWallet';
+import { USDC_DECIMALS } from '@/config/contracts';
+import { toast } from 'react-hot-toast';
 
 interface Market {
   symbol: string;
@@ -107,6 +115,9 @@ interface MarketOrderProps {
 
 const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const { activeMarket, setActiveMarket, currentPrice } = useMarket();
+  const { authenticated, user } = usePrivy();
+  const { wallets, ready: walletsReady } = useWallets();
+  const { address: embeddedAddress, hasEmbeddedWallet } = useEmbeddedWallet();
   const [leverage, setLeverage] = useState(50);
   const [leverageInput, setLeverageInput] = useState<string>('50.0');
   const [usdcBalance] = useState<string>('1000.00');
@@ -117,8 +128,37 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const [takeProfitPrice, setTakeProfitPrice] = useState<string>('');
   const [stopLossPrice, setStopLossPrice] = useState<string>('');
   const [tpSlUnit, setTpSlUnit] = useState<'price' | 'percentage'>('percentage');
+  
+  // Trading hooks - Use GASLESS relay for transactions
+  const { openPositionGasless, isPending: isRelayPending, hash: relayHash, usdcCharged } = useRelayMarketOrder();
+  const { balance: paymasterBalance, isApproving, isDepositing, ensurePaymasterBalance } = usePaymasterFlow();
+  const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
 
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
+  const [showPreApprove, setShowPreApprove] = useState(false);
+
+  // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
+  const hasLargeAllowance = useMemo(() => {
+    return allowance && allowance > parseUnits('10000', 6);
+  }, [allowance]);
+
+  // Handler untuk pre-approve USDC dalam jumlah besar
+  const handlePreApprove = async () => {
+    try {
+      toast.loading('Approving unlimited USDC...', { id: 'pre-approve' });
+      // Approve 1 million USDC (enough for many trades)
+      const maxAmount = parseUnits('1000000', 6).toString();
+      await approveUSDC(maxAmount);
+      toast.success('✅ Pre-approved! You can now trade without approval popups', { 
+        id: 'pre-approve',
+        duration: 5000 
+      });
+      setShowPreApprove(false);
+    } catch (error) {
+      console.error('Pre-approve error:', error);
+      toast.error('Failed to pre-approve USDC', { id: 'pre-approve' });
+    }
+  };
 
   // Handler untuk mengganti market
   const handleMarketSelect = (market: Market) => {
@@ -145,12 +185,22 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const leverageValues = generateLeverageValues();
   const maxSliderValue = leverageValues.length - 1;
 
-  // Get oracle price from current price
-  const oraclePrice = currentPrice ? parseFloat(currentPrice) : 0;
+  // Get oracle price from current price - memoized
+  const oraclePrice = useMemo(() => {
+    return currentPrice ? parseFloat(currentPrice) : 0;
+  }, [currentPrice]);
   
-  const payUsdValue = payAmount ? parseFloat(payAmount) : 0;
-  const longShortUsdValue = payUsdValue * leverage;
-  const tokenAmount = oraclePrice > 0 ? longShortUsdValue / oraclePrice : 0;
+  const payUsdValue = useMemo(() => {
+    return payAmount ? parseFloat(payAmount) : 0;
+  }, [payAmount]);
+  
+  const longShortUsdValue = useMemo(() => {
+    return payUsdValue * leverage;
+  }, [payUsdValue, leverage]);
+  
+  const tokenAmount = useMemo(() => {
+    return oraclePrice > 0 ? longShortUsdValue / oraclePrice : 0;
+  }, [oraclePrice, longShortUsdValue]);
 
   const handlePayInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -229,6 +279,125 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const formatLeverage = (lev: number) => {
     return lev.toFixed(1);
   };
+
+  // Handle market order execution
+  const handleOpenPosition = async () => {
+    // Moved console.logs to avoid setState during render warnings
+    // All logging is now inside the async function
+    
+    if (!authenticated) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    if (!hasEmbeddedWallet || !embeddedAddress) {
+      toast.error('Embedded wallet not ready. Please wait...');
+      return;
+    }
+
+    if (!payAmount || parseFloat(payAmount) <= 0) {
+      toast.error('Please enter collateral amount');
+      return;
+    }
+
+    if (!activeMarket) {
+      toast.error('Please select a market');
+      return;
+    }
+
+    try {
+      // Find and set active embedded wallet
+      const embeddedWallet = wallets.find(
+        (w) => w.walletClientType === 'privy' && w.address === embeddedAddress
+      );
+
+      if (!embeddedWallet) {
+        toast.error('Embedded wallet not found in wallets list');
+        console.error('Available wallets:', wallets);
+        return;
+      }
+
+      // Set embedded wallet as active
+      console.log('Setting active wallet:', embeddedWallet.address);
+      await embeddedWallet.switchChain(baseSepolia.id);
+
+      // Calculate position costs
+      const { totalCost, tradingFee, positionSize } = calculatePositionCost(payAmount, leverage);
+      
+      console.log('Position costs:', { totalCost, tradingFee, positionSize });
+
+      // Ensure paymaster has enough balance (estimated gas cost ~$1)
+      const hasBalance = await ensurePaymasterBalance('1.00');
+      if (!hasBalance) {
+        toast('Setting up paymaster... Please try again after approval/deposit completes', {
+          icon: 'ℹ️',
+        });
+        return;
+      }
+
+      // Execute market order (GASLESS via relay!)
+      await openPositionGasless({
+        symbol: activeMarket.symbol,
+        isLong: activeTab === 'long',
+        collateral: payAmount,
+        leverage: Math.floor(leverage), // Round to integer
+      });
+      
+      // Show success with gas cost in USDC
+      if (usdcCharged) {
+        toast.success(`✅ Position opened! Gas paid: ${usdcCharged}`, {
+          duration: 5000,
+          icon: '🎉'
+        });
+      }
+    } catch (error) {
+      console.error('Error executing market order:', error);
+      toast.error('Failed to execute market order');
+    }
+  };
+
+  // Get button text based on state
+  const getButtonText = () => {
+    if (!authenticated) return 'Connect Wallet';
+    if (isApproving) return 'Approving for Paymaster...';
+    if (isDepositing) return 'Depositing to Paymaster...';
+    if (isRelayPending) return 'Opening Position (Gasless)...';
+    if (!payAmount || parseFloat(payAmount) <= 0) return 'Enter Amount';
+    
+    if (activeTab === 'long') return `⚡ Long ${activeMarket?.symbol || 'BTC'} (No Gas)`;
+    if (activeTab === 'short') return `⚡ Short ${activeMarket?.symbol || 'BTC'} (No Gas)`;
+    return 'Swap';
+  };
+
+  const isButtonDisabled = !authenticated || 
+    isRelayPending || 
+    isApproving || 
+    isDepositing || 
+    !payAmount || 
+    parseFloat(payAmount) <= 0 || 
+    activeTab === 'swap';
+
+  // Show success notification with explorer link
+  useEffect(() => {
+    if (relayHash) {
+      toast.success(
+        <div>
+          <div>✅ Position opened! Gas paid in USDC: {usdcCharged}</div>
+          <a 
+            href={`https://sepolia.basescan.org/tx/${relayHash}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:underline text-xs"
+          >
+            View transaction
+          </a>
+        </div>,
+        { duration: 5000, id: 'position-success' }
+      );
+      // Reset form
+      setPayAmount('');
+    }
+  }, [relayHash, usdcCharged]);
 
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419]">
@@ -509,6 +678,67 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         </>
       )}
 
+      {/* Pre-Approve Section */}
+      {authenticated && !hasLargeAllowance && activeTab !== 'swap' && (
+        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-500/30">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-400 font-medium mb-1">⚡ Enable One-Click Trading</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade for security.
+              </p>
+              <button
+                onClick={handlePreApprove}
+                disabled={isApprovalPending}
+                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors"
+              >
+                {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Large Allowance Indicator */}
+      {authenticated && hasLargeAllowance && activeTab !== 'swap' && (
+        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
+          <div className="flex items-center gap-2">
+            <span className="text-green-400">✅</span>
+            <div className="flex-1">
+              <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                USDC pre-approved! Just 1 confirmation per trade (for your security).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Button */}
+      <button
+        onClick={handleOpenPosition}
+        disabled={isButtonDisabled}
+        className={`w-full py-4 rounded-lg font-bold text-white transition-all duration-200 ${
+          isButtonDisabled
+            ? 'bg-gray-600 cursor-not-allowed opacity-50'
+            : activeTab === 'long'
+            ? 'bg-green-600 hover:bg-green-700'
+            : activeTab === 'short'
+            ? 'bg-red-600 hover:bg-red-700'
+            : 'bg-blue-600 hover:bg-blue-700'
+        }`}
+      >
+        {getButtonText()}
+      </button>
+
+      {/* Paymaster Info */}
+      {authenticated && parseFloat(paymasterBalance) > 0 && (
+        <div className="text-xs text-gray-400 text-center">
+          Gas Balance: ${parseFloat(paymasterBalance).toFixed(2)} USDC
+        </div>
+      )}
+
       <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
         {payAmount ? (activeTab === 'swap' ? `Swap Amount: ${formatPrice(payUsdValue)}` : `Position Size: ${formatPrice(longShortUsdValue)}`) : 'Enter an amount'}
       </div>
@@ -523,8 +753,13 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
           <span className="text-white">-</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Price Impact / Fees</span>
-          <span className="text-white">0.000% / 0.000%</span>
+          <span className="text-gray-400">Trading Fee</span>
+          <span className="text-white">
+            {payAmount && leverage > 0 
+              ? `$${calculatePositionCost(payAmount, leverage).tradingFee} (0.05%)`
+              : '0.000%'
+            }
+          </span>
         </div>
 
         <details className="cursor-pointer">
