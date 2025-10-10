@@ -14,6 +14,8 @@ interface MarketContextType {
   setActiveMarket: (market: Market) => void;
   currentPrice: string;
   setCurrentPrice: (price: string) => void;
+  timeframe: string;
+  setTimeframe: (timeframe: string) => void;
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
@@ -26,9 +28,10 @@ export const MarketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     binanceSymbol: 'BTCUSDT'
   });
   const [currentPrice, setCurrentPrice] = useState<string>('0');
+  const [timeframe, setTimeframe] = useState<string>('1'); // Default 1 minute
 
   return (
-    <MarketContext.Provider value={{ activeMarket, setActiveMarket, currentPrice, setCurrentPrice }}>
+    <MarketContext.Provider value={{ activeMarket, setActiveMarket, currentPrice, setCurrentPrice, timeframe, setTimeframe }}>
       {children}
     </MarketContext.Provider>
   );

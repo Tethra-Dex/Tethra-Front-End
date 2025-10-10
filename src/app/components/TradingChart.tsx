@@ -433,10 +433,9 @@ TVChart.displayName = 'TVChart';
 import { useMarket } from '../contexts/MarketContext';
 
 const TradingChart: React.FC = () => {
-    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice } = useMarket();
+    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice, timeframe } = useMarket();
     const [markets] = useState<Market[]>(ALL_MARKETS);
     const [activeSymbol, setActiveSymbol] = useState<string>(contextActiveMarket?.symbol || ALL_MARKETS[0].symbol);
-    const [activeInterval] = useState<string>('1');
     const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
     const [allPrices, setAllPrices] = useState<Record<string, string>>({});
     const [marketDataMap, setMarketDataMap] = useState<Record<string, MarketData>>({});
@@ -646,7 +645,7 @@ const TradingChart: React.FC = () => {
                 {activeMarket && (
                     <TVChart
                         symbol={activeMarket.tradingViewSymbol}
-                        interval={activeInterval}
+                        interval={timeframe}
                     />
                 )}
             </div>
