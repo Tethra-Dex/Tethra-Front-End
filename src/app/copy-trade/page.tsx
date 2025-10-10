@@ -2,12 +2,15 @@
 
 import { Copy, Users } from 'lucide-react';
 import DashboardTrade from '../components/DashboardTrade';
+import { useSidebar } from '../contexts/SidebarContext';
 
 export default function CopyTradePage() {
+  const { isExpanded } = useSidebar();
+
   return (
     <main className="h-screen bg-black text-white p-2">
       <div className="flex flex-col md:flex-row w-full h-full gap-2">
-        <div className="w-full md:w-[180px] shrink-0">
+        <div className={`w-full shrink-0 transition-all duration-300 ${isExpanded ? 'md:w-[180px]' : 'md:w-[70px]'}`}>
           <DashboardTrade />
         </div>
 

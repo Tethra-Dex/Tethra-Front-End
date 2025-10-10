@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import DashboardTrade from '../components/DashboardTrade';
 import { Search, Info, Star, TrendingUp } from 'lucide-react';
+import { useSidebar } from '../contexts/SidebarContext';
 
 // Mock data for GLV Vaults
 const glvVaults = [
@@ -117,7 +118,8 @@ const gmPools = [
 export default function PoolsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All Markets');
-  
+  const { isExpanded } = useSidebar();
+
   const filters = ['All Markets', 'Favorites', 'DeFi', 'Meme', 'Layer 1', 'Layer 2'];
 
   const filteredPools = gmPools.filter(pool => {
@@ -131,7 +133,7 @@ export default function PoolsPage() {
     <main className="min-h-screen bg-black text-white p-2">
       <div className="flex w-full h-screen">
         {/* Sidebar */}
-        <div className="w-[180px] shrink-0">
+        <div className={`w-full shrink-0 transition-all duration-300 ${isExpanded ? 'md:w-[180px]' : 'md:w-[70px]'}`}>
           <DashboardTrade />
         </div>
 
