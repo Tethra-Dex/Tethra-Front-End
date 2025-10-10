@@ -335,7 +335,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               return (
                 <div
                   key={index}
-                  className="absolute top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
+                  className="absolute top-3/4 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
                   style={{
                     left: `${position}%`,
                     transform: 'translate(-50%, -50%)'
@@ -345,7 +345,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             })}
 
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
+              className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
               style={{
                 left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
                 transform: 'translate(-50%, -50%)'
