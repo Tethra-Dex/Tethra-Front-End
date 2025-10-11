@@ -4,10 +4,18 @@ import { useState, useEffect } from 'react';
 import { useUserPositions, usePosition } from '@/hooks/usePositions';
 import { useEmbeddedWallet } from '@/hooks/useEmbeddedWallet';
 import { usePrice } from '@/hooks/usePrices';
+import { useGaslessClose } from '@/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
+import { toast } from 'react-hot-toast';
 
 // Component to display individual position
-const PositionRow = ({ positionId }: { positionId: bigint }) => {
+const PositionRow = ({ 
+  positionId, 
+  onClose 
+}: { 
+  positionId: bigint;
+  onClose: (positionId: bigint, symbol: string) => void;
+}) => {
   const { position, isLoading } = usePosition(positionId);
   
   // Use shared price hook - all positions with same symbol share same price
@@ -154,7 +162,10 @@ const PositionRow = ({ positionId }: { positionId: bigint }) => {
       {/* Actions */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded transition-colors">
+          <button 
+            onClick={() => onClose(position.id, position.symbol)}
+            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded transition-colors"
+          >
             Close
           </button>
           <button className="text-gray-400 hover:text-white">⋮</button>
@@ -167,15 +178,45 @@ const PositionRow = ({ positionId }: { positionId: bigint }) => {
 const BottomTrading = () => {
   const [activeTab, setActiveTab] = useState('Positions');
   const [chartPositions, setChartPositions] = useState(true);
-  const { positionIds, isLoading: isLoadingIds } = useUserPositions();
+  const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { address } = useEmbeddedWallet();
+  const { closePosition, isPending: isClosing, txHash } = useGaslessClose();
   
-  // Debug logging
+  // Handle close position - GASLESS via backend (hackathon mode 🔥)
+  const handleClosePosition = async (positionId: bigint, symbol: string) => {
+    if (isClosing) return;
+    
+    try {
+      toast.loading('Closing position gaslessly...', { id: 'close-position' });
+      
+      await closePosition({ 
+        positionId, 
+        symbol 
+      });
+      
+      toast.dismiss('close-position');
+      // Success toast will be shown by hook
+      
+      // Refetch positions after 2 seconds
+      setTimeout(() => {
+        refetchPositions?.();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error closing position:', error);
+      toast.dismiss('close-position');
+      // Error toast already shown by hook
+    }
+  };
+  
+  // Auto-refetch positions when txHash changes (position closed)
   useEffect(() => {
-    console.log('BottomTrading - Address:', address);
-    console.log('BottomTrading - Position IDs:', positionIds);
-    console.log('BottomTrading - Loading:', isLoadingIds);
-  }, [address, positionIds, isLoadingIds]);
+    if (txHash) {
+      setTimeout(() => {
+        refetchPositions?.();
+      }, 2000);
+    }
+  }, [txHash, refetchPositions]);
   
   // No need for extra state or useEffect - just use positionIds directly
   const isLoading = isLoadingIds;
@@ -234,7 +275,11 @@ const BottomTrading = () => {
               </thead>
               <tbody>
                 {positionIds.map((positionId) => (
-                  <PositionRow key={positionId.toString()} positionId={positionId} />
+                  <PositionRow 
+                    key={positionId.toString()} 
+                    positionId={positionId} 
+                    onClose={handleClosePosition}
+                  />
                 ))}
               </tbody>
             </table>

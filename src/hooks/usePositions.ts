@@ -67,11 +67,6 @@ export function usePosition(positionId: bigint | undefined) {
       refetch,
     };
   }
-
-  // Log raw data for debugging
-  console.log('usePosition - Raw data from contract:', data);
-  console.log('usePosition - Data type:', typeof data);
-  console.log('usePosition - Is array:', Array.isArray(data));
   
   // Try to parse as object first (wagmi v2 returns objects for structs)
   let position: Position;
@@ -130,11 +125,8 @@ export function usePosition(positionId: bigint | undefined) {
     };
   }
   
-  console.log('usePosition - Parsed position:', position);
-  
   // Check if position has valid data
   if (!position.id || position.id === 0n) {
-    console.warn('usePosition - Position data is empty or invalid');
     return {
       position: null,
       isLoading,

@@ -326,14 +326,15 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
       
       console.log('Position costs:', { totalCost, tradingFee, positionSize });
 
-      // Ensure paymaster has enough balance (estimated gas cost ~$1)
-      const hasBalance = await ensurePaymasterBalance('1.00');
-      if (!hasBalance) {
-        toast('Setting up paymaster... Please try again after approval/deposit completes', {
-          icon: 'ℹ️',
-        });
-        return;
-      }
+      // NOTE: Paymaster balance check disabled - using relay backend instead
+      // Relay backend pays gas using its own ETH, no user deposit needed
+      // const hasBalance = await ensurePaymasterBalance('1.00');
+      // if (!hasBalance) {
+      //   toast('Setting up paymaster... Please try again after approval/deposit completes', {
+      //     icon: 'ℹ️',
+      //   });
+      //   return;
+      // }
 
       // Execute market order (GASLESS via relay!)
       await openPositionGasless({

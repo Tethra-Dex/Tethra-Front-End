@@ -3,13 +3,17 @@
  */
 
 import { useReadContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseUnits, encodeFunctionData } from 'viem';
+import { parseUnits, encodeFunctionData, keccak256, encodePacked } from 'viem';
 import { useState, useCallback, useEffect } from 'react';
 import { baseSepolia } from 'wagmi/chains';
 import { useWallets } from '@privy-io/react-auth';
 import { MARKET_EXECUTOR_ADDRESS, USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
-import MarketExecutorABI from '@/contracts/abis/MarketExecutor.json';
+import MarketExecutorJSON from '@/contracts/abis/MarketExecutor.json';
 import MockUSDCABI from '@/contracts/abis/MockUSDC.json';
+
+// Extract ABI array from MarketExecutor JSON (has {abi: [...]} structure)
+// MockUSDC is already array format
+const MarketExecutorABI = (MarketExecutorJSON as any).abi;
 import { getSignedPrice, SignedPriceData } from '@/lib/priceApi';
 import { relayTransaction } from '@/lib/relayApi';
 import { toast } from 'react-hot-toast';
@@ -353,11 +357,16 @@ export function useOpenMarketPosition() {
 }
 
 /**
- * Hook to close a market position
+ * Hook to close a market position (non-gasless version - user pays gas)
+ * Use this as fallback when gasless version has issues
  */
 export function useCloseMarketPosition() {
+  const { address } = useEmbeddedWallet();
+  const { wallets } = useWallets();
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -365,41 +374,92 @@ export function useCloseMarketPosition() {
   const closePosition = useCallback(async (params: ClosePositionParams) => {
     try {
       setIsLoadingPrice(true);
+      setIsPending(true);
+      setError(null);
+      
+      if (!address) {
+        throw new Error('Wallet not connected');
+      }
+      
+      // Find embedded wallet
+      const embeddedWallet = wallets.find(
+        (w) => w.walletClientType === 'privy' && w.address === address
+      );
+
+      if (!embeddedWallet) {
+        throw new Error('Embedded wallet not found');
+      }
       
       // Get signed price from backend
       const signedPrice: SignedPriceData = await getSignedPrice(params.symbol);
       
       setIsLoadingPrice(false);
 
-      console.log('Closing position:', {
+      console.log('Closing position (non-gasless):', {
         positionId: params.positionId.toString(),
         signedPrice: signedPrice.price,
         timestamp: signedPrice.timestamp,
       });
 
-      // Call contract
-      writeContract({
-        address: MARKET_EXECUTOR_ADDRESS,
+      await embeddedWallet.switchChain(baseSepolia.id);
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      
+      if (!walletClient) {
+        throw new Error('Could not get wallet client');
+      }
+
+      // Encode function call
+      const data = encodeFunctionData({
         abi: MarketExecutorABI,
         functionName: 'closeMarketPosition',
         args: [
           params.positionId,
           {
-            symbol: params.symbol, // Contract expects symbol string
+            symbol: params.symbol,
             price: BigInt(signedPrice.price),
             timestamp: BigInt(signedPrice.timestamp),
             signature: signedPrice.signature as `0x${string}`,
           },
         ],
-        chainId: baseSepolia.id,
       });
-    } catch (error) {
+
+      // Estimate gas
+      const gasEstimate = await walletClient.request({
+        method: 'eth_estimateGas',
+        params: [{
+          from: address,
+          to: MARKET_EXECUTOR_ADDRESS,
+          data,
+        }],
+      });
+      
+      const gasLimit = (BigInt(gasEstimate as string) * 120n) / 100n; // 20% buffer
+      console.log('\u26fd Gas estimate:', gasEstimate, 'Using limit:', gasLimit.toString());
+
+      // Send transaction (user pays gas)
+      const txHash = await walletClient.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: address,
+          to: MARKET_EXECUTOR_ADDRESS,
+          data,
+          gas: '0x' + gasLimit.toString(16),
+        }],
+      });
+
+      console.log('\u2705 Position closed! Transaction:', txHash);
+      setHash(txHash as `0x${string}`);
+      
+    } catch (err) {
       setIsLoadingPrice(false);
-      console.error('Error closing position:', error);
-      toast.error('Failed to get signed price');
-      throw error;
+      console.error('\u274c Error closing position:', err);
+      setError(err as Error);
+      toast.error('Failed to close position: ' + (err as Error).message);
+      throw err;
+    } finally {
+      setIsPending(false);
     }
-  }, [writeContract]);
+  }, [address, wallets]);
 
   return {
     closePosition,
@@ -563,16 +623,18 @@ export function useMarketOrderFlow() {
 }
 
 /**
- * Hook for GASLESS market orders using relay service
- * User pays gas in USDC from paymaster deposit
- */
+| * Hook for GASLESS market orders using relay service
+| * User pays gas in USDC from paymaster deposit
+| */
 export function useRelayMarketOrder() {
   const { address } = useEmbeddedWallet();
+  const { wallets } = useWallets();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [usdcCharged, setUsdcCharged] = useState<string>('0');
+  const [metaNonce, setMetaNonce] = useState<bigint>(0n);
 
   const openPositionGasless = useCallback(async (params: OpenPositionParams) => {
     try {
@@ -584,7 +646,24 @@ export function useRelayMarketOrder() {
         throw new Error('Wallet not connected');
       }
       
-      console.log('📡 Opening position via relay (gasless)...');
+      // Find embedded wallet
+      const embeddedWallet = wallets.find(
+        (w) => w.walletClientType === 'privy' && w.address === address
+      );
+
+      if (!embeddedWallet) {
+        throw new Error('Embedded wallet not found');
+      }
+
+      console.log('📡 Opening position via meta-transaction (gasless)...');
+      console.log('User address:', address);
+      
+      await embeddedWallet.switchChain(baseSepolia.id);
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      
+      if (!walletClient) {
+        throw new Error('Could not get wallet client');
+      }
       
       // Get signed price from backend
       const signedPrice: SignedPriceData = await getSignedPrice(params.symbol);
@@ -592,11 +671,63 @@ export function useRelayMarketOrder() {
       // Parse collateral
       const collateralBigInt = parseUnits(params.collateral, USDC_DECIMALS);
       
-      // Encode function call
+      // Fetch current nonce for this user from contract (ALWAYS fetch fresh nonce!)
+      let currentNonce: bigint;
+      try {
+        const nonceData = encodeFunctionData({
+          abi: MarketExecutorABI,
+          functionName: 'metaNonces',
+          args: [address],
+        });
+        
+        const nonceResult = await walletClient.request({
+          method: 'eth_call',
+          params: [{
+            to: MARKET_EXECUTOR_ADDRESS,
+            data: nonceData,
+          }, 'latest'],
+        });
+        
+        currentNonce = BigInt(nonceResult as string);
+        console.log('✅ Current meta nonce for', address, ':', currentNonce.toString());
+        setMetaNonce(currentNonce);
+      } catch (err) {
+        console.error('❌ Error fetching nonce:', err);
+        throw new Error('Failed to fetch nonce from contract');
+      }
+      
+      // Create message to sign (must match contract's message format)
+      const messageHash = keccak256(
+        encodePacked(
+          ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
+          [
+            address,
+            params.symbol,
+            params.isLong,
+            collateralBigInt,
+            BigInt(params.leverage),
+            currentNonce,  // Use freshly fetched nonce
+            MARKET_EXECUTOR_ADDRESS,
+          ]
+        )
+      );
+      
+      console.log('✍️ Requesting user signature for meta-transaction...');
+      
+      // Request signature from user
+      const userSignature = await walletClient.request({
+        method: 'personal_sign',
+        params: [messageHash, address],
+      });
+      
+      console.log('✅ User signature obtained');
+      
+      // Encode meta-transaction function call
       const data = encodeFunctionData({
         abi: MarketExecutorABI,
-        functionName: 'openMarketPosition',
+        functionName: 'openMarketPositionMeta',
         args: [
+          address, // trader
           params.symbol,
           params.isLong,
           collateralBigInt,
@@ -607,10 +738,11 @@ export function useRelayMarketOrder() {
             timestamp: BigInt(signedPrice.timestamp),
             signature: signedPrice.signature as `0x${string}`,
           },
+          userSignature as `0x${string}`, // user's signature
         ],
       });
       
-      console.log('🚀 Relaying transaction through backend...');
+      console.log('🚀 Relaying meta-transaction through backend...');
       
       // Relay transaction through backend (gasless!)
       const result = await relayTransaction({
@@ -639,7 +771,7 @@ export function useRelayMarketOrder() {
     } finally {
       setIsPending(false);
     }
-  }, [address]);
+  }, [address, wallets]);
 
   return {
     openPositionGasless,
@@ -648,5 +780,159 @@ export function useRelayMarketOrder() {
     error,
     hash,
     usdcCharged,
+  };
+}
+
+/**
+ * Hook for GASLESS close position using relay service
+ */
+export function useRelayClosePosition() {
+  const { address } = useEmbeddedWallet();
+  const { wallets } = useWallets();
+  const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  
+  const closePositionGasless = useCallback(async (params: ClosePositionParams) => {
+    try {
+      setIsPending(true);
+      setError(null);
+      setIsSuccess(false);
+      
+      if (!address) {
+        throw new Error('Wallet not connected');
+      }
+      
+      // Find embedded wallet
+      const embeddedWallet = wallets.find(
+        (w) => w.walletClientType === 'privy' && w.address === address
+      );
+
+      if (!embeddedWallet) {
+        throw new Error('Embedded wallet not found');
+      }
+      
+      console.log('\u{1F4E1} Closing position via meta-transaction (gasless)...');
+      console.log('Position ID:', params.positionId.toString());
+      console.log('Symbol:', params.symbol);
+      console.log('User address:', address);
+      
+      await embeddedWallet.switchChain(baseSepolia.id);
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      
+      if (!walletClient) {
+        throw new Error('Could not get wallet client');
+      }
+      
+      // Get signed price from backend
+      const signedPrice: SignedPriceData = await getSignedPrice(params.symbol);
+      
+      // Fetch current nonce for this user from contract (ALWAYS fetch fresh nonce!)
+      let currentNonce: bigint;
+      try {
+        const nonceData = encodeFunctionData({
+          abi: MarketExecutorABI,
+          functionName: 'metaNonces',
+          args: [address],
+        });
+        
+        const nonceResult = await walletClient.request({
+          method: 'eth_call',
+          params: [{
+            to: MARKET_EXECUTOR_ADDRESS,
+            data: nonceData,
+          }, 'latest'],
+        });
+        
+        currentNonce = BigInt(nonceResult as string);
+        console.log('\u2705 Current meta nonce for', address, ':', currentNonce.toString());
+      } catch (err) {
+        console.error('\u274c Error fetching nonce:', err);
+        throw new Error('Failed to fetch nonce from contract');
+      }
+      
+      // Create message to sign (must match contract's message format for closeMarketPositionMeta)
+      const packedData = encodePacked(
+        ['address', 'uint256', 'uint256', 'address'],
+        [
+          address,
+          params.positionId,
+          currentNonce,
+          MARKET_EXECUTOR_ADDRESS,
+        ]
+      );
+      const messageHash = keccak256(packedData);
+      
+      console.log('\u{1F4DD} Close Position Meta-Transaction Signature Details:');
+      console.log('  - Packed Data:', packedData);
+      console.log('  - Trader:', address);
+      console.log('  - Position ID:', params.positionId.toString());
+      console.log('  - Nonce:', currentNonce.toString());
+      console.log('  - Contract:', MARKET_EXECUTOR_ADDRESS);
+      console.log('  - Message Hash:', messageHash);
+      
+      console.log('\u270d\ufe0f Requesting user signature for close meta-transaction...');
+      
+      // Request signature from user
+      const userSignature = await walletClient.request({
+        method: 'personal_sign',
+        params: [messageHash, address],
+      });
+      
+      console.log('\u2705 User signature obtained');
+      
+      // Encode close position meta function call
+      const data = encodeFunctionData({
+        abi: MarketExecutorABI,
+        functionName: 'closeMarketPositionMeta',
+        args: [
+          address, // trader
+          params.positionId,
+          {
+            symbol: params.symbol,
+            price: BigInt(signedPrice.price),
+            timestamp: BigInt(signedPrice.timestamp),
+            signature: signedPrice.signature as `0x${string}`,
+          },
+          userSignature as `0x${string}`, // user's signature
+        ],
+      });
+      
+      console.log('\u{1F680} Relaying close position through backend...');
+      
+      // Relay transaction through backend (gasless!)
+      const result = await relayTransaction({
+        to: MARKET_EXECUTOR_ADDRESS,
+        data,
+        userAddress: address,
+      });
+      
+      console.log('\u2705 Position closed (gasless)! TX:', result.txHash);
+      
+      setHash(result.txHash as `0x${string}`);
+      setIsSuccess(true);
+      
+      toast.success(
+        `Position closed successfully!`,
+        { duration: 5000 }
+      );
+      
+    } catch (err) {
+      console.error('\u274c Error closing position (gasless):', err);
+      setError(err as Error);
+      toast.error((err as Error).message || 'Failed to close position');
+      throw err;
+    } finally {
+      setIsPending(false);
+    }
+  }, [address, wallets]);
+  
+  return {
+    closePositionGasless,
+    isPending,
+    isSuccess,
+    error,
+    hash,
   };
 }
