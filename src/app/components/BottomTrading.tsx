@@ -164,7 +164,7 @@ const PositionRow = ({
         <div className="flex items-center gap-2">
           <button 
             onClick={() => onClose(position.id, position.symbol)}
-            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded transition-colors"
+            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded transition-colors cursor-pointer"
           >
             Close
           </button>

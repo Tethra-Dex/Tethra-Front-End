@@ -128,7 +128,20 @@ const WalletConnectButton: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+
+      // Check if click is inside Privy modal (Privy modals have specific classes/attributes)
+      const isPrivyModal = target.closest('[role="dialog"]') ||
+                          target.closest('.privy-modal') ||
+                          target.closest('#privy-modal-content');
+
+      // Don't close if clicking inside Privy modal
+      if (isPrivyModal) {
+        return;
+      }
+
+      // Close only if clicking outside our dropdown
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsDropdownOpen(false);
       }
     };
@@ -157,7 +170,7 @@ const WalletConnectButton: React.FC = () => {
     if (address) {
       navigator.clipboard.writeText(address);
       toast.success('Address copied!');
-      setIsDropdownOpen(false);
+      // Don't close the dropdown - keep it open for user convenience
     }
   };
 
@@ -165,7 +178,7 @@ const WalletConnectButton: React.FC = () => {
     const address = getEmbeddedWalletAddress();
     if (address) {
       window.open(`https://sepolia.basescan.org/address/${address}`, '_blank');
-      setIsDropdownOpen(false);
+      // Don't close the dropdown - keep it open for user convenience
     }
   };
 
@@ -194,9 +207,11 @@ const WalletConnectButton: React.FC = () => {
       }
 
       // Export the specific embedded wallet by passing its address
+      // This will open Privy's modal for private key export
       await exportWallet({ address: embeddedWalletAddress });
 
-      setIsDropdownOpen(false);
+      // Don't close the dropdown - keep wallet popup open after Privy modal closes
+      // User might want to do other actions
       toast.success('Private key exported successfully!');
     } catch (error: any) {
       console.error('Error exporting wallet:', error);
@@ -276,7 +291,7 @@ const WalletConnectButton: React.FC = () => {
                     <span className="text-slate-100 font-medium text-sm">{shortAddress}</span>
                     <button
                       onClick={handleCopyAddress}
-                      className="p-1 hover:bg-slate-700/50 rounded-md transition-colors ml-auto"
+                      className="p-1 hover:bg-slate-700/50 rounded-md transition-colors ml-auto cursor-pointer"
                       title="Copy Address"
                     >
                       <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-slate-200" />
@@ -286,7 +301,7 @@ const WalletConnectButton: React.FC = () => {
                   {/* Action Icon Buttons - Separated */}
                   <button
                     onClick={handleViewExplorer}
-                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
+                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer"
                     title="View on Explorer"
                   >
                     <ExternalLink className="w-4 h-4 text-slate-400 hover:text-slate-200" />
@@ -294,7 +309,7 @@ const WalletConnectButton: React.FC = () => {
 
                   <button
                     onClick={handleExportPrivateKey}
-                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
+                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer"
                     title="Export Private Key"
                   >
                     <Key className="w-4 h-4 text-slate-400 hover:text-slate-200" />
@@ -302,7 +317,7 @@ const WalletConnectButton: React.FC = () => {
 
                   <button
                     onClick={handleDisconnect}
-                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
+                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer"
                     title="Disconnect"
                   >
                     <LogOut className="w-4 h-4 text-slate-400 hover:text-red-400" />
@@ -340,10 +355,10 @@ const WalletConnectButton: React.FC = () => {
 
                 {/* Deposit & Withdraw Buttons */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors">
+                  <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors cursor-pointer">
                     Deposit
                   </button>
-                  <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors">
+                  <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors cursor-pointer">
                     Withdraw
                   </button>
                 </div>

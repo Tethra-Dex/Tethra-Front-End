@@ -84,28 +84,35 @@ interface MarketSelectorProps {
     markets: Market[];
     onSelect: (symbol: string) => void;
     allPrices: Record<string, string>;
+    triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, markets, onSelect, allPrices }) => {
+const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, markets, onSelect, allPrices, triggerRef }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const panelRef = useRef<HTMLDivElement>(null);
-    
+
     const filteredMarkets = useMemo(() => {
         if (!markets) return [];
-        return markets.filter(market => 
+        return markets.filter(market =>
             market.symbol.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [markets, searchTerm]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-                onClose();
+            const target = event.target as Node;
+            // Ignore clicks on the trigger button or inside the panel
+            if (
+                (panelRef.current && panelRef.current.contains(target)) ||
+                (triggerRef?.current && triggerRef.current.contains(target))
+            ) {
+                return;
             }
+            onClose();
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [onClose]);
+    }, [onClose, triggerRef]);
 
     if (!isOpen) return null;
 
@@ -185,6 +192,7 @@ interface ChartHeaderProps {
     onClose: () => void;
     markets: Market[];
     onSelect: (symbol: string) => void;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
@@ -205,37 +213,39 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
             <div className="flex items-center gap-x-6">
                 <div className="relative">
                     <button
+                        ref={props.triggerRef}
                         onClick={props.onSymbolChangeClick}
                         className="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
                     >
                         {props.activeMarket && (
-                            <img 
-                                src={props.activeMarket.logoUrl} 
-                                alt={props.activeMarket.symbol} 
-                                className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-600" 
-                                onError={(e) => { 
-                                    const target = e.currentTarget; 
-                                    target.onerror = null; 
-                                    target.style.visibility = 'hidden'; 
-                                }} 
+                            <img
+                                src={props.activeMarket.logoUrl}
+                                alt={props.activeMarket.symbol}
+                                className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-600"
+                                onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.onerror = null;
+                                    target.style.visibility = 'hidden';
+                                }}
                             />
                         )}
                         <span className="text-base">{props.activeMarket?.symbol}/USD</span>
-                        <svg 
-                            className={`w-4 h-4 transition-transform duration-200 ${props.isMarketSelectorOpen ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
+                        <svg
+                            className={`w-4 h-4 transition-transform duration-200 ${props.isMarketSelectorOpen ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
                             viewBox="0 0 24 24"
                         >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
-                    <MarketSelector 
-                        isOpen={props.isMarketSelectorOpen} 
-                        onClose={props.onClose} 
-                        markets={props.markets} 
-                        onSelect={props.onSelect} 
-                        allPrices={props.allPrices} 
+                    <MarketSelector
+                        isOpen={props.isMarketSelectorOpen}
+                        onClose={props.onClose}
+                        markets={props.markets}
+                        onSelect={props.onSelect}
+                        allPrices={props.allPrices}
+                        triggerRef={props.triggerRef}
                     />
                 </div>
                 
@@ -441,6 +451,7 @@ const TradingChart: React.FC = () => {
     const [marketDataMap, setMarketDataMap] = useState<Record<string, MarketData>>({});
     const [futuresDataMap, setFuturesDataMap] = useState<Record<string, FuturesData>>({});
     const [oraclePrices, setOraclePrices] = useState<Record<string, OraclePrice>>({});
+    const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
     // Sync activeSymbol with context activeMarket (when changed from MarketOrder)
     useEffect(() => {
@@ -656,6 +667,7 @@ const TradingChart: React.FC = () => {
                     onClose={() => setIsMarketSelectorOpen(false)}
                     markets={markets}
                     onSelect={handleMarketSelect}
+                    triggerRef={triggerButtonRef}
             />
             <div className="relative w-full flex-grow">
                 {activeMarket && (

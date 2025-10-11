@@ -231,56 +231,6 @@ const GradientParticles = () => {
   );
 };
 
-// Central "T" Logo Formation
-const CentralLogo = () => {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame(({ clock }) => {
-    if (groupRef.current) {
-      const time = clock.getElapsedTime();
-      groupRef.current.rotation.y = time * 0.2;
-      
-      groupRef.current.children.forEach((child, index) => {
-        const mesh = child as THREE.Mesh;
-        const material = mesh.material as THREE.MeshBasicMaterial;
-        material.opacity = 0.5 + Math.sin(time * 2 + index) * 0.2;
-      });
-    }
-  });
-
-  return (
-    <group ref={groupRef} position={[0, 0, 0]}>
-      {/* Left T shape (blue) */}
-      <mesh position={[-1.5, 0, 0]}>
-        <boxGeometry args={[0.1, 4, 2]} />
-        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.5} />
-      </mesh>
-      
-      <mesh position={[-2.5, 1.5, 0]}>
-        <boxGeometry args={[2, 0.1, 2]} />
-        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.5} />
-      </mesh>
-
-      {/* Right T shape (green) */}
-      <mesh position={[1.5, 0, 0]}>
-        <boxGeometry args={[0.1, 4, 2]} />
-        <meshBasicMaterial color="#10b981" transparent opacity={0.5} />
-      </mesh>
-      
-      <mesh position={[2.5, 1.5, 0]}>
-        <boxGeometry args={[2, 0.1, 2]} />
-        <meshBasicMaterial color="#10b981" transparent opacity={0.5} />
-      </mesh>
-
-      {/* Connecting lines */}
-      <mesh position={[0, -2, 0]}>
-        <boxGeometry args={[3, 0.05, 0.05]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.6} />
-      </mesh>
-    </group>
-  );
-};
-
 // Orbiting Rings
 const OrbitingRings = () => {
   const ringsRef = useRef<THREE.Group>(null);
@@ -298,7 +248,7 @@ const OrbitingRings = () => {
         <torusGeometry args={[5, 0.02, 16, 100]} />
         <meshBasicMaterial color="#0ea5e9" transparent opacity={0.4} />
       </mesh>
-      
+
       <mesh rotation={[Math.PI / 3, 0, 0]}>
         <torusGeometry args={[6, 0.02, 16, 100]} />
         <meshBasicMaterial color="#10b981" transparent opacity={0.3} />
@@ -360,7 +310,6 @@ const TethraTradingScene = ({ scrollProgress = 0 }: TethraTradingSceneProps) => 
       {/* Scene Elements */}
       <GridFloor />
       <WireframePlanes scrollProgress={scrollProgress} />
-      <CentralLogo />
       <OrbitingRings />
       <GradientParticles />
 

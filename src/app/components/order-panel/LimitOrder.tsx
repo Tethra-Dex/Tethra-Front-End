@@ -40,9 +40,10 @@ interface MarketSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (market: Market) => void;
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSelect }) => {
+const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSelect, triggerRef }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -52,15 +53,21 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        onClose();
+      const target = event.target as Node;
+      // Ignore clicks on the trigger button or inside the panel
+      if (
+        (panelRef.current && panelRef.current.contains(target)) ||
+        (triggerRef?.current && triggerRef.current.contains(target))
+      ) {
+        return;
       }
+      onClose();
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, triggerRef]);
 
   if (!isOpen) return null;
 
@@ -124,6 +131,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const [takeProfitPrice, setTakeProfitPrice] = useState<string>('');
   const [stopLossPrice, setStopLossPrice] = useState<string>('');
   const [tpSlUnit, setTpSlUnit] = useState<'price' | 'percentage'>('percentage');
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
 
@@ -359,34 +367,39 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       <div>
         <label className="text-xs text-gray-400 mb-1 block">{activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}</label>
         <div className="bg-[#1A2332] rounded-lg p-3 relative">
-          <div className="flex justify-between items-center mb-2">
+          <div className="flex justify-between items-center mb-2 gap-2">
             <input
               type="text"
               placeholder="0.0"
               value={activeTab === 'swap' ? (payAmount && effectiveOraclePrice > 0 ? formatTokenAmount(payUsdValue / effectiveOraclePrice) : '') : (tokenAmount > 0 ? formatTokenAmount(tokenAmount) : '')}
               readOnly
-              className="bg-transparent text-2xl text-white outline-none w-full"
+              className="bg-transparent text-2xl text-white outline-none flex-1 min-w-0"
             />
             <button
+              ref={triggerButtonRef}
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-              className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative"
+              className="flex items-center gap-1.5 bg-transparent rounded-lg px-2 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
             >
               <img
                 src={activeMarket.logoUrl}
                 alt={activeMarket.symbol}
-                className="w-5 h-5 rounded-full"
+                className="w-5 h-5 rounded-full flex-shrink-0"
                 onError={(e) => {
                   const target = e.currentTarget;
                   target.style.display = 'none';
                 }}
               />
-              {activeTab === 'swap' ? activeMarket.symbol : `${activeMarket.symbol}/USD`}
-              <ChevronDown size={14} />
+              <span className="whitespace-nowrap">{activeTab === 'swap' ? activeMarket.symbol : `${activeMarket.symbol}/USD`}</span>
+              <ChevronDown
+                size={14}
+                className={`flex-shrink-0 transition-transform duration-200 ${isMarketSelectorOpen ? 'rotate-180' : ''}`}
+              />
             </button>
             <MarketSelector
               isOpen={isMarketSelectorOpen}
               onClose={() => setIsMarketSelectorOpen(false)}
               onSelect={handleMarketSelect}
+              triggerRef={triggerButtonRef}
             />
           </div>
           <div className="flex justify-between text-xs">
@@ -469,7 +482,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             })}
 
             <div
-              className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
+              className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-grab active:cursor-grabbing"
               style={{
                 left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
                 transform: 'translate(-50%, -50%)'
@@ -484,7 +497,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             step="1"
             value={getCurrentSliderIndex()}
             onChange={handleLeverageChange}
-            className="absolute inset-0 w-full opacity-0 cursor-pointer"
+            className="absolute inset-0 w-full opacity-0 cursor-grab active:cursor-grabbing"
           />
 
           <div className="absolute top-full mt-0.5 left-0 right-0">
