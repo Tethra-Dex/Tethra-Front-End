@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Info } from 'lucide-react';
+import { ChevronDown, Info, Star } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { baseSepolia } from 'wagmi/chains';
@@ -47,11 +47,31 @@ interface MarketSelectorProps {
 
 const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSelect, triggerRef }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const toggleFavorite = (symbol: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(symbol)) {
+        newFavorites.delete(symbol);
+      } else {
+        newFavorites.add(symbol);
+      }
+      return newFavorites;
+    });
+  };
 
   const filteredMarkets = ALL_MARKETS.filter(market =>
     market.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    const aIsFav = favorites.has(a.symbol);
+    const bIsFav = favorites.has(b.symbol);
+    if (aIsFav && !bIsFav) return -1;
+    if (!aIsFav && bIsFav) return 1;
+    return 0;
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,7 +96,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
   return (
     <div
       ref={panelRef}
-      className="absolute top-full mt-1 left-0 w-full max-h-60 bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden"
+      className="absolute top-full mt-1 right-0 w-fit min-w-[200px] max-h-[400px] bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden"
     >
       <div className="p-2 border-b border-[#2D3748]">
         <input
@@ -88,28 +108,42 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
           autoFocus
         />
       </div>
-      <div className="overflow-y-auto max-h-48 custom-scrollbar-dark">
-        {filteredMarkets.map(market => (
-          <div
-            key={market.symbol}
-            onClick={() => {
-              onSelect(market);
-              onClose();
-            }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-[#2D3748] cursor-pointer transition-colors"
-          >
-            <img
-              src={market.logoUrl}
-              alt={market.symbol}
-              className="w-5 h-5 rounded-full"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
+      <div className="overflow-y-auto max-h-[350px] custom-scrollbar-dark">
+        {filteredMarkets.map(market => {
+          const isFavorite = favorites.has(market.symbol);
+          return (
+            <div
+              key={market.symbol}
+              onClick={() => {
+                onSelect(market);
+                onClose();
               }}
-            />
-            <span className="text-white font-medium">{market.symbol}/USD</span>
-          </div>
-        ))}
+              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-[#2D3748] cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <img
+                  src={market.logoUrl}
+                  alt={market.symbol}
+                  className="w-5 h-5 rounded-full"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
+                />
+                <span className="text-white font-medium whitespace-nowrap">{market.symbol}/USD</span>
+              </div>
+              <button
+                onClick={(e) => toggleFavorite(market.symbol, e)}
+                className="p-1 hover:bg-[#3D4A5F] rounded transition-colors"
+              >
+                <Star
+                  size={14}
+                  className={`${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'} transition-colors`}
+                />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
