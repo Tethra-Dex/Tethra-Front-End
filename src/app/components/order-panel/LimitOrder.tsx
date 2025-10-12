@@ -343,7 +343,6 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity">
               <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-xs">$</div>
               USDC
-              <ChevronDown size={14} />
             </button>
           </div>
           <div className="flex justify-between text-xs">
@@ -535,7 +534,6 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               <span className="text-gray-400">Pool</span>
               <button className="flex items-center gap-1 text-white cursor-pointer">
                 {activeMarket.symbol}-USDC
-                <ChevronDown size={14} />
               </button>
             </div>
           </div>
