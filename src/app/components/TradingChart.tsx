@@ -84,19 +84,74 @@ interface MarketSelectorProps {
     markets: Market[];
     onSelect: (symbol: string) => void;
     allPrices: Record<string, string>;
+    marketDataMap: Record<string, MarketData>;
+    futuresDataMap: Record<string, FuturesData>;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, markets, onSelect, allPrices, triggerRef }) => {
+const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, markets, onSelect, allPrices, marketDataMap, futuresDataMap, triggerRef }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState<'price' | '24hChange' | '24hVolume' | 'fundingRate' | 'openInterest' | null>(null);
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
     const panelRef = useRef<HTMLDivElement>(null);
+
+    const handleSort = (column: 'price' | '24hChange' | '24hVolume' | 'fundingRate' | 'openInterest') => {
+        if (sortBy === column) {
+            // Cycle through: desc -> asc -> null
+            if (sortOrder === 'desc') {
+                setSortOrder('asc');
+            } else if (sortOrder === 'asc') {
+                setSortBy(null);
+                setSortOrder(null);
+            }
+        } else {
+            // First click: sort descending (largest first)
+            setSortBy(column);
+            setSortOrder('desc');
+        }
+    };
 
     const filteredMarkets = useMemo(() => {
         if (!markets) return [];
-        return markets.filter(market =>
+        let filtered = markets.filter(market =>
             market.symbol.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [markets, searchTerm]);
+
+        // Apply sorting if active
+        if (sortBy && sortOrder) {
+            filtered = [...filtered].sort((a, b) => {
+                let aValue = 0;
+                let bValue = 0;
+
+                switch (sortBy) {
+                    case 'price':
+                        aValue = parseFloat(allPrices[a.binanceSymbol] || '0');
+                        bValue = parseFloat(allPrices[b.binanceSymbol] || '0');
+                        break;
+                    case '24hChange':
+                        aValue = parseFloat(marketDataMap[a.binanceSymbol]?.priceChangePercent || '0');
+                        bValue = parseFloat(marketDataMap[b.binanceSymbol]?.priceChangePercent || '0');
+                        break;
+                    case '24hVolume':
+                        aValue = parseFloat(marketDataMap[a.binanceSymbol]?.volume24h || '0');
+                        bValue = parseFloat(marketDataMap[b.binanceSymbol]?.volume24h || '0');
+                        break;
+                    case 'fundingRate':
+                        aValue = parseFloat(futuresDataMap[a.binanceSymbol]?.fundingRate || '0');
+                        bValue = parseFloat(futuresDataMap[b.binanceSymbol]?.fundingRate || '0');
+                        break;
+                    case 'openInterest':
+                        aValue = parseFloat(futuresDataMap[a.binanceSymbol]?.openInterestValue || '0');
+                        bValue = parseFloat(futuresDataMap[b.binanceSymbol]?.openInterestValue || '0');
+                        break;
+                }
+
+                return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
+            });
+        }
+
+        return filtered;
+    }, [markets, searchTerm, sortBy, sortOrder, allPrices, marketDataMap, futuresDataMap]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -117,24 +172,115 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
     if (!isOpen) return null;
 
     return (
-        <div 
-            ref={panelRef} 
-            className="absolute top-full mt-2 left-0 w-80 max-h-[60vh] bg-[#171B26] border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden"
+        <div
+            ref={panelRef}
+            className="absolute top-full mt-2 left-0 w-[900px] max-h-[60vh] bg-[#171B26] border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden"
         >
             <div className="p-4 border-b border-slate-800">
-                <input 
-                    type="text" 
-                    placeholder="Search Market" 
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                    value={searchTerm} 
-                    onChange={(e) => setSearchTerm(e.target.value)} 
-                    autoFocus 
+                <input
+                    type="text"
+                    placeholder="Search Market"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus
                 />
+            </div>
+            {/* Header Row */}
+            <div className="grid grid-cols-6 gap-3 px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800/50 border-b border-slate-700 sticky top-0">
+                <div>Market</div>
+                <div
+                    className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+                    onClick={() => handleSort('price')}
+                >
+                    Price
+                    {sortBy === 'price' ? (
+                        <span className="text-blue-400">
+                            {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                    ) : (
+                        <span className="flex flex-col text-[8px] leading-none text-slate-500">
+                            <span>▲</span>
+                            <span>▼</span>
+                        </span>
+                    )}
+                </div>
+                <div
+                    className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+                    onClick={() => handleSort('24hChange')}
+                >
+                    24h Change
+                    {sortBy === '24hChange' ? (
+                        <span className="text-blue-400">
+                            {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                    ) : (
+                        <span className="flex flex-col text-[8px] leading-none text-slate-500">
+                            <span>▲</span>
+                            <span>▼</span>
+                        </span>
+                    )}
+                </div>
+                <div
+                    className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+                    onClick={() => handleSort('24hVolume')}
+                >
+                    24h Volume
+                    {sortBy === '24hVolume' ? (
+                        <span className="text-blue-400">
+                            {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                    ) : (
+                        <span className="flex flex-col text-[8px] leading-none text-slate-500">
+                            <span>▲</span>
+                            <span>▼</span>
+                        </span>
+                    )}
+                </div>
+                <div
+                    className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+                    onClick={() => handleSort('fundingRate')}
+                >
+                    Funding Rate
+                    {sortBy === 'fundingRate' ? (
+                        <span className="text-blue-400">
+                            {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                    ) : (
+                        <span className="flex flex-col text-[8px] leading-none text-slate-500">
+                            <span>▲</span>
+                            <span>▼</span>
+                        </span>
+                    )}
+                </div>
+                <div
+                    className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+                    onClick={() => handleSort('openInterest')}
+                >
+                    Open Interest
+                    {sortBy === 'openInterest' ? (
+                        <span className="text-blue-400">
+                            {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                    ) : (
+                        <span className="flex flex-col text-[8px] leading-none text-slate-500">
+                            <span>▲</span>
+                            <span>▼</span>
+                        </span>
+                    )}
+                </div>
             </div>
             <div className="flex-grow overflow-y-auto custom-scrollbar-slate">
                 {filteredMarkets.length > 0 ? (
                     filteredMarkets.map(market => {
                         const price = allPrices[market.binanceSymbol];
+                        const marketData = marketDataMap[market.binanceSymbol];
+                        const futuresData = futuresDataMap[market.binanceSymbol];
+                        const priceChangePercent = marketData?.priceChangePercent ? parseFloat(marketData.priceChangePercent) : 0;
+                        const isPositive = priceChangePercent >= 0;
+                        const fundingRate = futuresData ? parseFloat(futuresData.fundingRate) : 0;
+                        const isFundingPositive = fundingRate >= 0;
+
                         return (
                             <div
                                 key={market.symbol}
@@ -142,7 +288,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                                     onSelect(market.symbol);
                                     onClose();
                                 }}
-                                className="grid grid-cols-2 items-center gap-3 px-4 py-3 text-sm border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition-colors"
+                                className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition-colors"
                             >
                                 <div className="flex items-center gap-3">
                                     <img
@@ -159,6 +305,30 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                                 </div>
                                 <div className="text-right font-mono text-slate-200">
                                     {price ? `$${parseFloat(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+                                </div>
+                                <div className="text-right">
+                                    {marketData?.priceChangePercent ? (
+                                        <span className={`font-semibold font-mono ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                            {isPositive ? '+' : ''}{priceChangePercent.toFixed(2)}%
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-500">--</span>
+                                    )}
+                                </div>
+                                <div className="text-right font-mono text-slate-200">
+                                    {marketData?.volume24h ? formatVolume(parseFloat(marketData.volume24h)) : '--'}
+                                </div>
+                                <div className="text-right">
+                                    {futuresData ? (
+                                        <span className={`font-semibold font-mono ${isFundingPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                            {formatFundingRate(fundingRate)}
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-500">--</span>
+                                    )}
+                                </div>
+                                <div className="text-right font-mono text-slate-200">
+                                    {futuresData?.openInterestValue ? formatVolume(parseFloat(futuresData.openInterestValue)) : '--'}
                                 </div>
                             </div>
                         );
@@ -186,6 +356,8 @@ interface ChartHeaderProps {
     marketData: MarketData | null;
     futuresData: FuturesData | null;
     allPrices: Record<string, string>;
+    marketDataMap: Record<string, MarketData>;
+    futuresDataMap: Record<string, FuturesData>;
     oraclePrice: OraclePrice | null;
     onSymbolChangeClick: () => void;
     isMarketSelectorOpen: boolean;
@@ -245,6 +417,8 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         markets={props.markets}
                         onSelect={props.onSelect}
                         allPrices={props.allPrices}
+                        marketDataMap={props.marketDataMap}
+                        futuresDataMap={props.futuresDataMap}
                         triggerRef={props.triggerRef}
                     />
                 </div>
@@ -661,6 +835,8 @@ const TradingChart: React.FC = () => {
                     marketData={currentMarketData}
                     futuresData={currentFuturesData}
                     allPrices={allPrices}
+                    marketDataMap={marketDataMap}
+                    futuresDataMap={futuresDataMap}
                     oraclePrice={currentOraclePrice}
                     onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
                     isMarketSelectorOpen={isMarketSelectorOpen}

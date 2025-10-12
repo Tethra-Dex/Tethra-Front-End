@@ -135,6 +135,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const [takeProfitPrice, setTakeProfitPrice] = useState<string>('');
   const [stopLossPrice, setStopLossPrice] = useState<string>('');
   const [tpSlUnit, setTpSlUnit] = useState<'price' | 'percentage'>('percentage');
+  const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   // Trading hooks - Use GASLESS relay for transactions
@@ -252,6 +253,15 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
     const value = leverageValues[index];
     setLeverage(value);
     setLeverageInput(value.toFixed(1));
+    setShowLeverageTooltip(true);
+  };
+
+  const handleLeverageMouseDown = () => {
+    setShowLeverageTooltip(true);
+  };
+
+  const handleLeverageMouseUp = () => {
+    setShowLeverageTooltip(false);
   };
   
   const getCurrentSliderIndex = () => {
@@ -533,6 +543,22 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                 transform: 'translate(-50%, -50%)'
               }}
             />
+
+            {/* Leverage Tooltip */}
+            {showLeverageTooltip && (
+              <div
+                className="absolute -top-12 -translate-x-1/2 transition-opacity duration-200"
+                style={{
+                  left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                }}
+              >
+                <div className="relative bg-blue-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                  <span className="text-sm font-bold">{formatLeverage(leverage)}x</span>
+                  {/* Arrow pointing down */}
+                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
+                </div>
+              </div>
+            )}
           </div>
 
           <input
@@ -542,6 +568,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             step="1"
             value={getCurrentSliderIndex()}
             onChange={handleLeverageChange}
+            onMouseDown={handleLeverageMouseDown}
+            onMouseUp={handleLeverageMouseUp}
+            onTouchStart={handleLeverageMouseDown}
+            onTouchEnd={handleLeverageMouseUp}
             className="absolute inset-0 w-full opacity-0 cursor-grab active:cursor-grabbing"
           />
 
@@ -578,7 +608,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             <span className="text-gray-400">Pool</span>
             <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-400 transition-colors">
               {activeMarket?.symbol || 'BTC'}-USDC
-              <ChevronDown size={14} />
+              
             </button>
           </div>
 
@@ -589,7 +619,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             </div>
             <button className="flex items-center gap-1 text-white hover:text-blue-400 transition-colors">
               USDC
-              <ChevronDown size={14} />
+              
             </button>
           </div>
         </>

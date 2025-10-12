@@ -126,6 +126,7 @@ const TapToTrade: React.FC = () => {
   const [yCoordinate, setYCoordinate] = useState<string>('');
   const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
+  const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
 
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
@@ -213,6 +214,15 @@ const TapToTrade: React.FC = () => {
     const value = leverageValues[index];
     setLeverage(value);
     setLeverageInput(value.toFixed(1));
+    setShowLeverageTooltip(true);
+  };
+
+  const handleLeverageMouseDown = () => {
+    setShowLeverageTooltip(true);
+  };
+
+  const handleLeverageMouseUp = () => {
+    setShowLeverageTooltip(false);
   };
 
   const getCurrentSliderIndex = () => {
@@ -353,6 +363,22 @@ const TapToTrade: React.FC = () => {
                 transform: 'translate(-50%, -50%)'
               }}
             />
+
+            {/* Leverage Tooltip */}
+            {showLeverageTooltip && (
+              <div
+                className="absolute -top-12 -translate-x-1/2 transition-opacity duration-200"
+                style={{
+                  left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                }}
+              >
+                <div className="relative bg-blue-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                  <span className="text-sm font-bold">{leverage.toFixed(1)}x</span>
+                  {/* Arrow pointing down */}
+                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
+                </div>
+              </div>
+            )}
           </div>
 
           <input
@@ -362,6 +388,10 @@ const TapToTrade: React.FC = () => {
             step="1"
             value={getCurrentSliderIndex()}
             onChange={handleLeverageChange}
+            onMouseDown={handleLeverageMouseDown}
+            onMouseUp={handleLeverageMouseUp}
+            onTouchStart={handleLeverageMouseDown}
+            onTouchEnd={handleLeverageMouseUp}
             className="absolute inset-0 w-full opacity-0 cursor-pointer"
           />
 
