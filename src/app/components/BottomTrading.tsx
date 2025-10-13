@@ -7,6 +7,7 @@ import { usePrice } from '@/hooks/usePrices';
 import { useGaslessClose } from '@/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
+import PendingOrdersTable from './PendingOrdersTable';
 
 // Component to display individual position
 const PositionRow = ({ 
@@ -286,7 +287,7 @@ const BottomTrading = () => {
           </div>
         );
       case 'Orders':
-        return <div className="text-center py-16 text-gray-500">No open orders</div>;
+        return <PendingOrdersTable />;
       case 'Trades':
         return <div className="text-center py-16 text-gray-500">No trades found</div>;
       case 'Claims':

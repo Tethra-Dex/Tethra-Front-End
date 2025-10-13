@@ -39,6 +39,16 @@ export interface AffordabilityCheck {
   requiredFormatted: string;
 }
 
+export interface LimitExecutionFeeEstimate {
+  orderType: string;
+  gasEstimate: string;
+  baseCost: string;
+  baseCostFormatted: string;
+  bufferBps: number;
+  recommendedMaxExecutionFee: string;
+  recommendedFormatted: string;
+}
+
 /**
  * Relay a transaction through backend (gasless)
  */
@@ -132,6 +142,33 @@ export async function getRelayStatus(): Promise<{
 
   if (!result.success) {
     throw new Error(result.error || 'Failed to get relay status');
+  }
+
+  return result.data;
+}
+
+/**
+ * Get recommended execution fee for limit orders
+ */
+export async function getLimitExecutionFee(
+  orderType: 'limit_open' | 'limit_close' | 'stop_loss' = 'limit_open',
+  options: { estimatedGas?: string; bufferBps?: number } = {}
+): Promise<LimitExecutionFeeEstimate> {
+  const params = new URLSearchParams({ orderType });
+
+  if (options.estimatedGas) {
+    params.set('estimatedGas', options.estimatedGas);
+  }
+
+  if (options.bufferBps !== undefined) {
+    params.set('bufferBps', options.bufferBps.toString());
+  }
+
+  const response = await fetch(`${BACKEND_API_URL}/api/relay/limit/execution-fee?${params.toString()}`);
+  const result = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to estimate execution fee');
   }
 
   return result.data;

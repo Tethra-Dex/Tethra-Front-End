@@ -5,6 +5,7 @@ import { useMarket } from '../../contexts/MarketContext';
 import { usePrivy } from '@privy-io/react-auth';
 import { createPublicClient, http, formatUnits } from 'viem';
 import { baseSepolia } from 'wagmi/chains';
+import { useLimitOrderSubmit } from './LimitOrderIntegration';
 
 // USDC Contract Address on Base Sepolia
 const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
@@ -161,12 +162,16 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const [oraclePrice, setOraclePrice] = useState<number | null>(null);
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [payAmount, setPayAmount] = useState<string>('');
+  const [limitPrice, setLimitPrice] = useState<string>('');
   const [isTpSlEnabled, setIsTpSlEnabled] = useState(false);
   const [takeProfitPrice, setTakeProfitPrice] = useState<string>('');
   const [stopLossPrice, setStopLossPrice] = useState<string>('');
   const [tpSlUnit, setTpSlUnit] = useState<'price' | 'percentage'>('percentage');
   const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Hook to submit limit order + execution fee info
+  const { submitLimitOrder, isProcessing, executionFee } = useLimitOrderSubmit();
 
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
 
@@ -466,6 +471,13 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           <input
             type="text"
             placeholder="0.0"
+            value={limitPrice}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                setLimitPrice(value);
+              }
+            }}
             className="bg-transparent text-xl text-white outline-none w-full"
           />
           {activeTab === 'swap' ? (
@@ -713,8 +725,31 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       )}
 
       {/* Enter an amount / Position Size */}
-      <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
-        {payAmount ? (activeTab === 'swap' ? `Swap Amount: ${formatPrice(payUsdValue)}` : `Position Size: ${formatPrice(longShortUsdValue)}`) : 'Enter an amount'}
+      <div className="border-t border-[#1A202C] pt-3">
+        <button
+          onClick={async () => {
+            if (!activeMarket) return;
+            await submitLimitOrder({
+              symbol: activeMarket.symbol,
+              isLong: activeTab === 'long',
+              collateral: payAmount || '0',
+              leverage,
+              triggerPrice: limitPrice || '0',
+            });
+          }}
+          disabled={!authenticated || !payAmount || !limitPrice || isProcessing || activeTab === 'swap'}
+          className={`w-full py-4 rounded-lg font-bold text-white transition-all duration-200 ${
+            !authenticated || !payAmount || !limitPrice || isProcessing || activeTab === 'swap'
+              ? 'bg-gray-600 cursor-not-allowed opacity-50'
+              : activeTab === 'long'
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-red-600 hover:bg-red-700'
+          }`}
+        >
+          {isProcessing
+            ? 'Processing...'
+            : `Create Limit ${activeTab === 'long' ? 'Long' : 'Short'} Order`}
+        </button>
       </div>
 
       {/* Collapsible sections */}
@@ -727,6 +762,14 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           <span className="text-gray-400">Liquidation Price</span>
           <span className="text-white">-</span>
         </div>
+        {activeTab !== 'swap' && (
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-gray-400">Execution Fee</span>
+            </div>
+            <span className="text-white">${executionFee} USDC</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-gray-400">Price Impact / Fees</span>
           <span className="text-white">0.000% / 0.000%</span>
