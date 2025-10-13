@@ -43,6 +43,8 @@ export async function getSignedPrice(symbol: string): Promise<SignedPriceData> {
 
     const result: SignedPriceResponse = await response.json();
 
+    console.log('asdadads', result)
+
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Failed to get signed price');
     }
