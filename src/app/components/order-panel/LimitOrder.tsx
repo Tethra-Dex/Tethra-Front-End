@@ -171,7 +171,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   // Hook to submit limit order + execution fee info
-  const { submitLimitOrder, isProcessing, executionFee } = useLimitOrderSubmit();
+  const { submitLimitOrder, isProcessing, executionFee, executionFeeError } = useLimitOrderSubmit();
 
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
 
@@ -766,8 +766,11 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-1">
               <span className="text-gray-400">Execution Fee</span>
+              <Info size={12} className="text-gray-500" />
             </div>
-            <span className="text-white">${executionFee} USDC</span>
+            <span className={`${executionFeeError ? 'text-red-400' : 'text-white'}`}>
+              {executionFeeError ? 'Failed to load' : `$${executionFee} USDC`}
+            </span>
           </div>
         )}
         <div className="flex justify-between">

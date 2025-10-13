@@ -20,7 +20,7 @@ import { toast } from 'react-hot-toast';
 export function useLimitOrderSubmit() {
   const { createOrder, isPending: isCreatingOrder, isSuccess, submission } = useCreateLimitOpenOrder();
   const { approve, hasAllowance, isPending: isApproving } = useApproveUSDCForLimitOrders();
-  const { executionFee, executionFeeFormatted, isLoading: isFeeLoading } = useExecutionFee();
+  const { executionFee, executionFeeFormatted, isLoading: isFeeLoading, error: executionFeeError } = useExecutionFee();
   const { tradingFeeBps } = useLimitExecutorConfig();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -47,9 +47,10 @@ export function useLimitOrderSubmit() {
 
       if (!executionFee || executionFee <= 0n) {
         if (isFeeLoading) {
-          toast.error('Execution fee is still loading, please retry in a moment');
+          toast.error('Execution fee is still loading, please wait...');
         } else {
-          toast.error('Unable to load execution fee estimate');
+          toast.error('Unable to load execution fee. Please check if backend is running at http://localhost:3001');
+          console.error('Execution fee details:', { executionFee, isFeeLoading });
         }
         return false;
       }
@@ -67,15 +68,16 @@ export function useLimitOrderSubmit() {
         return false;
       }
 
-      // 3. Check and approve USDC if needed
+      // 3. Check and approve USDC if needed (UNLIMITED APPROVAL - once only!)
+      const UNLIMITED_APPROVAL = '1000000000'; // 1B USDC (effectively unlimited)
       if (!hasAllowance(cost.totalCostFormatted)) {
-        toast.loading('Approving USDC...', { id: 'limit-order-approve' });
-        await approve(cost.totalCostFormatted);
-        toast.success('USDC approved!', { id: 'limit-order-approve' });
+        toast.loading('Approving USDC for limit orders (one-time only)...', { id: 'limit-order-approve' });
+        await approve(UNLIMITED_APPROVAL);
+        toast.success('USDC approved! You can now create limit orders without approval.', { id: 'limit-order-approve' });
       }
 
-      // 4. Create limit order (sign + submit to keeper)
-      toast.loading('Signing limit order...', { id: 'limit-order-create' });
+      // 4. Create limit order (sign + submit to keeper) - GASLESS!
+      toast.loading('Signing limit order (gasless)...', { id: 'limit-order-create' });
       await createOrder({
         symbol: params.symbol,
         isLong: params.isLong,
@@ -102,6 +104,7 @@ export function useLimitOrderSubmit() {
     isSuccess,
     lastSubmission: submission,
     executionFee: executionFeeFormatted,
+    executionFeeError,
   };
 }
 
