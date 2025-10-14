@@ -506,7 +506,7 @@ export function calculatePositionCost(
     }
 
     const positionSize = collateral * leverage;
-    const tradingFee = (positionSize * tradingFeeBps) / 10000;
+    const tradingFee = (positionSize * tradingFeeBps) / 100000;
     const totalCost = collateral + tradingFee;
 
     return {
