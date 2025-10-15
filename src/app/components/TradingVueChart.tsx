@@ -102,22 +102,41 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                         },
                         grid: {
                             horizontal: {
-                                color: '#1D2029'
+                                color: '#1D2029',
+                                show: true
                             },
                             vertical: {
-                                color: '#1D2029'
+                                color: '#1D2029',
+                                show: true
                             }
                         },
                         xAxis: {
                             size: 'auto'
                         },
                         yAxis: {
-                            size: 'auto'
+                            size: 'auto',
+                            type: 'normal' // Use normal scale for dollar-based grid
                         }
                     }
                 });
 
                 chartRef.current = chart;
+
+                // Set initial bar space for better grid visibility
+                // Adjust based on timeframe for optimal grid spacing
+                const getBarSpaceForTimeframe = (timeframe: string) => {
+                    const tf = parseInt(timeframe) || 60;
+                    if (tf <= 1) return 8;      // 1 minute
+                    if (tf <= 5) return 10;     // 5 minutes
+                    if (tf <= 15) return 12;    // 15 minutes
+                    if (tf <= 60) return 15;    // 1 hour
+                    if (tf <= 240) return 18;   // 4 hours
+                    return 20;                  // Daily
+                };
+
+                const initialBarSpace = getBarSpaceForTimeframe(interval);
+                chart.setBarSpace(initialBarSpace);
+                console.log(`📊 Set bar space to ${initialBarSpace}px for ${interval} timeframe`);
 
                 // Fetch historical candles
                 const candles = await binanceDataFeed.fetchCandles(symbol, interval, 500);
@@ -497,6 +516,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                     selectedCells={gridTrading.selectedCells}
                     currentPrice={parseFloat(currentPrice) || 0}
                     onCellClick={gridTrading.handleCellTap}
+                    interval={interval}
                 />
             </div>
         </div>

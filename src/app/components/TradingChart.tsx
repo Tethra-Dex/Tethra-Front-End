@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import WalletConnectButton from './WalletConnectButton';
 import TradingVueChart from './TradingVueChart';
+import SimpleLineChart from './SimpleLineChart';
 
 interface Market {
     symbol: string;
@@ -397,7 +398,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
 
     return (
         <div
-            className="flex flex-wrap items-center justify-between border-b border-slate-800"
+            className="flex flex-wrap items-center justify-between"
             style={{
                 padding: '0.5rem 1rem',
                 gap: '0.75rem',
@@ -575,6 +576,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
 // Now using TradingVueChart with Binance data
 
 import { useMarket } from '../contexts/MarketContext';
+import { useTapToTrade } from '../contexts/TapToTradeContext';
 
 const TradingChart: React.FC = () => {
     const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice, timeframe, setTimeframe } = useMarket();
@@ -586,6 +588,9 @@ const TradingChart: React.FC = () => {
     const [futuresDataMap, setFuturesDataMap] = useState<Record<string, FuturesData>>({});
     const [oraclePrices, setOraclePrices] = useState<Record<string, OraclePrice>>({});
     const triggerButtonRef = useRef<HTMLButtonElement>(null);
+
+    // Tap to Trade from context
+    const tapToTrade = useTapToTrade();
 
     // Sync activeSymbol with context activeMarket (when changed from MarketOrder)
     useEffect(() => {
@@ -788,6 +793,12 @@ const TradingChart: React.FC = () => {
         setIsMarketSelectorOpen(false);
     };
 
+    // Handle tap to trade cell click
+    const handleTapCellClick = (cellId: string, price: number, time: number, isBuy: boolean) => {
+        tapToTrade.toggleCell(cellId);
+        tapToTrade.setCellData(cellId, { price, time, isBuy });
+    };
+
     return (
         <div className="w-full h-full flex flex-col bg-black text-slate-100">
             {/* Header with flexible height - can be 1 or 2 rows */}
@@ -822,11 +833,26 @@ const TradingChart: React.FC = () => {
                 }}
             >
                 {activeMarket && (
-                    <TradingVueChart
-                        key={`${activeMarket.binanceSymbol}-${timeframe}`}
-                        symbol={activeMarket.binanceSymbol}
-                        interval={timeframe}
-                    />
+                    <>
+                        {tapToTrade.isEnabled ? (
+                            <SimpleLineChart
+                                key={`${activeMarket.binanceSymbol}-${timeframe}-tap`}
+                                symbol={activeMarket.binanceSymbol}
+                                interval={timeframe}
+                                currentPrice={parseFloat(currentMarketData?.price || '0')}
+                                tapToTradeEnabled={true}
+                                gridSize={tapToTrade.gridSizeY}
+                                onCellTap={handleTapCellClick}
+                                selectedCells={tapToTrade.selectedCells}
+                            />
+                        ) : (
+                            <TradingVueChart
+                                key={`${activeMarket.binanceSymbol}-${timeframe}`}
+                                symbol={activeMarket.binanceSymbol}
+                                interval={timeframe}
+                            />
+                        )}
+                    </>
                 )}
             </div>
         </div>
