@@ -9,6 +9,13 @@ interface Market {
   binanceSymbol: string;
 }
 
+interface SelectedPosition {
+  positionId: bigint;
+  symbol: string;
+  entryPrice: number;
+  isLong: boolean;
+}
+
 interface MarketContextType {
   activeMarket: Market;
   setActiveMarket: (market: Market) => void;
@@ -16,6 +23,8 @@ interface MarketContextType {
   setCurrentPrice: (price: string) => void;
   timeframe: string;
   setTimeframe: (timeframe: string) => void;
+  selectedPosition: SelectedPosition | null;
+  setSelectedPosition: (position: SelectedPosition | null) => void;
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
@@ -29,9 +38,19 @@ export const MarketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   });
   const [currentPrice, setCurrentPrice] = useState<string>('0');
   const [timeframe, setTimeframe] = useState<string>('1'); // Default 1 minute
+  const [selectedPosition, setSelectedPosition] = useState<SelectedPosition | null>(null);
 
   return (
-    <MarketContext.Provider value={{ activeMarket, setActiveMarket, currentPrice, setCurrentPrice, timeframe, setTimeframe }}>
+    <MarketContext.Provider value={{
+      activeMarket,
+      setActiveMarket,
+      currentPrice,
+      setCurrentPrice,
+      timeframe,
+      setTimeframe,
+      selectedPosition,
+      setSelectedPosition
+    }}>
       {children}
     </MarketContext.Provider>
   );

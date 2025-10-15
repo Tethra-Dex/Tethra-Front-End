@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { init, dispose } from 'klinecharts';
 import { binanceDataFeed, Candle } from '../services/binanceDataFeed';
+import { useMarket } from '../contexts/MarketContext';
 
 interface TradingVueChartProps {
     symbol: string;
@@ -30,6 +31,8 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
     const [isLoading, setIsLoading] = useState(true);
     const [activeDrawingTool, setActiveDrawingTool] = useState<string | null>(null);
     const [showDrawingTools, setShowDrawingTools] = useState(false);
+    const { selectedPosition } = useMarket();
+    const entryLineid = useRef<string | null>(null);
 
     // Handle drawing tool selection
     const handleDrawingToolSelect = (toolName: string) => {
@@ -246,6 +249,92 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
             }
         };
     }, [symbol, interval]);
+
+    // Draw entry price line when position is selected
+    useEffect(() => {
+        // Wait until loading is complete and chart is ready
+        if (!chartRef.current || isLoading) {
+            console.log('⏳ Chart not ready or loading, skipping entry line draw', { isLoading, hasChart: !!chartRef.current });
+            return;
+        }
+
+        const chartSymbolClean = symbol.replace('USDT', '');
+
+        console.log('🔍 Entry Line Debug:', {
+            selectedPosition,
+            chartSymbol: symbol,
+            chartSymbolClean,
+            matches: selectedPosition ? selectedPosition.symbol === chartSymbolClean : false,
+            isLoading
+        });
+
+        // Remove old entry line if exists
+        if (entryLineid.current) {
+            try {
+                chartRef.current.removeOverlay({ id: entryLineid.current });
+                console.log(`🧹 Removed old entry line: ${entryLineid.current}`);
+            } catch (e) {
+                console.log('Could not remove old overlay:', e);
+            }
+            entryLineid.current = null;
+        }
+
+        // Check if we should draw entry line
+        if (!selectedPosition) {
+            console.log('No position selected');
+            return;
+        }
+
+        // Match symbol
+        if (selectedPosition.symbol !== chartSymbolClean) {
+            console.log(`❌ Symbol mismatch: position=${selectedPosition.symbol}, chart=${chartSymbolClean}`);
+            return;
+        }
+
+        // At this point: chart ready, not loading, position selected and symbol matches
+        const entryPrice = selectedPosition.entryPrice;
+        const isLong = selectedPosition.isLong;
+
+        console.log(`📍 Will draw entry price line at $${entryPrice.toFixed(2)} for ${isLong ? 'Long' : 'Short'} ${selectedPosition.symbol}`);
+
+        // Add delay to ensure chart data is loaded
+        const drawTimeout = setTimeout(() => {
+            if (!chartRef.current) {
+                console.log('❌ Chart ref lost during timeout');
+                return;
+            }
+
+            try {
+                const overlayId = `entry-price-${selectedPosition.positionId.toString()}`;
+
+                // Create simple price line - label will appear on left by default
+                const overlay = {
+                    name: 'priceLine',
+                    id: overlayId,
+                    points: [{ value: entryPrice }],
+                    extendLeft: true,
+                    extendRight: true,
+                    lock: true,
+                    styles: {
+                        line: {
+                            color: '#3b82f6', // Blue line
+                            size: 1, // Thin line
+                            style: 'solid'
+                        }
+                    }
+                };
+
+                chartRef.current.createOverlay(overlay);
+                entryLineid.current = overlayId;
+
+                console.log(`✅ Successfully drew entry price line for ${selectedPosition.symbol} at $${entryPrice.toFixed(2)}`);
+            } catch (error) {
+                console.error('❌ Error drawing entry line:', error);
+            }
+        }, 500); // 500ms delay to ensure chart is fully loaded
+
+        return () => clearTimeout(drawTimeout);
+    }, [selectedPosition, symbol, isLoading]);
 
     return (
         <div

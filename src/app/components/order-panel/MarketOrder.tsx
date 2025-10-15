@@ -177,7 +177,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const { balance: paymasterBalance, isApproving, isDepositing, ensurePaymasterBalance } = usePaymasterFlow();
   const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
 
-  const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
+  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
   const [showPreApprove, setShowPreApprove] = useState(false);
 
   // Check if we have large allowance (> $10,000) - memoized to prevent setState during render

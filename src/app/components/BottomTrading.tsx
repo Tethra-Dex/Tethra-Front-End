@@ -8,17 +8,41 @@ import { useGaslessClose } from '@/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 import PendingOrdersTable from './PendingOrdersTable';
+import { useMarket } from '../contexts/MarketContext';
+
+// List of all markets for matching
+const ALL_MARKETS = [
+  { symbol: 'BTC', tradingViewSymbol: 'BINANCE:BTCUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
+  { symbol: 'ETH', tradingViewSymbol: 'BINANCE:ETHUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
+  { symbol: 'SOL', tradingViewSymbol: 'BINANCE:SOLUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', binanceSymbol: 'SOLUSDT' },
+  { symbol: 'AVAX', tradingViewSymbol: 'BINANCE:AVAXUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png', binanceSymbol: 'AVAXUSDT' },
+  { symbol: 'NEAR', tradingViewSymbol: 'BINANCE:NEARUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png', binanceSymbol: 'NEARUSDT' },
+  { symbol: 'BNB', tradingViewSymbol: 'BINANCE:BNBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png', binanceSymbol: 'BNBUSDT' },
+  { symbol: 'XRP', tradingViewSymbol: 'BINANCE:XRPUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png', binanceSymbol: 'XRPUSDT' },
+  { symbol: 'AAVE', tradingViewSymbol: 'BINANCE:AAVEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9/logo.png', binanceSymbol: 'AAVEUSDT' },
+  { symbol: 'ARB', tradingViewSymbol: 'BINANCE:ARBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png', binanceSymbol: 'ARBUSDT' },
+  { symbol: 'CRV', tradingViewSymbol: 'BINANCE:CRVUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xD533a949740bb3306d119CC777fa900bA034cd52/logo.png', binanceSymbol: 'CRVUSDT' },
+  { symbol: 'DOGE', tradingViewSymbol: 'BINANCE:DOGEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png', binanceSymbol: 'DOGEUSDT' },
+  { symbol: 'ENA', tradingViewSymbol: 'BINANCE:ENAUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x57E114B691Db790C35207b2e685D4A43181e6061/logo.png', binanceSymbol: 'ENAUSDT' },
+  { symbol: 'LINK', tradingViewSymbol: 'BINANCE:LINKUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png', binanceSymbol: 'LINKUSDT' },
+  { symbol: 'MATIC', tradingViewSymbol: 'BINANCE:MATICUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png', binanceSymbol: 'MATICUSDT' },
+  { symbol: 'PEPE', tradingViewSymbol: 'BINANCE:PEPEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6982508145454Ce325dDbE47a25d4ec3d2311933/logo.png', binanceSymbol: 'PEPEUSDT' },
+];
 
 // Component to display individual position
-const PositionRow = ({ 
-  positionId, 
-  onClose 
-}: { 
+const PositionRow = ({
+  positionId,
+  onClose,
+  onPositionClick,
+  isSelected
+}: {
   positionId: bigint;
   onClose: (positionId: bigint, symbol: string) => void;
+  onPositionClick: (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => void;
+  isSelected: boolean;
 }) => {
   const { position, isLoading } = usePosition(positionId);
-  
+
   // Use shared price hook - all positions with same symbol share same price
   const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
   const currentPrice = priceData?.price || null;
@@ -88,8 +112,22 @@ const PositionRow = ({
     return icons[symbol] || '💎';
   };
   
+  const handleRowClick = (e: React.MouseEvent) => {
+    // Don't trigger if clicking on Close button or menu
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) {
+      return;
+    }
+    onPositionClick(position.id, position.symbol, entryPrice, position.isLong);
+  };
+
   return (
-    <tr className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+    <tr
+      onClick={handleRowClick}
+      className={`border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors cursor-pointer ${
+        isSelected ? 'bg-blue-500/10 border-blue-500/30' : ''
+      }`}
+    >
       {/* Position / Market */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
@@ -182,27 +220,48 @@ const BottomTrading = () => {
   const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { address } = useEmbeddedWallet();
   const { closePosition, isPending: isClosing, txHash } = useGaslessClose();
+  const { setActiveMarket, setSelectedPosition, selectedPosition } = useMarket();
   
+  // Handle position click - Switch market and show entry price line
+  const handlePositionClick = (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => {
+    // Find market by symbol
+    const market = ALL_MARKETS.find(m => m.symbol === symbol);
+    if (market) {
+      // Switch trading chart to this market
+      setActiveMarket(market);
+
+      // Set selected position to show entry price line
+      setSelectedPosition({
+        positionId,
+        symbol,
+        entryPrice,
+        isLong
+      });
+
+      console.log(`📍 Switched to ${symbol} market, showing entry price at $${entryPrice.toFixed(2)}`);
+    }
+  };
+
   // Handle close position - GASLESS via backend (hackathon mode 🔥)
   const handleClosePosition = async (positionId: bigint, symbol: string) => {
     if (isClosing) return;
-    
+
     try {
       toast.loading('Closing position gaslessly...', { id: 'close-position' });
-      
-      await closePosition({ 
-        positionId, 
-        symbol 
+
+      await closePosition({
+        positionId,
+        symbol
       });
-      
+
       toast.dismiss('close-position');
       // Success toast will be shown by hook
-      
+
       // Refetch positions after 2 seconds
       setTimeout(() => {
         refetchPositions?.();
       }, 2000);
-      
+
     } catch (error) {
       console.error('Error closing position:', error);
       toast.dismiss('close-position');
@@ -276,10 +335,12 @@ const BottomTrading = () => {
               </thead>
               <tbody>
                 {positionIds.map((positionId) => (
-                  <PositionRow 
-                    key={positionId.toString()} 
-                    positionId={positionId} 
+                  <PositionRow
+                    key={positionId.toString()}
+                    positionId={positionId}
                     onClose={handleClosePosition}
+                    onPositionClick={handlePositionClick}
+                    isSelected={selectedPosition?.positionId === positionId}
                   />
                 ))}
               </tbody>

@@ -178,7 +178,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   // Hook for USDC approval (for one-click trading)
   const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
 
-  const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
+  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
 
   // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
   const hasLargeAllowance = useMemo(() => {
