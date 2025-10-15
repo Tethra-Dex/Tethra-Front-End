@@ -5,7 +5,7 @@ import { useMarket } from '../../contexts/MarketContext';
 import { usePrivy } from '@privy-io/react-auth';
 import { parseUnits } from 'viem';
 import { useLimitOrderSubmit } from './LimitOrderIntegration';
-import { useApproveUSDCForTrading } from '@/hooks/useMarketOrder';
+import { useApproveUSDCForLimitOrders } from '@/hooks/useLimitOrder';
 import { useUSDCBalance } from '@/hooks/useUSDCBalance';
 import { toast } from 'react-hot-toast';
 
@@ -171,8 +171,8 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   // Hook to submit limit order + execution fee info
   const { submitLimitOrder, isProcessing, executionFee, executionFeeError } = useLimitOrderSubmit();
 
-  // Hook for USDC approval (for one-click trading)
-  const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
+  // Hook for USDC approval (for one-click trading) - using LimitExecutor approval
+  const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending, refetchAllowance, isSuccess: isApprovalSuccess } = useApproveUSDCForLimitOrders();
 
   const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
 
@@ -192,11 +192,23 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         id: 'pre-approve',
         duration: 5000
       });
+      // Refetch allowance to update UI immediately
+      setTimeout(() => refetchAllowance(), 1000);
     } catch (error) {
       console.error('Pre-approve error:', error);
       toast.error('Failed to pre-approve USDC', { id: 'pre-approve' });
     }
   };
+
+  // Auto-refetch allowance when approval succeeds
+  useEffect(() => {
+    if (isApprovalSuccess) {
+      const timer = setTimeout(() => {
+        refetchAllowance();
+      }, 2000); // Wait 2 seconds for blockchain confirmation
+      return () => clearTimeout(timer);
+    }
+  }, [isApprovalSuccess, refetchAllowance]);
 
   // Handler untuk mengganti market
   const handleMarketSelect = (market: Market) => {

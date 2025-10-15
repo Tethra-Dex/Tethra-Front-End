@@ -593,6 +593,15 @@ export function useCancelOrder() {
     hash,
   });
 
+  const publicClient = useMemo(
+    () =>
+      createPublicClient({
+        chain: baseSepolia,
+        transport: http(RPC_URL),
+      }),
+    []
+  );
+
   const cancelOrder = useCallback(async (orderId: bigint) => {
     try {
       setIsPending(true);
@@ -610,7 +619,17 @@ export function useCancelOrder() {
         throw new Error('Embedded wallet not found');
       }
 
-      console.log('❌ Cancelling order:', orderId.toString());
+      console.log('❌ Cancelling order GASLESSLY:', orderId.toString());
+
+      // Get user's current nonce from contract
+      const userNonce = (await publicClient.readContract({
+        address: LIMIT_EXECUTOR_ADDRESS,
+        abi: LimitExecutorABI,
+        functionName: 'getUserCurrentNonce',
+        args: [address],
+      })) as bigint;
+
+      console.log('   User nonce:', userNonce.toString());
 
       await embeddedWallet.switchChain(baseSepolia.id);
       const walletClient = await embeddedWallet.getEthereumProvider();
@@ -619,36 +638,43 @@ export function useCancelOrder() {
         throw new Error('Could not get wallet client');
       }
 
-      const data = encodeFunctionData({
-        abi: LimitExecutorABI,
-        functionName: 'cancelOrder',
-        args: [orderId],
+      // Create message to sign: trader, orderId, nonce, contract address, "CANCEL"
+      const messageHash = ethers.solidityPackedKeccak256(
+        ['address', 'uint256', 'uint256', 'address', 'string'],
+        [address, orderId, userNonce, LIMIT_EXECUTOR_ADDRESS, 'CANCEL']
+      );
+
+      // Sign message
+      const signature = await walletClient.request({
+        method: 'personal_sign',
+        params: [messageHash, address],
+      }) as string;
+
+      console.log('   ✅ Signature created');
+
+      // Send to backend for gasless execution
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/relay/cancel-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userAddress: address,
+          orderId: orderId.toString(),
+          signature: signature,
+        }),
       });
 
-      const gasEstimate = await walletClient.request({
-        method: 'eth_estimateGas',
-        params: [{
-          from: address,
-          to: LIMIT_EXECUTOR_ADDRESS,
-          data,
-        }],
-      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to cancel order');
+      }
 
-      const gasLimit = (BigInt(gasEstimate as string) * 120n) / 100n;
+      const result = await response.json();
+      const txHash = result.data.txHash;
 
-      const txHash = await walletClient.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: address,
-          to: LIMIT_EXECUTOR_ADDRESS,
-          data,
-          gas: '0x' + gasLimit.toString(16),
-        }],
-      });
-
-      console.log('✅ Order cancelled! Transaction:', txHash);
+      console.log('✅ Order cancelled gaslessly! Transaction:', txHash);
       setHash(txHash as `0x${string}`);
-      toast.success('Order cancelled successfully!');
+      toast.success('Order cancelled successfully! (No gas fee)');
 
     } catch (err) {
       console.error('❌ Error cancelling order:', err);
@@ -658,7 +684,7 @@ export function useCancelOrder() {
     } finally {
       setIsPending(false);
     }
-  }, [address, wallets]);
+  }, [address, wallets, publicClient]);
 
   return {
     cancelOrder,
