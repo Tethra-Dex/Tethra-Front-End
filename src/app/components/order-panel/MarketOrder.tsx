@@ -8,6 +8,7 @@ import { parseUnits } from 'viem';
 import { useMarketOrderFlow, useRelayMarketOrder, useApproveUSDCForTrading, calculatePositionCost } from '@/hooks/useMarketOrder';
 import { usePaymasterFlow } from '@/hooks/usePaymaster';
 import { useEmbeddedWallet } from '@/hooks/useEmbeddedWallet';
+import { useUSDCBalance } from '@/hooks/useUSDCBalance';
 import { USDC_DECIMALS } from '@/config/contracts';
 import { toast } from 'react-hot-toast';
 
@@ -161,8 +162,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const { address: embeddedAddress, hasEmbeddedWallet } = useEmbeddedWallet();
   const [leverage, setLeverage] = useState(50);
   const [leverageInput, setLeverageInput] = useState<string>('50.0');
-  const [usdcBalance] = useState<string>('1000.00');
-  const [isLoadingBalance] = useState(false);
+  const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const [payAmount, setPayAmount] = useState<string>('');
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [isTpSlEnabled, setIsTpSlEnabled] = useState(false);

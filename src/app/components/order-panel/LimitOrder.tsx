@@ -3,14 +3,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDown, Info, Star } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
 import { usePrivy } from '@privy-io/react-auth';
-import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
-import { baseSepolia } from 'wagmi/chains';
+import { parseUnits } from 'viem';
 import { useLimitOrderSubmit } from './LimitOrderIntegration';
 import { useApproveUSDCForTrading } from '@/hooks/useMarketOrder';
+import { useUSDCBalance } from '@/hooks/useUSDCBalance';
 import { toast } from 'react-hot-toast';
-
-// USDC Contract Address on Base Sepolia
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 interface Market {
   symbol: string;
@@ -159,8 +156,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const { authenticated, user } = usePrivy();
   const [leverage, setLeverage] = useState(50);
   const [leverageInput, setLeverageInput] = useState<string>('50.0');
-  const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const [oraclePrice, setOraclePrice] = useState<number | null>(null);
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [payAmount, setPayAmount] = useState<string>('');
@@ -338,50 +334,6 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       }
     };
   }, [activeMarket]);
-
-  // Fetch USDC balance
-  useEffect(() => {
-    const fetchUsdcBalance = async () => {
-      if (!authenticated || !user?.wallet?.address) {
-        setUsdcBalance('0.00');
-        return;
-      }
-      
-      setIsLoadingBalance(true);
-      try {
-        const publicClient = createPublicClient({
-          chain: baseSepolia,
-          transport: http(),
-        });
-
-        const balance = await publicClient.readContract({
-          address: USDC_ADDRESS,
-          abi: [
-            {
-              constant: true,
-              inputs: [{ name: '_owner', type: 'address' }],
-              name: 'balanceOf',
-              outputs: [{ name: 'balance', type: 'uint256' }],
-              type: 'function',
-            },
-          ],
-          functionName: 'balanceOf',
-          args: [user.wallet.address as `0x${string}`],
-        }) as bigint;
-
-        // USDC has 6 decimals
-        const formattedBalance = formatUnits(balance, 6);
-        setUsdcBalance(parseFloat(formattedBalance).toFixed(2));
-      } catch (error) {
-        console.error('Error fetching USDC balance:', error);
-        setUsdcBalance('0.00');
-      } finally {
-        setIsLoadingBalance(false);
-      }
-    };
-
-    fetchUsdcBalance();
-  }, [authenticated, user?.wallet?.address]);
 
   const formatPrice = (price: number) => {
     if (isNaN(price) || price === 0) return '$0.00';
