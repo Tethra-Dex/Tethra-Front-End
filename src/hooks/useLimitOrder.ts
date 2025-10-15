@@ -59,8 +59,6 @@ export interface Order {
   executedAt: bigint;
   expiresAt: bigint;
   nonce: bigint;
-  maxExecutionFee: bigint;
-  executionFeePaid: bigint;
 }
 
 export interface CreateLimitOpenParams {
@@ -69,7 +67,6 @@ export interface CreateLimitOpenParams {
   collateral: string; // USDC amount
   leverage: number;
   triggerPrice: string; // Price with 8 decimals
-  maxExecutionFee: bigint; // USDC (6 decimals, base units)
   expiresAt?: number; // Optional custom expiry (unix)
 }
 
@@ -298,10 +295,6 @@ export function useCreateLimitOpenOrder() {
         throw new Error('Embedded wallet not found');
       }
 
-      if (!params.maxExecutionFee || params.maxExecutionFee <= 0n) {
-        throw new Error('Invalid execution fee');
-      }
-
       console.log('📝 Preparing limit open order signature:', params);
 
       await embeddedWallet.switchChain(baseSepolia.id);
@@ -315,7 +308,6 @@ export function useCreateLimitOpenOrder() {
       const collateralBigInt = parseUnits(params.collateral, USDC_DECIMALS);
       const triggerPriceBigInt = parseUnits(params.triggerPrice, 8);
       const leverageBigInt = BigInt(Math.round(params.leverage));
-      const maxExecutionFeeBigInt = params.maxExecutionFee;
 
       // Fetch latest user nonce from contract
       const nonce = (await publicClient.readContract({
@@ -333,7 +325,7 @@ export function useCreateLimitOpenOrder() {
       // Prepare message hash for signing
       const messageHash = keccak256(
         encodePacked(
-          ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'address'],
+          ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'address'],
           [
             address,
             params.symbol,
@@ -341,7 +333,6 @@ export function useCreateLimitOpenOrder() {
             collateralBigInt,
             leverageBigInt,
             triggerPriceBigInt,
-            maxExecutionFeeBigInt,
             nonce,
             expiresAt,
             LIMIT_EXECUTOR_ADDRESS,
@@ -365,14 +356,12 @@ export function useCreateLimitOpenOrder() {
         collateral: collateralBigInt.toString(),
         leverage: leverageBigInt.toString(),
         triggerPrice: triggerPriceBigInt.toString(),
-        maxExecutionFee: maxExecutionFeeBigInt.toString(),
         nonce: nonce.toString(),
         expiresAt: expiresAt.toString(),
         signature,
         metadata: {
           collateralUsd: params.collateral,
           triggerPriceUsd: params.triggerPrice,
-          maxExecutionFeeUsd: formatUnits(maxExecutionFeeBigInt, USDC_DECIMALS),
         },
       });
 
@@ -740,8 +729,6 @@ export function useUserPendingOrders() {
       executedAt: order.executedAt || order[11],
       expiresAt: order.expiresAt || order[12],
       nonce: order.nonce || order[13],
-      maxExecutionFee: order.maxExecutionFee || order[14],
-      executionFeePaid: order.executionFeePaid || order[15],
     })) as Order[],
     isLoading,
     refetch,
@@ -787,8 +774,6 @@ export function useOrder(orderId: bigint | undefined) {
     executedAt: orderData.executedAt || orderData[11],
     expiresAt: orderData.expiresAt || orderData[12],
     nonce: orderData.nonce || orderData[13],
-    maxExecutionFee: orderData.maxExecutionFee || orderData[14],
-    executionFeePaid: orderData.executionFeePaid || orderData[15],
   };
 
   return {
@@ -804,7 +789,7 @@ export function useOrder(orderId: bigint | undefined) {
 export function calculateLimitOrderCost(params: {
   collateralUsd: string;
   leverage: number;
-  executionFee: bigint;
+  executionFee?: bigint;
   tradingFeeBps?: bigint;
 }): {
   collateral: bigint;

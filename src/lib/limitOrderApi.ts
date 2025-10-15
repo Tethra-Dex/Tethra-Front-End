@@ -7,14 +7,12 @@ export interface LimitOpenOrderRequest {
   collateral: string; // base units (USDC 6 decimals)
   leverage: string; // integer string
   triggerPrice: string; // base units (8 decimals)
-  maxExecutionFee: string; // base units (USDC 6 decimals)
   nonce: string;
   expiresAt: string;
   signature: `0x${string}`;
   metadata?: {
     collateralUsd?: string;
     triggerPriceUsd?: string;
-    maxExecutionFeeUsd?: string;
   };
 }
 

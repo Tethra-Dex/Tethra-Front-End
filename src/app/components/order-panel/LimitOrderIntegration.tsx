@@ -20,7 +20,7 @@ import { toast } from 'react-hot-toast';
 export function useLimitOrderSubmit() {
   const { createOrder, isPending: isCreatingOrder, isSuccess, submission } = useCreateLimitOpenOrder();
   const { approve, hasAllowance, isPending: isApproving } = useApproveUSDCForLimitOrders();
-  const { executionFee, executionFeeFormatted, isLoading: isFeeLoading, error: executionFeeError } = useExecutionFee();
+  const { executionFee, executionFeeFormatted, error: executionFeeError } = useExecutionFee();
   const { tradingFeeBps } = useLimitExecutorConfig();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -45,21 +45,11 @@ export function useLimitOrderSubmit() {
         return false;
       }
 
-      if (!executionFee || executionFee <= 0n) {
-        if (isFeeLoading) {
-          toast.error('Execution fee is still loading, please wait...');
-        } else {
-          toast.error('Unable to load execution fee. Please check if backend is running at http://localhost:3001');
-          console.error('Execution fee details:', { executionFee, isFeeLoading });
-        }
-        return false;
-      }
-
       // 2. Calculate total cost (collateral + trading fee + execution fee)
       const cost = calculateLimitOrderCost({
         collateralUsd: params.collateral,
         leverage: params.leverage,
-        executionFee,
+        executionFee: executionFee ?? 0n,
         tradingFeeBps,
       });
 
@@ -84,7 +74,6 @@ export function useLimitOrderSubmit() {
         collateral: params.collateral,
         leverage: params.leverage,
         triggerPrice: params.triggerPrice,
-        maxExecutionFee: executionFee,
       });
       toast.success('Limit order created successfully!', { id: 'limit-order-create' });
       return true;
