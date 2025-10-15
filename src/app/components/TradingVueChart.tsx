@@ -31,7 +31,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
     const [isLoading, setIsLoading] = useState(true);
     const [activeDrawingTool, setActiveDrawingTool] = useState<string | null>(null);
     const [showDrawingTools, setShowDrawingTools] = useState(false);
-    const { selectedPosition } = useMarket();
+    const { selectedPosition, chartPositions } = useMarket();
     const entryLineid = useRef<string | null>(null);
 
     // Handle drawing tool selection
@@ -285,6 +285,12 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
             return;
         }
 
+        // Check if chart positions is enabled
+        if (!chartPositions) {
+            console.log('Chart positions disabled');
+            return;
+        }
+
         // Match symbol
         if (selectedPosition.symbol !== chartSymbolClean) {
             console.log(`❌ Symbol mismatch: position=${selectedPosition.symbol}, chart=${chartSymbolClean}`);
@@ -318,8 +324,8 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                     styles: {
                         line: {
                             color: '#3b82f6', // Blue line
-                            size: 1, // Thin line
-                            style: 'solid'
+                            size: 0.5, // Thinner line
+                            style: 'dashed' // Dashed line
                         }
                     }
                 };
@@ -334,7 +340,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
         }, 500); // 500ms delay to ensure chart is fully loaded
 
         return () => clearTimeout(drawTimeout);
-    }, [selectedPosition, symbol, isLoading]);
+    }, [selectedPosition, symbol, isLoading, chartPositions]);
 
     return (
         <div

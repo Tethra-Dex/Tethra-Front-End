@@ -25,6 +25,8 @@ interface MarketContextType {
   setTimeframe: (timeframe: string) => void;
   selectedPosition: SelectedPosition | null;
   setSelectedPosition: (position: SelectedPosition | null) => void;
+  chartPositions: boolean;
+  setChartPositions: (show: boolean) => void;
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
@@ -39,6 +41,7 @@ export const MarketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [currentPrice, setCurrentPrice] = useState<string>('0');
   const [timeframe, setTimeframe] = useState<string>('1'); // Default 1 minute
   const [selectedPosition, setSelectedPosition] = useState<SelectedPosition | null>(null);
+  const [chartPositions, setChartPositions] = useState<boolean>(true);
 
   return (
     <MarketContext.Provider value={{
@@ -49,7 +52,9 @@ export const MarketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       timeframe,
       setTimeframe,
       selectedPosition,
-      setSelectedPosition
+      setSelectedPosition,
+      chartPositions,
+      setChartPositions
     }}>
       {children}
     </MarketContext.Provider>

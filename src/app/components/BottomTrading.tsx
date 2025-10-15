@@ -216,11 +216,10 @@ const PositionRow = ({
 
 const BottomTrading = () => {
   const [activeTab, setActiveTab] = useState('Positions');
-  const [chartPositions, setChartPositions] = useState(true);
   const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { address } = useEmbeddedWallet();
   const { closePosition, isPending: isClosing, txHash } = useGaslessClose();
-  const { setActiveMarket, setSelectedPosition, selectedPosition } = useMarket();
+  const { setActiveMarket, setSelectedPosition, selectedPosition, chartPositions, setChartPositions } = useMarket();
   
   // Handle position click - Switch market and show entry price line
   const handlePositionClick = (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => {
