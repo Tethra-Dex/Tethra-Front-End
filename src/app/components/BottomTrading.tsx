@@ -256,6 +256,11 @@ const BottomTrading = () => {
       toast.dismiss('close-position');
       // Success toast will be shown by hook
 
+      // Clear selected position if it's the one being closed
+      if (selectedPosition?.positionId === positionId) {
+        setSelectedPosition(null);
+      }
+
       // Refetch positions after 2 seconds
       setTimeout(() => {
         refetchPositions?.();
