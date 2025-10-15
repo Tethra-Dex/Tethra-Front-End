@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Info } from 'lucide-react';
+import { ChevronDown, Info, Grid as GridIcon } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
+import { useGridTradingContext } from '../../contexts/GridTradingContext';
 
 interface Market {
   symbol: string;
@@ -117,7 +118,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
 };
 
 const TapToTrade: React.FC = () => {
-  const { activeMarket, setActiveMarket, timeframe, setTimeframe } = useMarket();
+  const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
   const [leverage, setLeverage] = useState(50);
   const [leverageInput, setLeverageInput] = useState<string>('50.0');
   const [marginAmount, setMarginAmount] = useState<string>('');
@@ -128,6 +129,12 @@ const TapToTrade: React.FC = () => {
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
+  
+  // Grid Trading dari Context
+  const gridTrading = useGridTradingContext();
+  
+  // State untuk grid mode
+  const [isGridMode, setIsGridMode] = useState(false);
 
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
 
@@ -444,54 +451,205 @@ const TapToTrade: React.FC = () => {
         </div>
       </div>
 
-      {/* X Coordinate Input */}
-      <div>
-        <label className="text-xs text-gray-400 mb-2 flex items-center gap-1">
-          X Coordinate (Time)
-          <Info size={12} className="text-gray-500" />
-        </label>
-        <div className="bg-[#1A2332] rounded-lg px-3 py-2.5">
-          <input
-            type="text"
-            placeholder="Enter X value"
-            value={xCoordinate}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                setXCoordinate(value);
+
+      {/* Grid Status Banner */}
+      {isGridMode && (
+        <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-3 animate-pulse">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-bold text-green-400">Grid Mode Active</span>
+          </div>
+          <p className="text-xs text-green-300 mt-1">
+            Click grid cells on chart to place orders
+          </p>
+        </div>
+      )}
+
+      {/* Grid Configuration (always shown) */}
+      {true && (
+        <div className="space-y-3 border-t border-[#1A202C] pt-3">
+          <div className="text-xs font-semibold text-gray-400 flex items-center gap-2 mb-2">
+            <GridIcon size={14} />
+            Tap to Trade Grid Settings
+          </div>
+          
+          {/* X Coordinate - Time Multiplier */}
+          <div>
+            <label className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+              X Coordinate (Time Grid)
+              <Info size={12} className="text-gray-500" />
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                value={gridTrading.gridConfig.timeMultiplier}
+                onChange={(e) => gridTrading.updateGridConfig({ timeMultiplier: parseInt(e.target.value) })}
+                className="flex-1 h-2 bg-[#1A2332] rounded-lg appearance-none cursor-pointer accent-green-500"
+              />
+              <div className="bg-[#1A2332] rounded px-3 py-1.5 min-w-[60px] text-center">
+                <span className="text-white font-semibold text-sm">{gridTrading.gridConfig.timeMultiplier}x</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              1 grid = {gridTrading.gridConfig.timeMultiplier} × {selectedTimeframeLabel} candle
+            </p>
+          </div>
+
+          {/* Y Coordinate - Price Grid */}
+          <div>
+            <label className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+              Y Coordinate (Price Grid)
+              <Info size={12} className="text-gray-500" />
+            </label>
+            
+            {/* Grid Type Toggle */}
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => gridTrading.updateGridConfig({ priceGridType: 'percentage' })}
+                className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
+                  gridTrading.gridConfig.priceGridType === 'percentage'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                }`}
+              >
+                %
+              </button>
+              <button
+                onClick={() => gridTrading.updateGridConfig({ priceGridType: 'absolute' })}
+                className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
+                  gridTrading.gridConfig.priceGridType === 'absolute'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                }`}
+              >
+                $
+              </button>
+            </div>
+
+            <div className="bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center gap-2">
+              <input
+                type="number"
+                min="0.1"
+                max={gridTrading.gridConfig.priceGridType === 'percentage' ? '10' : '1000'}
+                step={gridTrading.gridConfig.priceGridType === 'percentage' ? '0.1' : '1'}
+                value={gridTrading.gridConfig.priceGridSize}
+                onChange={(e) => gridTrading.updateGridConfig({ priceGridSize: parseFloat(e.target.value) || 0.1 })}
+                className="bg-transparent text-white outline-none w-full"
+              />
+              <span className="text-gray-400 text-sm">
+                {gridTrading.gridConfig.priceGridType === 'percentage' ? '%' : '$'}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Each grid level is {gridTrading.gridConfig.priceGridSize}
+              {gridTrading.gridConfig.priceGridType === 'percentage' ? '%' : '$'} apart
+            </p>
+          </div>
+
+          {/* Grid Statistics */}
+          {isGridMode && gridTrading.stats.totalCells > 0 && (
+            <div className="bg-[#1A2332] rounded-lg p-3 space-y-2">
+              <div className="text-xs font-semibold text-white mb-2">Selected Cells</div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Total:</span>
+                  <span className="text-white font-semibold">{gridTrading.stats.totalCells}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Orders:</span>
+                  <span className="text-white font-semibold">{gridTrading.stats.totalOrders}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-green-400">Buy:</span>
+                  <span className="text-green-400 font-semibold">{gridTrading.stats.buyOrders}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-red-400">Sell:</span>
+                  <span className="text-red-400 font-semibold">{gridTrading.stats.sellOrders}</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={gridTrading.clearAllCells}
+                className="w-full mt-2 py-1.5 rounded text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition-all"
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
+
+          {/* Instructions when grid mode active but no cells selected */}
+          {isGridMode && gridTrading.stats.totalCells === 0 && (
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs font-semibold text-blue-400">How to Use</span>
+              </div>
+              <ul className="text-xs text-blue-300 space-y-1 ml-1">
+                <li>• Look at the chart - grid overlay is now visible</li>
+                <li>• Click cells <strong className="text-green-400">below current price</strong> → Buy orders</li>
+                <li>• Click cells <strong className="text-red-400">above current price</strong> → Sell orders</li>
+                <li>• Select multiple cells, then click "Place Orders"</li>
+              </ul>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      {!isGridMode ? (
+        <button 
+          onClick={() => {
+            setIsGridMode(true);
+            if (!gridTrading.gridConfig.enabled) {
+              gridTrading.toggleGrid();
+            }
+          }}
+          className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer flex items-center justify-center gap-2"
+        >
+          <GridIcon size={18} />
+          Start Tap to Trade
+        </button>
+      ) : (
+        <div className="mt-2 flex gap-2">
+          <button 
+            onClick={() => {
+              if (gridTrading.stats.totalOrders > 0) {
+                gridTrading.placeGridOrders();
               }
             }}
-            className="bg-transparent text-white outline-none w-full"
-          />
-        </div>
-      </div>
-
-      {/* Y Coordinate Input */}
-      <div>
-        <label className="text-xs text-gray-400 mb-2 flex items-center gap-1">
-          Y Coordinate (Price)
-          <Info size={12} className="text-gray-500" />
-        </label>
-        <div className="bg-[#1A2332] rounded-lg px-3 py-2.5">
-          <input
-            type="text"
-            placeholder="Enter Y value"
-            value={yCoordinate}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                setYCoordinate(value);
+            disabled={gridTrading.stats.totalOrders === 0}
+            className={`flex-1 py-3 rounded-lg font-bold text-white transition-all shadow-lg ${
+              gridTrading.stats.totalOrders === 0
+                ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                : 'bg-green-500 hover:bg-green-600 shadow-green-500/30 hover:cursor-pointer'
+            }`}
+          >
+            {gridTrading.stats.totalOrders > 0
+              ? `Place ${gridTrading.stats.totalOrders} Order${gridTrading.stats.totalOrders !== 1 ? 's' : ''}`
+              : 'Select Grid Cells'
+            }
+          </button>
+          <button
+            onClick={() => {
+              setIsGridMode(false);
+              if (gridTrading.gridConfig.enabled) {
+                gridTrading.toggleGrid();
               }
+              gridTrading.clearAllCells();
             }}
-            className="bg-transparent text-white outline-none w-full"
-          />
+            className="px-4 py-3 rounded-lg font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30 hover:cursor-pointer"
+          >
+            Stop
+          </button>
         </div>
-      </div>
-
-      {/* Action Button */}
-      <button className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer">
-        Start Tap to Trade
-      </button>
+      )}
 
       {/* Info Section */}
       <div className="text-xs text-gray-500 space-y-1 border-t border-[#1A202C] pt-3">

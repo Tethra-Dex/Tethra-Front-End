@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState, memo } from 'react';
 import { init, dispose } from 'klinecharts';
 import { binanceDataFeed, Candle } from '../services/binanceDataFeed';
 import { useMarket } from '../contexts/MarketContext';
+import { useGridTradingContext } from '../contexts/GridTradingContext';
+import CanvasGridOverlay from './CanvasGridOverlay';
+import GridSettingsPanel from './GridSettingsPanel';
 
 interface TradingVueChartProps {
     symbol: string;
@@ -31,8 +34,12 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
     const [isLoading, setIsLoading] = useState(true);
     const [activeDrawingTool, setActiveDrawingTool] = useState<string | null>(null);
     const [showDrawingTools, setShowDrawingTools] = useState(false);
-    const { selectedPosition, chartPositions } = useMarket();
+    const { selectedPosition, chartPositions, currentPrice } = useMarket();
     const entryLineid = useRef<string | null>(null);
+    const [showGridSettings, setShowGridSettings] = useState(false);
+    
+    // Grid Trading dari Context
+    const gridTrading = useGridTradingContext();
 
     // Handle drawing tool selection
     const handleDrawingToolSelect = (toolName: string) => {
@@ -359,6 +366,39 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
 
             {/* Drawing Tools Toolbar */}
             <div className="absolute top-2 left-2 z-20 flex flex-col gap-1" style={{ pointerEvents: 'auto' }}>
+                {/* Toggle Grid Trading Button */}
+                <button
+                    onClick={gridTrading.toggleGrid}
+                    className={`p-2 rounded-lg shadow-lg transition-all duration-200 ${
+                        gridTrading.gridConfig.enabled
+                            ? 'bg-green-500 text-white shadow-green-500/50'
+                            : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700'
+                    }`}
+                    title="Toggle Tap to Trade Grid"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
+                    </svg>
+                </button>
+
+                {/* Toggle Grid Settings Button */}
+                {gridTrading.gridConfig.enabled && (
+                    <button
+                        onClick={() => setShowGridSettings(!showGridSettings)}
+                        className={`p-2 rounded-lg shadow-lg transition-all duration-200 ${
+                            showGridSettings
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700'
+                        }`}
+                        title="Grid Settings"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                )}
+
                 {/* Toggle Drawing Tools Button */}
                 <button
                     onClick={() => setShowDrawingTools(!showDrawingTools)}
@@ -407,12 +447,58 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                         </button>
                     </div>
                 )}
+
+                {/* Grid Settings Panel */}
+                {showGridSettings && gridTrading.gridConfig.enabled && (
+                    <GridSettingsPanel
+                        gridConfig={gridTrading.gridConfig}
+                        onConfigChange={gridTrading.updateGridConfig}
+                        interval={interval}
+                        stats={gridTrading.stats}
+                    />
+                )}
+
+                {/* Grid Action Buttons */}
+                {gridTrading.gridConfig.enabled && gridTrading.stats.totalCells > 0 && (
+                    <div className="bg-slate-800/95 backdrop-blur-sm rounded-lg shadow-xl p-3 border border-slate-700">
+                        <div className="text-xs text-slate-300 mb-2">
+                            <span className="font-semibold">{gridTrading.stats.totalCells}</span> cells selected
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={gridTrading.placeGridOrders}
+                                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-all flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Place Orders
+                            </button>
+                            <button
+                                onClick={gridTrading.clearAllCells}
+                                className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded transition-all"
+                            >
+                                Clear Selection
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div
                 ref={chartContainerRef}
                 className="w-full h-full"
-            />
+                style={{ position: 'relative' }}
+            >
+                {/* Canvas Grid Overlay */}
+                <CanvasGridOverlay
+                    chartRef={chartRef}
+                    gridConfig={gridTrading.gridConfig}
+                    selectedCells={gridTrading.selectedCells}
+                    currentPrice={parseFloat(currentPrice) || 0}
+                    onCellClick={gridTrading.handleCellTap}
+                />
+            </div>
         </div>
     );
 });

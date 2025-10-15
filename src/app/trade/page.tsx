@@ -5,6 +5,7 @@ import TradingChart from '../components/TradingChart';
 import OrderPanel from '../components/OrderPanel';
 import BottomTrading from '../components/BottomTrading';
 import { MarketProvider } from '../contexts/MarketContext';
+import { GridTradingProvider } from '../contexts/GridTradingContext';
 import { useSidebar } from '../contexts/SidebarContext';
 
 export default function TradePage() {
@@ -12,7 +13,8 @@ export default function TradePage() {
 
   return (
     <MarketProvider>
-      <main className="bg-black text-white h-screen flex flex-col" style={{ padding: '0.5rem' }}>
+      <GridTradingProvider>
+        <main className="bg-black text-white h-screen flex flex-col" style={{ padding: '0.5rem' }}>
         <div className="flex flex-col md:flex-row w-full flex-1" style={{ gap: '0.5rem', minHeight: 0 }}>
           {/* Left Sidebar - Full height */}
           <div
@@ -65,6 +67,7 @@ export default function TradePage() {
           </div>
         </div>
       </main>
+      </GridTradingProvider>
     </MarketProvider>
   );
 }
