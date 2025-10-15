@@ -182,7 +182,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
   // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
   const hasLargeAllowance = useMemo(() => {
-    return allowance && allowance > parseUnits('10000', 6);
+    return Boolean(allowance && allowance > parseUnits('10000', 6));
   }, [allowance]);
 
   // Handler untuk pre-approve USDC dalam jumlah besar
@@ -336,7 +336,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const handleOpenPosition = async () => {
     // Moved console.logs to avoid setState during render warnings
     // All logging is now inside the async function
-    
+
     if (!authenticated) {
       toast.error('Please connect your wallet');
       return;
@@ -354,6 +354,16 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
     if (!activeMarket) {
       toast.error('Please select a market');
+      return;
+    }
+
+    // Check if USDC is approved first (only for long/short, not swap)
+    const needsApproval = (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance;
+    if (needsApproval) {
+      toast.error('Please enable One-Click Trading first by approving USDC', {
+        duration: 4000,
+        icon: '⚠️'
+      });
       return;
     }
 
@@ -412,23 +422,24 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   // Get button text based on state
   const getButtonText = () => {
     if (!authenticated) return 'Connect Wallet';
+    if ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance) return '⚡ Enable One-Click Trading First';
     if (isApproving) return 'Approving for Paymaster...';
     if (isDepositing) return 'Depositing to Paymaster...';
     if (isRelayPending) return 'Opening Position (Gasless)...';
     if (!payAmount || parseFloat(payAmount) <= 0) return 'Enter Amount';
-    
+
     if (activeTab === 'long') return `⚡ Long ${activeMarket?.symbol || 'BTC'} (No Gas)`;
     if (activeTab === 'short') return `⚡ Short ${activeMarket?.symbol || 'BTC'} (No Gas)`;
     return 'Swap';
   };
 
-  const isButtonDisabled = !authenticated || 
-    isRelayPending || 
-    isApproving || 
-    isDepositing || 
-    !payAmount || 
-    parseFloat(payAmount) <= 0 || 
-    activeTab === 'swap';
+  const isButtonDisabled = !authenticated ||
+    isRelayPending ||
+    isApproving ||
+    isDepositing ||
+    !payAmount ||
+    parseFloat(payAmount) <= 0 ||
+    ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance);
 
   // Show success notification with explorer link
   useEffect(() => {

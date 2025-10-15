@@ -1,11 +1,13 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDown, Info, Star } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
 import { usePrivy } from '@privy-io/react-auth';
-import { createPublicClient, http, formatUnits } from 'viem';
+import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
 import { baseSepolia } from 'wagmi/chains';
 import { useLimitOrderSubmit } from './LimitOrderIntegration';
+import { useApproveUSDCForTrading } from '@/hooks/useMarketOrder';
+import { toast } from 'react-hot-toast';
 
 // USDC Contract Address on Base Sepolia
 const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
@@ -173,7 +175,32 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   // Hook to submit limit order + execution fee info
   const { submitLimitOrder, isProcessing, executionFee, executionFeeError } = useLimitOrderSubmit();
 
+  // Hook for USDC approval (for one-click trading)
+  const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
+
   const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
+
+  // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
+  const hasLargeAllowance = useMemo(() => {
+    return Boolean(allowance && allowance > parseUnits('10000', 6));
+  }, [allowance]);
+
+  // Handler untuk pre-approve USDC dalam jumlah besar
+  const handlePreApprove = async () => {
+    try {
+      toast.loading('Approving unlimited USDC...', { id: 'pre-approve' });
+      // Approve 1 million USDC (enough for many trades)
+      const maxAmount = parseUnits('1000000', 6).toString();
+      await approveUSDC(maxAmount);
+      toast.success('✅ Pre-approved! You can now trade without approval popups', {
+        id: 'pre-approve',
+        duration: 5000
+      });
+    } catch (error) {
+      console.error('Pre-approve error:', error);
+      toast.error('Failed to pre-approve USDC', { id: 'pre-approve' });
+    }
+  };
 
   // Handler untuk mengganti market
   const handleMarketSelect = (market: Market) => {
@@ -724,11 +751,59 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         </>
       )}
 
+      {/* Pre-Approve Section */}
+      {authenticated && !hasLargeAllowance && activeTab !== 'swap' && (
+        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-500/30">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-400 font-medium mb-1">⚡ Enable One-Click Trading</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade for security.
+              </p>
+              <button
+                onClick={handlePreApprove}
+                disabled={isApprovalPending}
+                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors"
+              >
+                {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Large Allowance Indicator */}
+      {authenticated && hasLargeAllowance && activeTab !== 'swap' && (
+        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
+          <div className="flex items-center gap-2">
+            <span className="text-green-400">✅</span>
+            <div className="flex-1">
+              <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                USDC pre-approved! Just 1 confirmation per trade (for your security).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Enter an amount / Position Size */}
       <div className="border-t border-[#1A202C] pt-3">
         <button
           onClick={async () => {
             if (!activeMarket) return;
+
+            // Check if USDC is approved first (only for long/short, not swap)
+            const needsApproval = (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance;
+            if (needsApproval) {
+              toast.error('Please enable One-Click Trading first by approving USDC', {
+                duration: 4000,
+                icon: '⚠️'
+              });
+              return;
+            }
+
             await submitLimitOrder({
               symbol: activeMarket.symbol,
               isLong: activeTab === 'long',
@@ -737,16 +812,20 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               triggerPrice: limitPrice || '0',
             });
           }}
-          disabled={!authenticated || !payAmount || !limitPrice || isProcessing || activeTab === 'swap'}
+          disabled={!authenticated || !payAmount || !limitPrice || isProcessing || ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)}
           className={`w-full py-4 rounded-lg font-bold text-white transition-all duration-200 ${
-            !authenticated || !payAmount || !limitPrice || isProcessing || activeTab === 'swap'
+            !authenticated || !payAmount || !limitPrice || isProcessing || ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
               ? 'bg-gray-600 cursor-not-allowed opacity-50'
               : activeTab === 'long'
               ? 'bg-green-600 hover:bg-green-700'
               : 'bg-red-600 hover:bg-red-700'
           }`}
         >
-          {isProcessing
+          {!authenticated
+            ? 'Connect Wallet'
+            : (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance
+            ? '⚡ Enable One-Click Trading First'
+            : isProcessing
             ? 'Processing...'
             : `Create Limit ${activeTab === 'long' ? 'Long' : 'Short'} Order`}
         </button>

@@ -44,7 +44,7 @@ export function useApproveUSDCForTrading() {
     hash,
   });
 
-  // Check current allowance
+  // Check current allowance - with auto-polling every 2 seconds for real-time updates
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: USDC_ADDRESS,
     abi: MockUSDCABI,
@@ -52,6 +52,7 @@ export function useApproveUSDCForTrading() {
     args: address ? [address, MARKET_EXECUTOR_ADDRESS] : undefined,
     query: {
       enabled: !!address,
+      refetchInterval: 2000, // Poll every 2 seconds for real-time allowance updates
     },
   });
 
@@ -121,6 +122,14 @@ export function useApproveUSDCForTrading() {
     const required = parseUnits(requiredAmount, USDC_DECIMALS);
     return (allowance as bigint) >= required;
   };
+
+  // Auto-refetch allowance when approval transaction is confirmed
+  useEffect(() => {
+    if (isSuccess) {
+      console.log('✅ Approval confirmed, refetching allowance...');
+      refetchAllowance();
+    }
+  }, [isSuccess, refetchAllowance]);
 
   return {
     approve,
