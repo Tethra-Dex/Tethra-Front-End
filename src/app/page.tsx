@@ -109,6 +109,7 @@ export default function LandingPage() {
       <div className={`fixed inset-0 z-30 transition-opacity duration-700 ${secondScrollProgress > 0.5 ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className="w-full h-full bg-black overflow-y-auto">
           <ProblemSolution />
+          <Comparison />
 
           {/* Footer */}
           <footer className="border-t border-gray-800 py-8 px-4">

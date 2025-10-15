@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState, memo, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import WalletConnectButton from './WalletConnectButton';
+import TradingVueChart from './TradingVueChart';
 
 interface Market {
     symbol: string;
@@ -365,6 +366,8 @@ interface ChartHeaderProps {
     markets: Market[];
     onSelect: (symbol: string) => void;
     triggerRef: React.RefObject<HTMLButtonElement | null>;
+    currentTimeframe: string;
+    onTimeframeChange: (timeframe: string) => void;
 }
 
 const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
@@ -372,16 +375,35 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
     const isPositive = priceChangePercent >= 0;
     const fundingRate = props.futuresData ? parseFloat(props.futuresData.fundingRate) : 0;
     const isFundingPositive = fundingRate >= 0;
-    
+
     // Calculate price difference between Binance and Oracle
     // Positive = Binance higher than Oracle
     // Negative = Binance lower than Oracle
     const binancePrice = props.marketData?.price ? parseFloat(props.marketData.price) : 0;
     const oraclePrice = props.oraclePrice?.price || 0;
     const priceDiff = binancePrice && oraclePrice ? ((binancePrice - oraclePrice) / oraclePrice * 100) : 0;
-    
+
+    // Timeframe options
+    const timeframes = [
+        { label: '1m', value: '1' },
+        { label: '5m', value: '5' },
+        { label: '15m', value: '15' },
+        { label: '1h', value: '60' },
+        { label: '4h', value: '240' },
+        { label: '1D', value: 'D' }
+    ];
+
+    const currentTimeframeLabel = timeframes.find(tf => tf.value === props.currentTimeframe)?.label || '1h';
+
     return (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
+        <div
+            className="flex flex-wrap items-center justify-between border-b border-slate-800"
+            style={{
+                padding: '0.5rem 1rem',
+                gap: '0.75rem',
+                flexShrink: 0
+            }}
+        >
             <div className="flex items-center gap-x-6">
                 <div className="relative">
                     <button
@@ -421,6 +443,29 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         futuresDataMap={props.futuresDataMap}
                         triggerRef={props.triggerRef}
                     />
+                </div>
+
+                {/* Timeframe Dropdown */}
+                <div className="relative">
+                    <select
+                        value={props.currentTimeframe}
+                        onChange={(e) => props.onTimeframeChange(e.target.value)}
+                        className="appearance-none bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 pr-10 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        {timeframes.map((tf) => (
+                            <option key={tf.value} value={tf.value} className="bg-slate-800 text-slate-100">
+                                {tf.label}
+                            </option>
+                        ))}
+                    </select>
+                    <svg
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                 </div>
                 
                 <div className="flex flex-col">
@@ -526,98 +571,13 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
     );
 };
 
-interface TVChartProps {
-    symbol: string;
-    interval: string;
-}
-
-const TVChart: React.FC<TVChartProps> = memo(({ symbol, interval }) => {
-    const container = useRef<HTMLDivElement>(null);
-    
-    useEffect(() => {
-        if (!container.current || !symbol) return;
-        
-        container.current.innerHTML = '';
-        
-        const script = document.createElement("script");
-        script.src = "https://s3.tradingview.com/tv.js";
-        script.type = "text/javascript";
-        script.async = true;
-        
-        script.onload = () => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (typeof (window as any).TradingView !== 'undefined' && container.current) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                new (window as any).TradingView.widget({
-                    autosize: true,
-                    symbol: symbol,
-                    interval: interval,
-                    timezone: "Etc/UTC",
-                    theme: "dark",
-                    style: "1",
-                    locale: "en",
-                    toolbar_bg: "#0D1017",
-                    enable_publishing: false,
-                    allow_symbol_change: false,
-                    disabled_features: ["header_symbol_search"],
-                    enabled_features: [
-                        "header_chart_type",
-                        "header_settings",
-                        "header_screenshot",
-                        "left_toolbar",
-                        "control_bar",
-                        "timeframes_toolbar",
-                        "drawing_templates"
-                    ],
-                    drawings_access: { 
-                        type: 'black', 
-                        tools: [{ name: "Regression Trend" }] 
-                    },
-                    hide_top_toolbar: false,
-                    hide_side_toolbar: false,
-                    container_id: container.current.id,
-                    studies_overrides: {
-                        "volume.volume.color.0": "rgba(0,0,0,0)",
-                        "volume.volume.color.1": "rgba(0,0,0,0)",
-                        "volume.volume.transparency": 100
-                    },
-                    overrides: {
-                        "paneProperties.background": "#0D1017",
-                        "paneProperties.vertGridProperties.color": "#1D2029",
-                        "paneProperties.horzGridProperties.color": "#1D2029",
-                        "symbolWatermarkProperties.transparency": 90,
-                        "scalesProperties.textColor": "#94a3b8",
-                        "mainSeriesProperties.showCountdown": false,
-                        "volumePaneSize": "hide"
-                    }
-                });
-            }
-        };
-        
-        document.body.appendChild(script);
-        
-        return () => {
-            if (script.parentNode) {
-                script.parentNode.removeChild(script);
-            }
-        };
-    }, [symbol, interval]);
-    
-    return (
-        <div 
-            ref={container} 
-            id={`tradingview-widget-container-${symbol.replace(':', '_')}-${interval}`} 
-            style={{ height: "100%", width: "100%" }} 
-        />
-    );
-});
-
-TVChart.displayName = 'TVChart';
+// Removed old TradingView TVChart component
+// Now using TradingVueChart with Binance data
 
 import { useMarket } from '../contexts/MarketContext';
 
 const TradingChart: React.FC = () => {
-    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice, timeframe } = useMarket();
+    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice, timeframe, setTimeframe } = useMarket();
     const [markets] = useState<Market[]>(ALL_MARKETS);
     const [activeSymbol, setActiveSymbol] = useState<string>(contextActiveMarket?.symbol || ALL_MARKETS[0].symbol);
     const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
@@ -830,8 +790,10 @@ const TradingChart: React.FC = () => {
 
     return (
         <div className="w-full h-full flex flex-col bg-black text-slate-100">
-            <ChartHeader
-                activeMarket={activeMarket}
+            {/* Header with flexible height - can be 1 or 2 rows */}
+            <div style={{ flexShrink: 0, flexGrow: 0 }}>
+                <ChartHeader
+                    activeMarket={activeMarket}
                     marketData={currentMarketData}
                     futuresData={currentFuturesData}
                     allPrices={allPrices}
@@ -844,11 +806,25 @@ const TradingChart: React.FC = () => {
                     markets={markets}
                     onSelect={handleMarketSelect}
                     triggerRef={triggerButtonRef}
-            />
-            <div className="relative w-full flex-grow">
+                    currentTimeframe={timeframe}
+                    onTimeframeChange={setTimeframe}
+                />
+            </div>
+
+            {/* Chart container - takes remaining space */}
+            <div
+                className="trading-chart-container w-full"
+                style={{
+                    flex: '1 1 auto',
+                    minHeight: 0,
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}
+            >
                 {activeMarket && (
-                    <TVChart
-                        symbol={activeMarket.tradingViewSymbol}
+                    <TradingVueChart
+                        key={`${activeMarket.binanceSymbol}-${timeframe}`}
+                        symbol={activeMarket.binanceSymbol}
                         interval={timeframe}
                     />
                 )}
