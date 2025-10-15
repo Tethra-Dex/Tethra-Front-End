@@ -78,26 +78,31 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                 }
 
                 // Create chart instance
-                const chart = init(chartContainerRef.current!);
-
-                // Apply custom styles
-                chart?.setStyles({
-                    candle: {
-                        bar: {
-                            upColor: '#10b981',
-                            downColor: '#ef4444',
-                            upBorderColor: '#10b981',
-                            downBorderColor: '#ef4444',
-                            upWickColor: '#10b981',
-                            downWickColor: '#ef4444'
-                        }
-                    },
-                    grid: {
-                        horizontal: {
-                            color: '#1D2029'
+                const chart = init(chartContainerRef.current!, {
+                    styles: {
+                        candle: {
+                            bar: {
+                                upColor: '#10b981',
+                                downColor: '#ef4444',
+                                upBorderColor: '#10b981',
+                                downBorderColor: '#ef4444',
+                                upWickColor: '#10b981',
+                                downWickColor: '#ef4444'
+                            }
                         },
-                        vertical: {
-                            color: '#1D2029'
+                        grid: {
+                            horizontal: {
+                                color: '#1D2029'
+                            },
+                            vertical: {
+                                color: '#1D2029'
+                            }
+                        },
+                        xAxis: {
+                            size: 'auto'
+                        },
+                        yAxis: {
+                            size: 'auto'
                         }
                     }
                 });
@@ -165,30 +170,92 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
 
         initializeChart();
 
-        // Handle resize
+        // Handle resize and zoom
+        let resizeTimeout: NodeJS.Timeout;
         const handleResize = () => {
-            if (chartRef.current && chartContainerRef.current) {
-                chartRef.current.resize();
-            }
+            // Debounce resize to avoid too many calls
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (chartRef.current && chartContainerRef.current) {
+                    const container = chartContainerRef.current;
+                    const rect = container.getBoundingClientRect();
+
+                    // Only resize if container has valid dimensions
+                    if (rect.width > 0 && rect.height > 0) {
+                        console.log('Resizing chart to:', rect.width, 'x', rect.height);
+                        chartRef.current.resize();
+                    }
+                }
+            }, 50);
         };
 
+        // Force multiple resizes after mount to ensure proper rendering
+        const timeoutId1 = setTimeout(() => {
+            console.log('First resize attempt');
+            handleResize();
+        }, 100);
+
+        const timeoutId2 = setTimeout(() => {
+            console.log('Second resize attempt');
+            handleResize();
+        }, 300);
+
+        const timeoutId3 = setTimeout(() => {
+            console.log('Third resize attempt');
+            handleResize();
+        }, 500);
+
+        // Use ResizeObserver to detect container size changes
+        let resizeObserver: ResizeObserver | null = null;
+        if (chartContainerRef.current) {
+            resizeObserver = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    console.log('ResizeObserver detected size change:', entry.contentRect.width, 'x', entry.contentRect.height);
+                    handleResize();
+                }
+            });
+            resizeObserver.observe(chartContainerRef.current);
+        }
+
+        // Listen for both resize and zoom events
         window.addEventListener('resize', handleResize);
+        // Visualviewport is better for detecting zoom
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleResize);
+        }
 
         return () => {
+            clearTimeout(timeoutId1);
+            clearTimeout(timeoutId2);
+            clearTimeout(timeoutId3);
+            clearTimeout(resizeTimeout);
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+            }
             window.removeEventListener('resize', handleResize);
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', handleResize);
+            }
             if (wsRef.current) {
                 wsRef.current.close();
                 wsRef.current = null;
             }
-            if (chartRef.current) {
-                dispose(chartContainerRef.current!);
+            if (chartRef.current && chartContainerRef.current) {
+                dispose(chartContainerRef.current);
                 chartRef.current = null;
             }
         };
     }, [symbol, interval]);
 
     return (
-        <div className="relative w-full h-full bg-[#0D1017] overflow-hidden">
+        <div
+            className="w-full h-full bg-[#0D1017]"
+            style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%'
+            }}
+        >
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                     <div className="text-slate-400">Loading chart data...</div>
@@ -196,7 +263,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
             )}
 
             {/* Drawing Tools Toolbar */}
-            <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+            <div className="absolute top-2 left-2 z-20 flex flex-col gap-1" style={{ pointerEvents: 'auto' }}>
                 {/* Toggle Drawing Tools Button */}
                 <button
                     onClick={() => setShowDrawingTools(!showDrawingTools)}

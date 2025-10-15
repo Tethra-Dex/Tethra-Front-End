@@ -396,7 +396,14 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
     const currentTimeframeLabel = timeframes.find(tf => tf.value === props.currentTimeframe)?.label || '1h';
 
     return (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 border-b border-slate-800">
+        <div
+            className="flex flex-wrap items-center justify-between border-b border-slate-800"
+            style={{
+                padding: '0.5rem 1rem',
+                gap: '0.75rem',
+                flexShrink: 0
+            }}
+        >
             <div className="flex items-center gap-x-6">
                 <div className="relative">
                     <button
@@ -783,24 +790,37 @@ const TradingChart: React.FC = () => {
 
     return (
         <div className="w-full h-full flex flex-col bg-black text-slate-100">
-            <ChartHeader
-                activeMarket={activeMarket}
-                marketData={currentMarketData}
-                futuresData={currentFuturesData}
-                allPrices={allPrices}
-                marketDataMap={marketDataMap}
-                futuresDataMap={futuresDataMap}
-                oraclePrice={currentOraclePrice}
-                onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-                isMarketSelectorOpen={isMarketSelectorOpen}
-                onClose={() => setIsMarketSelectorOpen(false)}
-                markets={markets}
-                onSelect={handleMarketSelect}
-                triggerRef={triggerButtonRef}
-                currentTimeframe={timeframe}
-                onTimeframeChange={setTimeframe}
-            />
-            <div className="relative w-full flex-grow">
+            {/* Header with flexible height - can be 1 or 2 rows */}
+            <div style={{ flexShrink: 0, flexGrow: 0 }}>
+                <ChartHeader
+                    activeMarket={activeMarket}
+                    marketData={currentMarketData}
+                    futuresData={currentFuturesData}
+                    allPrices={allPrices}
+                    marketDataMap={marketDataMap}
+                    futuresDataMap={futuresDataMap}
+                    oraclePrice={currentOraclePrice}
+                    onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
+                    isMarketSelectorOpen={isMarketSelectorOpen}
+                    onClose={() => setIsMarketSelectorOpen(false)}
+                    markets={markets}
+                    onSelect={handleMarketSelect}
+                    triggerRef={triggerButtonRef}
+                    currentTimeframe={timeframe}
+                    onTimeframeChange={setTimeframe}
+                />
+            </div>
+
+            {/* Chart container - takes remaining space */}
+            <div
+                className="trading-chart-container w-full"
+                style={{
+                    flex: '1 1 auto',
+                    minHeight: 0,
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}
+            >
                 {activeMarket && (
                     <TradingVueChart
                         key={`${activeMarket.binanceSymbol}-${timeframe}`}
