@@ -34,18 +34,27 @@ const PositionRow = ({
   positionId,
   onClose,
   onPositionClick,
-  isSelected
+  isSelected,
+  onPositionLoaded
 }: {
   positionId: bigint;
   onClose: (positionId: bigint, symbol: string) => void;
   onPositionClick: (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => void;
   isSelected: boolean;
+  onPositionLoaded?: (positionId: bigint, isOpen: boolean) => void;
 }) => {
   const { position, isLoading } = usePosition(positionId);
 
   // Use shared price hook - all positions with same symbol share same price
   const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
   const currentPrice = priceData?.price || null;
+  
+  // Report position status when loaded
+  useEffect(() => {
+    if (!isLoading && position && onPositionLoaded) {
+      onPositionLoaded(positionId, position.status === 0);
+    }
+  }, [isLoading, position, positionId, onPositionLoaded]);
   
   if (isLoading) {
     return (
@@ -216,10 +225,29 @@ const PositionRow = ({
 
 const BottomTrading = () => {
   const [activeTab, setActiveTab] = useState('Positions');
+  const [openPositionsCount, setOpenPositionsCount] = useState(0);
   const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { address } = useEmbeddedWallet();
   const { closePosition, isPending: isClosing, txHash } = useGaslessClose();
   const { setActiveMarket, setSelectedPosition, selectedPosition, chartPositions, setChartPositions } = useMarket();
+  
+  // Track open positions status
+  const [positionStatuses, setPositionStatuses] = useState<Map<bigint, boolean>>(new Map());
+  
+  // Handle position loaded - track if position is open
+  const handlePositionLoaded = (positionId: bigint, isOpen: boolean) => {
+    setPositionStatuses(prev => {
+      const newMap = new Map(prev);
+      newMap.set(positionId, isOpen);
+      return newMap;
+    });
+  };
+  
+  // Calculate open positions count
+  useEffect(() => {
+    const openCount = Array.from(positionStatuses.values()).filter(isOpen => isOpen).length;
+    setOpenPositionsCount(openCount);
+  }, [positionStatuses]);
   
   // Handle position click - Switch market and show entry price line
   const handlePositionClick = (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => {
@@ -345,6 +373,7 @@ const BottomTrading = () => {
                     onClose={handleClosePosition}
                     onPositionClick={handlePositionClick}
                     isSelected={selectedPosition?.positionId === positionId}
+                    onPositionLoaded={handlePositionLoaded}
                   />
                 ))}
               </tbody>
@@ -378,9 +407,9 @@ const BottomTrading = () => {
             >
               <span className="flex items-center gap-2">
                 {tab}
-                {tab === 'Positions' && positionIds.length > 0 && (
+                {tab === 'Positions' && openPositionsCount > 0 && (
                   <span className="bg-gray-700/50 text-white text-xs rounded px-1.5 py-0.5">
-                    {positionIds.length}
+                    {openPositionsCount}
                   </span>
                 )}
               </span>
