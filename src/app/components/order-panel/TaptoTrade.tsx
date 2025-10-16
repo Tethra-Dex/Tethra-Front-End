@@ -163,8 +163,8 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
 const TapToTrade: React.FC = () => {
   const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
-  const [leverage, setLeverage] = useState(50);
-  const [leverageInput, setLeverageInput] = useState<string>('50.0');
+  const [leverage, setLeverage] = useState(10);
+  const [leverageInput, setLeverageInput] = useState<string>('10.0');
   const [marginAmount, setMarginAmount] = useState<string>('');
   const [xCoordinate, setXCoordinate] = useState<string>('');
   const [yCoordinate, setYCoordinate] = useState<string>('');
@@ -383,91 +383,96 @@ const TapToTrade: React.FC = () => {
 
       {/* Leverage Input */}
       <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-xs text-gray-400">Leverage</span>
-          <div className="flex items-center gap-1">
+        <label className="text-xs text-gray-400 mb-2 block">Leverage</label>
+        
+        {/* Slider and Value Box in One Row */}
+        <div className="flex items-center gap-3">
+          {/* Slider Container */}
+          <div className="flex-1 relative pt-1 pb-4">
+            <div className="relative h-0.5 bg-[#2D3748] rounded-full">
+              {leverageMarkers.map((marker, index) => {
+                const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
+                const position = (markerIndex / maxSliderValue) * 100;
+                return (
+                  <div
+                    key={index}
+                    className="absolute top-3/4 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
+                    style={{
+                      left: `${position}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  />
+                );
+              })}
+
+              <div
+                className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
+                style={{
+                  left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              />
+
+              {/* Leverage Tooltip */}
+              {showLeverageTooltip && (
+                <div
+                  className="absolute -top-12 -translate-x-1/2 transition-opacity duration-200"
+                  style={{
+                    left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                  }}
+                >
+                  <div className="relative bg-blue-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                    <span className="text-sm font-bold">{leverage.toFixed(1)}x</span>
+                    {/* Arrow pointing down */}
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max={maxSliderValue}
+              step="1"
+              value={getCurrentSliderIndex()}
+              onChange={handleLeverageChange}
+              onMouseDown={handleLeverageMouseDown}
+              onMouseUp={handleLeverageMouseUp}
+              onTouchStart={handleLeverageMouseDown}
+              onTouchEnd={handleLeverageMouseUp}
+              disabled={tapToTrade.isEnabled}
+              className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+            />
+
+            <div className="absolute top-full mt-0.5 left-0 right-0">
+              {leverageMarkers.map((marker, index) => {
+                const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
+                const position = (markerIndex / maxSliderValue) * 100;
+                return (
+                  <span
+                    key={index}
+                    className="absolute text-xs text-gray-500 -translate-x-1/2"
+                    style={{ left: `${position}%` }}
+                  >
+                    {marker < 1 ? marker.toFixed(1) : marker}x
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Leverage Value Box */}
+          <div className="bg-[#2D3748] rounded-lg px-3 py-2 min-w-[70px] flex items-center justify-center gap-1">
             <input
               type="text"
               value={leverageInput}
               onChange={handleLeverageInputChange}
               onBlur={handleLeverageInputBlur}
               disabled={tapToTrade.isEnabled}
-              className="bg-[#2D3748] text-sm font-semibold text-white outline-none w-14 px-2 py-1 rounded text-right disabled:cursor-not-allowed"
+              className="bg-transparent text-sm font-semibold text-white outline-none w-12 text-right disabled:cursor-not-allowed"
             />
             <span className="text-sm font-semibold text-white">x</span>
-          </div>
-        </div>
-        <div className="relative pt-1 pb-4">
-          <div className="relative h-0.5 bg-[#2D3748] rounded-full">
-            {leverageMarkers.map((marker, index) => {
-              const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
-              const position = (markerIndex / maxSliderValue) * 100;
-              return (
-                <div
-                  key={index}
-                  className="absolute top-3/4 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
-                  style={{
-                    left: `${position}%`,
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                />
-              );
-            })}
-
-            <div
-              className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
-              style={{
-                left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
-                transform: 'translate(-50%, -50%)'
-              }}
-            />
-
-            {/* Leverage Tooltip */}
-            {showLeverageTooltip && (
-              <div
-                className="absolute -top-12 -translate-x-1/2 transition-opacity duration-200"
-                style={{
-                  left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
-                }}
-              >
-                <div className="relative bg-blue-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
-                  <span className="text-sm font-bold">{leverage.toFixed(1)}x</span>
-                  {/* Arrow pointing down */}
-                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <input
-            type="range"
-            min="0"
-            max={maxSliderValue}
-            step="1"
-            value={getCurrentSliderIndex()}
-            onChange={handleLeverageChange}
-            onMouseDown={handleLeverageMouseDown}
-            onMouseUp={handleLeverageMouseUp}
-            onTouchStart={handleLeverageMouseDown}
-            onTouchEnd={handleLeverageMouseUp}
-            disabled={tapToTrade.isEnabled}
-            className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-          />
-
-          <div className="absolute top-full mt-0.5 left-0 right-0">
-            {leverageMarkers.map((marker, index) => {
-              const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
-              const position = (markerIndex / maxSliderValue) * 100;
-              return (
-                <span
-                  key={index}
-                  className="absolute text-xs text-gray-500 -translate-x-1/2"
-                  style={{ left: `${position}%` }}
-                >
-                  {marker < 1 ? marker.toFixed(1) : marker}x
-                </span>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -515,6 +520,12 @@ const TapToTrade: React.FC = () => {
           <p className="text-xs text-blue-300 mt-1">
             Tap grid cells on chart to select orders
           </p>
+          <div className="bg-yellow-500/10 border border-yellow-500/50 rounded px-2 py-1.5 mt-2 flex items-center gap-1.5">
+            <Info size={12} className="text-yellow-400 flex-shrink-0" />
+            <p className="text-xs text-yellow-300">
+              To modify settings, please press <span className="font-bold text-yellow-200">Stop</span> first
+            </p>
+          </div>
         </div>
       )}
 
@@ -580,7 +591,7 @@ const TapToTrade: React.FC = () => {
             </p>
 
             {/* Price Difference Display */}
-            {currentPrice > 0 && (
+            {Number(currentPrice) > 0 && (
               <div className="mt-3">
                 <label className="text-xs text-gray-400 mb-2 block">
                   Price difference per grid
