@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { CandlestickChart, Database, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CandlestickChart, Database, Copy, ChevronLeft, ChevronRight, Coins } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '../contexts/SidebarContext';
 
@@ -12,7 +12,7 @@ export default function DashboardTrade() {
   const navItems = [
     { href: '/trade', icon: CandlestickChart, label: 'Trade' },
     { href: '/pools', icon: Database, label: 'Pools' },
-    { href: '/stake', icon: Database, label: 'Stake' },
+    { href: '/stake', icon: Coins, label: 'Stake' },
     { href: '/copy-trade', icon: Copy, label: 'Copy Trade' },
   ];
 
