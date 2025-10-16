@@ -22,7 +22,12 @@ const OrderPanel: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative border-b-2 cursor-pointer ${
+            disabled={activeOrderType === 'Tap to Trade'}
+            className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative border-b-2 ${
+              activeOrderType === 'Tap to Trade'
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer'
+            } ${
               activeTab === tab.key
                 ? 'text-white'
                 : 'text-gray-400 hover:text-gray-200 border-transparent'
