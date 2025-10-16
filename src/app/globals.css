@@ -710,3 +710,28 @@ body {
 .toast-container > div {
   pointer-events: auto !important;
 }
+
+/* Custom Scrollbar for Copy Trade Page */
+.copy-trade-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3441 #151B26;
+}
+
+.copy-trade-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.copy-trade-scrollbar::-webkit-scrollbar-track {
+  background-color: #151B26;
+  border-radius: 4px;
+}
+
+.copy-trade-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #2a3441;
+  border-radius: 4px;
+}
+
+.copy-trade-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #3a4451;
+}
