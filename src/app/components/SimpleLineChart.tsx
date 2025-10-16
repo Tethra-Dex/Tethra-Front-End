@@ -255,9 +255,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           }
         }
 
-        // Draw for future candles (dashed lines) - until end of canvas
-        ctx.setLineDash([2, 4]);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        // Draw for future candles (solid lines, same as past) - until end of canvas
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; // Same opacity as past candles
         for (let i = 0; i < maxFutureCandles; i++) {
           const futureIndex = chartData.length + i;
           const x = timeToX(futureIndex);
@@ -269,7 +268,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           }
           if (x > canvas.width) break; // Stop if beyond canvas
         }
-        ctx.setLineDash([]);
       }
 
       // Draw grid cells (tap areas) - including future area

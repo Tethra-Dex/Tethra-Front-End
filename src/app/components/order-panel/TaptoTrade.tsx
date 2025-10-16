@@ -619,7 +619,6 @@ const TapToTrade: React.FC = () => {
                 <li>• Tap cells on the chart to select them</li>
                 <li>• Cells <strong className="text-green-400">below current price</strong> → Buy orders</li>
                 <li>• Cells <strong className="text-red-400">above current price</strong> → Sell orders</li>
-                <li>• Selected cells appear in <strong className="text-blue-400">light blue</strong></li>
                 <li>• Tap again to deselect a cell</li>
               </ul>
             </div>
