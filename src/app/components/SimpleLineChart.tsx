@@ -37,6 +37,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const [visibleCandles, setVisibleCandles] = useState(50); // Number of visible candles
   const [priceZoom, setPriceZoom] = useState(1); // Price zoom factor (affects Y-axis)
   const [panOffset, setPanOffset] = useState(0); // Horizontal pan offset in number of candles
+  const [verticalPanOffset, setVerticalPanOffset] = useState(0); // Vertical pan offset in percentage (0 = center, positive = pan up, negative = pan down)
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null); // Mouse position for crosshair
 
   // Get tap to trade context for gridSizeX
@@ -46,6 +47,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const panStep = 5; // Number of candles to pan per key press
+      const verticalPanStep = 0.05; // Vertical pan step (5% of price range per key press)
 
       switch(e.key) {
         case 'ArrowLeft':
@@ -56,6 +58,14 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           e.preventDefault();
           setPanOffset(prev => prev + panStep); // Pan right (show newer/future data)
           break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setVerticalPanOffset(prev => prev + verticalPanStep); // Pan up (show lower prices)
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setVerticalPanOffset(prev => prev - verticalPanStep); // Pan down (show higher prices)
+          break;
         case 'Home':
         case 'c': // 'c' for center
         case 'C':
@@ -63,6 +73,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           setPanOffset(0); // Reset to original position
           setVisibleCandles(50); // Reset zoom to default
           setPriceZoom(1); // Reset price zoom to default
+          setVerticalPanOffset(0); // Reset vertical pan to default
           break;
       }
     };
@@ -182,9 +193,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const baseRange = priceRange + (padding * 2);
       const zoomedRange = baseRange / priceZoom;
       const priceCenter = (minPrice + maxPrice) / 2;
-      
-      const chartMinPrice = priceCenter - (zoomedRange / 2);
-      const chartMaxPrice = priceCenter + (zoomedRange / 2);
+
+      // Apply vertical pan offset
+      const verticalShift = zoomedRange * verticalPanOffset;
+
+      const chartMinPrice = priceCenter - (zoomedRange / 2) + verticalShift;
+      const chartMaxPrice = priceCenter + (zoomedRange / 2) + verticalShift;
       const chartPriceRange = chartMaxPrice - chartMinPrice;
 
       // Helper function to convert price to Y coordinate
@@ -604,7 +618,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, selectedCells, hoveredCell, visibleCandles, tapToTrade.gridSizeX, interval, priceZoom, panOffset, mousePosition]);
+  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, selectedCells, hoveredCell, visibleCandles, tapToTrade.gridSizeX, interval, priceZoom, panOffset, verticalPanOffset, mousePosition]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -635,9 +649,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const baseRange = priceRange + (padding * 2);
     const zoomedRange = baseRange / priceZoom;
     const priceCenter = (minPrice + maxPrice) / 2;
-    
-    const chartMinPrice = priceCenter - (zoomedRange / 2);
-    const chartMaxPrice = priceCenter + (zoomedRange / 2);
+
+    // Apply vertical pan offset (same as drawing logic)
+    const verticalShift = zoomedRange * verticalPanOffset;
+
+    const chartMinPrice = priceCenter - (zoomedRange / 2) + verticalShift;
+    const chartMaxPrice = priceCenter + (zoomedRange / 2) + verticalShift;
     const chartPriceRange = chartMaxPrice - chartMinPrice;
 
     // Convert click position to price and snap to grid (percentage-based)
@@ -703,7 +720,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     } else {
       console.log('⚠️ Click rejected: absoluteCandleIndex:', absoluteCandleIndex);
     }
-  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, visibleCandles, interval, priceZoom, panOffset]);
+  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, visibleCandles, interval, priceZoom, panOffset, verticalPanOffset]);
 
   // Handle canvas hover
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -741,9 +758,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const baseRange = priceRange + (padding * 2);
     const zoomedRange = baseRange / priceZoom;
     const priceCenter = (minPrice + maxPrice) / 2;
-    
-    const chartMinPrice = priceCenter - (zoomedRange / 2);
-    const chartMaxPrice = priceCenter + (zoomedRange / 2);
+
+    // Apply vertical pan offset (same as drawing logic)
+    const verticalShift = zoomedRange * verticalPanOffset;
+
+    const chartMinPrice = priceCenter - (zoomedRange / 2) + verticalShift;
+    const chartMaxPrice = priceCenter + (zoomedRange / 2) + verticalShift;
     const chartPriceRange = chartMaxPrice - chartMinPrice;
 
     const hoveredPrice = chartMaxPrice - (mouseY / canvas.height) * chartPriceRange;
@@ -799,7 +819,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     } else {
       setHoveredCell(null);
     }
-  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, visibleCandles, priceZoom, currentPrice, interval, panOffset]);
+  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, visibleCandles, priceZoom, currentPrice, interval, panOffset, verticalPanOffset]);
 
   const handleCanvasLeave = useCallback(() => {
     setHoveredCell(null);
