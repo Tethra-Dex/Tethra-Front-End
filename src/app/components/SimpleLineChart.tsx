@@ -11,7 +11,6 @@ interface SimpleLineChartProps {
   tapToTradeEnabled: boolean;
   gridSize: number; // Grid size Y in percentage (e.g., 0.5 for 0.5%, 1 for 1%)
   onCellTap: (cellId: string, price: number, time: number, isBuy: boolean) => void;
-  selectedCells: Set<string>;
 }
 
 interface ChartData {
@@ -25,8 +24,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   currentPrice,
   tapToTradeEnabled,
   gridSize,
-  onCellTap,
-  selectedCells
+  onCellTap
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -359,18 +357,20 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             // This ensures cellId stays same even when currentPrice changes
             const gridTimeRounded = Math.floor(gridTime / (gridSizeX * 60000)) * (gridSizeX * 60000); // Round to gridSizeX minutes
             const cellId = `cell-${priceLevel}-${gridTimeRounded}`;
-            const isSelected = selectedCells.has(cellId);
+
+            // Check if this cell has orders from TapToTradeContext
+            const cellOrderInfo = tapToTrade.cellOrders.get(cellId);
+            const hasOrders = cellOrderInfo && cellOrderInfo.orderCount > 0;
             const isHovered = hoveredCell === cellId;
 
-            // Use saved isBuy from context if cell is selected, otherwise calculate from current price
-            const savedCellData = tapToTrade.cellData.get(cellId);
-            const isBuy = isSelected && savedCellData
-              ? savedCellData.isBuy
+            // Determine buy/sell based on cell order info or price position
+            const isBuy = hasOrders
+              ? cellOrderInfo.isLong  // Use order direction if exists
               : price < currentPrice; // Below current price = BUY = green
 
             const isFuture = i >= chartData.length;
 
-            if (isSelected) {
+            if (hasOrders) {
               // Selected cell - green if below current price (BUY), red if above (SELL)
               // Adjust line width based on cell size (both width and height)
               const minDimension = Math.min(boxWidth, boxHeight);
@@ -691,7 +691,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, selectedCells, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.cellData, interval, priceZoom, panOffset, verticalPanOffset, mousePosition, basePrice]);
+  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.cellOrders, interval, priceZoom, panOffset, verticalPanOffset, mousePosition, basePrice]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

@@ -795,8 +795,46 @@ const TradingChart: React.FC = () => {
 
     // Handle tap to trade cell click
     const handleTapCellClick = (cellId: string, price: number, time: number, isBuy: boolean) => {
-        tapToTrade.toggleCell(cellId);
-        tapToTrade.setCellData(cellId, { price, time, isBuy });
+        // Extract cellX and cellY from cellId (format: "cell-priceLevel-time")
+        // For now, we'll use a simplified coordinate system
+        // You may need to adjust this based on your actual cellId format
+        const parts = cellId.split('-');
+        if (parts.length >= 3) {
+            const timeValue = parseInt(parts[2]);
+            const gridSession = tapToTrade.gridSession;
+
+            let cellX = 0;
+            let cellY = 0;
+
+            if (gridSession) {
+                const timeSeconds = Math.floor(timeValue / 1000);
+                const referenceTime = gridSession.referenceTime;
+                const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
+
+                cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
+
+                const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+                const basisPointsPerCell = gridSession.gridSizeYPercent;
+
+                if (referencePrice > 0 && basisPointsPerCell > 0 && Number.isFinite(price)) {
+                    const deltaBasisPoints = Math.abs((price - referencePrice) / referencePrice) * 10000;
+                    const steps = Math.max(1, Math.round(deltaBasisPoints / basisPointsPerCell));
+                    cellY = isBuy ? steps : -steps;
+                } else {
+                    cellY = isBuy ? 1 : -1;
+                }
+            } else {
+                const columnDurationMs = Math.max(1, tapToTrade.gridSizeX * 60000);
+                cellX = Math.floor(timeValue / columnDurationMs);
+                cellY = isBuy ? 1 : -1;
+            }
+
+            if (cellY === 0) {
+                cellY = isBuy ? 1 : -1;
+            }
+
+            tapToTrade.handleCellClick(cellX, cellY);
+        }
     };
 
     return (
@@ -843,7 +881,6 @@ const TradingChart: React.FC = () => {
                                 tapToTradeEnabled={true}
                                 gridSize={tapToTrade.gridSizeY}
                                 onCellTap={handleTapCellClick}
-                                selectedCells={tapToTrade.selectedCells}
                             />
                         ) : (
                             <TradingVueChart

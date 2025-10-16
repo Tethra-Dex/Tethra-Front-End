@@ -606,21 +606,20 @@ const TapToTrade: React.FC = () => {
             )}
           </div>
 
-          {/* Selected Cells Statistics */}
-          {tapToTrade.isEnabled && tapToTrade.selectedCells.size > 0 && (
+          {/* Cell Orders Statistics */}
+          {tapToTrade.isEnabled && tapToTrade.cellOrders.size > 0 && (
             <div className="bg-[#1A2332] rounded-lg p-3 space-y-2">
-              <div className="text-xs font-semibold text-white mb-2">Selected Cells</div>
+              <div className="text-xs font-semibold text-white mb-2">Active Orders</div>
               <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Total Selected:</span>
-                <span className="text-white font-semibold">{tapToTrade.selectedCells.size}</span>
+                <span className="text-gray-400">Total Orders:</span>
+                <span className="text-white font-semibold">
+                  {Array.from(tapToTrade.cellOrders.values()).reduce((sum, cell) => sum + cell.orderCount, 0)}
+                </span>
               </div>
-
-              <button
-                onClick={tapToTrade.clearCells}
-                className="w-full mt-2 py-1.5 rounded text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition-all"
-              >
-                Clear Selection
-              </button>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Cells with Orders:</span>
+                <span className="text-white font-semibold">{tapToTrade.cellOrders.size}</span>
+              </div>
             </div>
           )}
 
@@ -632,43 +631,52 @@ const TapToTrade: React.FC = () => {
       {/* Action Buttons */}
       {!tapToTrade.isEnabled ? (
         <button
-          onClick={tapToTrade.toggleMode}
-          className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer flex items-center justify-center gap-2"
+          onClick={async () => {
+            // Validate inputs
+            if (!marginAmount || parseFloat(marginAmount) === 0) {
+              alert('Please enter margin amount');
+              return;
+            }
+
+            // Call toggleMode with parameters to create grid session
+            await tapToTrade.toggleMode({
+              symbol: activeMarket?.symbol || 'BTC',
+              margin: marginAmount,
+              leverage: leverage,
+              timeframe: timeframe,
+              currentPrice: Number(currentPrice) || 0,
+            });
+          }}
+          disabled={tapToTrade.isLoading || !marginAmount}
+          className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-          </svg>
-          Enable Tap to Trade
+          {tapToTrade.isLoading ? (
+            <>
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Enabling...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+              </svg>
+              Enable Tap to Trade
+            </>
+          )}
         </button>
       ) : (
-        <div className="mt-2 flex gap-2">
-          <button
-            onClick={() => {
-              if (tapToTrade.selectedCells.size > 0) {
-                console.log('📝 Placing orders for selected cells:', tapToTrade.selectedCells);
-                // TODO: Implement order placement logic
-                alert(`Placing ${tapToTrade.selectedCells.size} orders!`);
-              }
-            }}
-            disabled={tapToTrade.selectedCells.size === 0}
-            className={`flex-1 py-3 rounded-lg font-bold text-white transition-all shadow-lg ${
-              tapToTrade.selectedCells.size === 0
-                ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                : 'bg-green-500 hover:bg-green-600 shadow-green-500/30 hover:cursor-pointer'
-            }`}
-          >
-            {tapToTrade.selectedCells.size > 0
-              ? `Place ${tapToTrade.selectedCells.size} Order${tapToTrade.selectedCells.size !== 1 ? 's' : ''}`
-              : 'Select Cells to Trade'
-            }
-          </button>
-          <button
-            onClick={tapToTrade.toggleMode}
-            className="px-4 py-3 rounded-lg font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30 hover:cursor-pointer"
-          >
-            Stop
-          </button>
-        </div>
+        <button
+          onClick={async () => {
+            await tapToTrade.toggleMode();
+          }}
+          disabled={tapToTrade.isLoading}
+          className="mt-2 w-full py-3 rounded-lg font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {tapToTrade.isLoading ? 'Stopping...' : 'Stop Tap to Trade'}
+        </button>
       )}
 
       {/* Info Section */}
