@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 import PendingOrdersTable from './PendingOrdersTable';
 import { useMarket } from '../contexts/MarketContext';
 import TPSLModal from './TPSLModal';
-import { useTPSLConfig } from '@/hooks/useTPSL';
+import { useTPSLContext } from '@/contexts/TPSLContext';
 
 // List of all markets for matching
 const ALL_MARKETS = [
@@ -53,8 +53,9 @@ const PositionRow = ({
   const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
   const currentPrice = priceData?.price || null;
   
-  // Fetch TP/SL config for this position
-  const { config: tpslConfig } = useTPSLConfig(position ? Number(position.id) : null);
+  // Fetch TP/SL config for this position from global context
+  const { getConfig } = useTPSLContext();
+  const tpslConfig = position ? getConfig(Number(position.id)) : null;
   
   // Report position status when loaded
   useEffect(() => {
@@ -298,6 +299,25 @@ const BottomTrading = () => {
     setOpenPositionsCount(openCount);
   }, [positionStatuses]);
   
+  // Listen for TP/SL updates from other components
+  useEffect(() => {
+    const handleTPSLUpdate = () => {
+      setTpslRefreshTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpsl-updated', handleTPSLUpdate);
+    return () => window.removeEventListener('tpsl-updated', handleTPSLUpdate);
+  }, []);
+  
+  // Auto-refetch positions when txHash changes (position closed)
+  useEffect(() => {
+    if (txHash) {
+      setTimeout(() => {
+        refetchPositions?.();
+      }, 2000);
+    }
+  }, [txHash, refetchPositions]);
+  
   // Handle position click - Switch market and show entry price line
   const handlePositionClick = (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => {
     // Find market by symbol
@@ -368,15 +388,6 @@ const BottomTrading = () => {
       // Error toast already shown by hook
     }
   };
-  
-  // Auto-refetch positions when txHash changes (position closed)
-  useEffect(() => {
-    if (txHash) {
-      setTimeout(() => {
-        refetchPositions?.();
-      }, 2000);
-    }
-  }, [txHash, refetchPositions]);
   
   // No need for extra state or useEffect - just use positionIds directly
   const isLoading = isLoadingIds;

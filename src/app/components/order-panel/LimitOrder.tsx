@@ -768,12 +768,35 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               return;
             }
 
+            // Convert TP/SL to price format (8 decimals) if enabled
+            let tpPrice: string | undefined;
+            let slPrice: string | undefined;
+            
+            if (isTpSlEnabled) {
+              if (takeProfitPrice) {
+                // Convert to 8 decimals for backend (price * 10^8)
+                const tpNum = parseFloat(takeProfitPrice);
+                if (!isNaN(tpNum) && tpNum > 0) {
+                  tpPrice = Math.floor(tpNum * 100000000).toString();
+                }
+              }
+              if (stopLossPrice) {
+                // Convert to 8 decimals for backend (price * 10^8)
+                const slNum = parseFloat(stopLossPrice);
+                if (!isNaN(slNum) && slNum > 0) {
+                  slPrice = Math.floor(slNum * 100000000).toString();
+                }
+              }
+            }
+
             await submitLimitOrder({
               symbol: activeMarket.symbol,
               isLong: activeTab === 'long',
               collateral: payAmount || '0',
               leverage,
               triggerPrice: limitPrice || '0',
+              takeProfit: tpPrice,
+              stopLoss: slPrice,
             });
           }}
           disabled={!authenticated || !payAmount || !limitPrice || isProcessing || ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)}

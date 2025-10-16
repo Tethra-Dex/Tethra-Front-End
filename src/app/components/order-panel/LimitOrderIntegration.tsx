@@ -30,6 +30,8 @@ export function useLimitOrderSubmit() {
     collateral: string;
     leverage: number;
     triggerPrice: string;
+    takeProfit?: string;  // Optional TP price (8 decimals)
+    stopLoss?: string;    // Optional SL price (8 decimals)
   }) => {
     try {
       setIsProcessing(true);
@@ -74,8 +76,16 @@ export function useLimitOrderSubmit() {
         collateral: params.collateral,
         leverage: params.leverage,
         triggerPrice: params.triggerPrice,
+        takeProfit: params.takeProfit,
+        stopLoss: params.stopLoss,
       });
-      toast.success('Limit order created successfully!', { id: 'limit-order-create' });
+      
+      // Show success message with TP/SL info if configured
+      let successMsg = 'Limit order created successfully!';
+      if (params.takeProfit || params.stopLoss) {
+        successMsg += ' Auto TP/SL will be set when order executes.';
+      }
+      toast.success(successMsg, { id: 'limit-order-create', duration: 5000 });
       return true;
 
     } catch (error) {

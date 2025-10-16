@@ -701,3 +701,12 @@ body {
     font-size: 13px;
   }
 }
+
+/* Toast container - prevent blocking UI */
+.toast-container {
+  pointer-events: none !important;
+}
+
+.toast-container > div {
+  pointer-events: auto !important;
+}

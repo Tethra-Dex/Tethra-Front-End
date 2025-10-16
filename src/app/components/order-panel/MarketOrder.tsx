@@ -173,9 +173,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const [tpSlUnit, setTpSlUnit] = useState<'price' | 'percentage'>('percentage');
   const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
+  const processedHashRef = useRef<string | null>(null);
 
   // Trading hooks - Use GASLESS relay for transactions
-  const { openPositionGasless, isPending: isRelayPending, hash: relayHash, usdcCharged } = useRelayMarketOrder();
+  const { openPositionGasless, isPending: isRelayPending, hash: relayHash, usdcCharged, positionId: relayPositionId } = useRelayMarketOrder();
   const { balance: paymasterBalance, isApproving, isDepositing, ensurePaymasterBalance } = usePaymasterFlow();
   const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
   const { setTPSL } = useTPSL();
@@ -410,13 +411,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         leverage: Math.floor(leverage), // Round to integer
       });
       
-      // Show success with gas cost in USDC
-      if (usdcCharged) {
-        toast.success(`✅ Position opened! Gas paid: ${usdcCharged}`, {
-          duration: 5000,
-          icon: '🎉'
-        });
-      }
+      // Success toast will be shown by useEffect below
     } catch (error) {
       console.error('Error executing market order:', error);
       toast.error('Failed to execute market order');
@@ -447,7 +442,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
   // Show success notification with explorer link and auto-set TP/SL
   useEffect(() => {
-    if (relayHash) {
+    // Only process new hashes, prevent duplicate toasts
+    if (relayHash && relayHash !== processedHashRef.current) {
+      processedHashRef.current = relayHash; // Mark as processed
+      
       const shouldSetTPSL = isTpSlEnabled && (takeProfitPrice || stopLossPrice);
       
       toast.success(
@@ -467,40 +465,37 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             </div>
           )}
         </div>,
-        { duration: 7000, id: 'position-success' }
+        { duration: 4000, id: 'position-success' }
       );
       
       // Auto-set TP/SL if enabled
       if (shouldSetTPSL && embeddedAddress) {
         const setTPSLForNewPosition = async () => {
           try {
-            // Wait 3 seconds for position to be indexed
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait a bit for backend to process
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Refetch positions to get latest
-            await refetchPositions?.();
+            // Get position ID from backend (already extracted from event)
+            const newPositionId = relayPositionId;
             
-            // Wait a bit more for state to update
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (!newPositionId) {
+              toast.error('⚠️ Could not get position ID from backend. Please set TP/SL manually.', { duration: 5000 });
+              return;
+            }
             
-            // Get the latest position (should be the one just opened)
-            if (positionIds && positionIds.length > 0) {
-              const latestPositionId = Number(positionIds[positionIds.length - 1]);
-              
-              console.log('🎯 Setting TP/SL for position', latestPositionId);
-              
-              const success = await setTPSL({
-                positionId: latestPositionId,
-                trader: embeddedAddress,
-                takeProfit: takeProfitPrice || undefined,
-                stopLoss: stopLossPrice || undefined,
-              });
-              
-              if (success) {
-                toast.success('✅ TP/SL set successfully!', { duration: 3000 });
-              }
-            } else {
-              toast.error('⚠️ Could not auto-set TP/SL. Please set manually from positions table.', { duration: 5000 });
+            console.log('🎯 Setting TP/SL for position', newPositionId);
+            
+            const success = await setTPSL({
+              positionId: newPositionId,
+              trader: embeddedAddress,
+              takeProfit: takeProfitPrice || undefined,
+              stopLoss: stopLossPrice || undefined,
+            });
+            
+            if (success) {
+              toast.success('✅ TP/SL set successfully!', { duration: 3000 });
+              // Broadcast event to trigger TP/SL refresh in positions table
+              window.dispatchEvent(new CustomEvent('tpsl-updated', { detail: { positionId: newPositionId } }));
             }
           } catch (error) {
             console.error('Failed to auto-set TP/SL:', error);

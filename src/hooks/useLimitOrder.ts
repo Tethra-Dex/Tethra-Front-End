@@ -67,6 +67,8 @@ export interface CreateLimitOpenParams {
   collateral: string; // USDC amount
   leverage: number;
   triggerPrice: string; // Price with 8 decimals
+  takeProfit?: string; // Optional TP price (8 decimals)
+  stopLoss?: string; // Optional SL price (8 decimals)
   expiresAt?: number; // Optional custom expiry (unix)
 }
 
@@ -359,6 +361,8 @@ export function useCreateLimitOpenOrder() {
         nonce: nonce.toString(),
         expiresAt: expiresAt.toString(),
         signature,
+        takeProfit: params.takeProfit, // Pass TP/SL to backend
+        stopLoss: params.stopLoss,
         metadata: {
           collateralUsd: params.collateral,
           triggerPriceUsd: params.triggerPrice,
@@ -639,9 +643,11 @@ export function useCancelOrder() {
       }
 
       // Create message to sign: trader, orderId, nonce, contract address, "CANCEL"
-      const messageHash = ethers.solidityPackedKeccak256(
-        ['address', 'uint256', 'uint256', 'address', 'string'],
-        [address, orderId, userNonce, LIMIT_EXECUTOR_ADDRESS, 'CANCEL']
+      const messageHash = keccak256(
+        encodePacked(
+          ['address', 'uint256', 'uint256', 'address', 'string'],
+          [address, orderId, userNonce, LIMIT_EXECUTOR_ADDRESS, 'CANCEL']
+        )
       );
 
       // Sign message

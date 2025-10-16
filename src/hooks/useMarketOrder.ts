@@ -644,6 +644,7 @@ export function useRelayMarketOrder() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [usdcCharged, setUsdcCharged] = useState<string>('0');
   const [metaNonce, setMetaNonce] = useState<bigint>(0n);
+  const [positionId, setPositionId] = useState<number | undefined>();
 
   const openPositionGasless = useCallback(async (params: OpenPositionParams) => {
     try {
@@ -765,12 +766,10 @@ export function useRelayMarketOrder() {
       
       setHash(result.txHash as `0x${string}`);
       setUsdcCharged(result.usdcChargedFormatted);
+      setPositionId(result.positionId);
       setIsSuccess(true);
       
-      toast.success(
-        `Position opened! Gas paid: ${result.usdcChargedFormatted}`,
-        { duration: 5000 }
-      );
+      // Don't show toast here - let the component handle it with more details
       
     } catch (err) {
       console.error('❌ Error opening position (gasless):', err);
@@ -789,6 +788,7 @@ export function useRelayMarketOrder() {
     error,
     hash,
     usdcCharged,
+    positionId,
   };
 }
 

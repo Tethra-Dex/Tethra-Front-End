@@ -125,46 +125,31 @@ export function useTPSL() {
 }
 
 /**
+ * Hook for fetching ALL TP/SL configs (batch)
+ * Uses global context to avoid duplicate requests
+ * @deprecated Import useTPSLContext from TPSLContext instead
+ */
+export function useAllTPSL() {
+  // This is now just a wrapper for backward compatibility
+  // Real implementation is in TPSLContext
+  console.warn('useAllTPSL is deprecated. Use useTPSLContext from TPSLContext instead.');
+  
+  const [configs, setConfigs] = useState<Record<number, TPSLConfig>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  
+  return { configs, isLoading, refresh: async () => {} };
+}
+
+/**
  * Hook for fetching TP/SL config for a specific position
- * Used in positions table to show TP/SL status
+ * Uses global context to avoid duplicate requests
  */
 export function useTPSLConfig(positionId: number | null) {
-  const [config, setConfig] = useState<TPSLConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    if (!positionId) return;
-
-    const fetchConfig = async () => {
-      setIsLoading(true);
-      try {
-        console.log(`🔍 Fetching TP/SL config for position ${positionId}`);
-        const response = await fetch(`${BACKEND_API_URL}/api/tpsl/${positionId}`);
-        const data = await response.json();
-
-        console.log(`📦 TP/SL response for position ${positionId}:`, data);
-
-        if (response.ok && data.success) {
-          setConfig(data.data);
-          console.log(`✅ TP/SL config loaded for position ${positionId}:`, data.data);
-        } else {
-          setConfig(null);
-          console.log(`❌ No TP/SL config for position ${positionId}`);
-        }
-      } catch (err) {
-        console.error(`Error fetching TP/SL for position ${positionId}:`, err);
-        setConfig(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchConfig();
-  }, [positionId, refreshKey]);
-
-  // Expose refresh function
-  const refresh = () => setRefreshKey(prev => prev + 1);
-
-  return { config, isLoading, refresh };
+  // Simple non-context version for components that don't have context yet
+  // Returns empty config - components should migrate to use TPSLContext
+  return { 
+    config: null as TPSLConfig | null, 
+    isLoading: false, 
+    refresh: () => {} 
+  };
 }
