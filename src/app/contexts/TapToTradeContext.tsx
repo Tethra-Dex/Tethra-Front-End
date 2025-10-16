@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { ethers } from 'ethers';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { keccak256, encodePacked, encodeFunctionData } from 'viem';
 
 interface GridSession {
   id: string;
@@ -65,6 +65,7 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
 
 export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = usePrivy();
+  const { wallets } = useWallets();
   const [isEnabled, setIsEnabled] = useState(false);
   const [gridSizeX, setGridSizeX] = useState(1); // 1 candle per column by default
   const [gridSizeY, setGridSizeY] = useState(0.5); // 0.5% per row by default
@@ -218,56 +219,88 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       const totalCells = gridSession.gridSizeX * (gridSession.gridSizeYPercent / 100);
       const collateralPerOrder = Math.floor(parseFloat(gridSession.marginTotal) / totalCells).toString();
 
-      // Get current nonce from contract
-      const resolveProvider = async (): Promise<ethers.BrowserProvider> => {
-        const privyWallet: any = user?.wallet;
-        if (privyWallet && typeof privyWallet.getEthersProvider === 'function') {
-          const privyProvider = await privyWallet.getEthersProvider();
-          if (privyProvider) {
-            return privyProvider;
-          }
-        }
+      // Find embedded wallet - try multiple approaches
+      console.log('🔍 Looking for embedded wallet...');
+      console.log('Available wallets:', wallets.map(w => ({ 
+        type: w.walletClientType, 
+        address: w.address,
+        connectorType: w.connectorType 
+      })));
+      console.log('User wallet address:', user.wallet.address);
+      console.log('User wallet type:', user.wallet.walletClientType);
+      
+      // ALWAYS use Privy embedded wallet for tap-to-trade (gasless with AA)
+      const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
 
-        if ((window as any).ethereum) {
-          return new ethers.BrowserProvider((window as any).ethereum);
-        }
+      if (!embeddedWallet) {
+        console.error('❌ No Privy embedded wallet found in wallets array');
+        throw new Error('Privy embedded wallet not found. Tap-to-trade requires Privy AA wallet.');
+      }
+      
+      console.log('✅ Using Privy embedded wallet for tap-to-trade:', embeddedWallet.address);
+      
+      // Use embedded wallet address as trader (not the currently active wallet)
+      const traderAddress = embeddedWallet.address;
 
-        throw new Error('Wallet provider not available');
-      };
-
-      const provider = await resolveProvider();
-      const signer = await provider.getSigner();
-
-      const network = await provider.getNetwork();
-      if (network.chainId !== EXPECTED_CHAIN_ID) {
-        throw new Error(`Please switch wallet to chain ${EXPECTED_CHAIN_ID.toString()} (Base Sepolia) before using Tap-to-Trade.`);
+      // Get wallet provider (EIP-1193)
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      if (!walletClient) {
+        throw new Error('Could not get wallet client');
       }
 
-      const contractCode = await provider.getCode(MARKET_EXECUTOR_ADDRESS);
-      if (contractCode === '0x') {
-        throw new Error('MarketExecutor contract not found on the connected network. Check RPC setup.');
-      }
+      // Get current nonce from contract via eth_call
+      const MarketExecutorABI = [
+        {
+          inputs: [{ name: '', type: 'address' }],
+          name: 'metaNonces',
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ];
 
-      const contractABI = ['function metaNonces(address) view returns (uint256)'];
-      const readProvider = RPC_URL ? new ethers.JsonRpcProvider(RPC_URL) : provider;
-      const marketExecutor = new ethers.Contract(MARKET_EXECUTOR_ADDRESS, contractABI, readProvider);
-      const currentNonce = await marketExecutor.metaNonces(user.wallet.address);
+      const nonceData = encodeFunctionData({
+        abi: MarketExecutorABI,
+        functionName: 'metaNonces',
+        args: [traderAddress as `0x${string}`],
+      });
+
+      const nonceResult = await walletClient.request({
+        method: 'eth_call',
+        params: [{
+          to: MARKET_EXECUTOR_ADDRESS,
+          data: nonceData,
+        }, 'latest'],
+      });
+
+      const currentNonce = BigInt(nonceResult as string);
+      console.log('✅ Current meta nonce:', currentNonce.toString());
 
       // Sign order message
-      const messageHash = ethers.solidityPackedKeccak256(
-        ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
-        [
-          user.wallet.address,
-          gridSession.symbol,
-          isLong,
-          collateralPerOrder,
-          gridSession.leverage,
-          currentNonce,
-          MARKET_EXECUTOR_ADDRESS
-        ]
+      const messageHash = keccak256(
+        encodePacked(
+          ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
+          [
+            traderAddress as `0x${string}`,
+            gridSession.symbol,
+            isLong,
+            BigInt(collateralPerOrder),
+            BigInt(gridSession.leverage),
+            currentNonce,
+            MARKET_EXECUTOR_ADDRESS as `0x${string}`
+          ]
+        )
       );
 
-      const signature = await signer.signMessage(ethers.getBytes(messageHash));
+      console.log('\u270d\ufe0f Requesting signature for tap-to-trade order...');
+
+      // Sign message using personal_sign (same as market/limit orders)
+      const signature = await walletClient.request({
+        method: 'personal_sign',
+        params: [messageHash, traderAddress],
+      });
+
+      console.log('✅ Signature obtained');
 
       // Create order in backend
       const cellId = `${cellX},${cellY}`;
@@ -279,7 +312,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
           orders: [{
             gridSessionId: gridSession.id,
             cellId,
-            trader: user.wallet.address,
+            trader: traderAddress,
             symbol: gridSession.symbol,
             isLong,
             collateral: collateralPerOrder,

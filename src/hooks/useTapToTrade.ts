@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { ethers } from 'ethers';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { keccak256, encodePacked, encodeFunctionData } from 'viem';
 
 export interface ClickedCell {
   cellX: number;
@@ -36,6 +36,7 @@ export interface TapToTradeOrder {
 
 export function useTapToTrade() {
   const { user } = usePrivy();
+  const { wallets } = useWallets();
   const [clickedCells, setClickedCells] = useState<ClickedCell[]>([]);
   const [pendingOrders, setPendingOrders] = useState<TapToTradeOrder[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,38 +121,81 @@ export function useTapToTrade() {
     marketExecutorAddress: string
   ): Promise<{ signature: string; nonce: string } | null> => {
     try {
-      // Get embedded wallet provider
-      const provider = await user?.wallet?.getEthersProvider();
-      if (!provider) {
-        throw new Error('Wallet provider not available');
+      // Find embedded wallet - try multiple approaches
+      console.log('🔍 Looking for embedded wallet...');
+      console.log('Available wallets:', wallets.map(w => ({ type: w.walletClientType, address: w.address })));
+      console.log('Trader address:', trader);
+      
+      let embeddedWallet = wallets.find(
+        (w) => w.walletClientType === 'privy' && w.address?.toLowerCase() === trader?.toLowerCase()
+      );
+      
+      // Fallback: just get the first privy wallet
+      if (!embeddedWallet) {
+        embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
       }
 
-      const signer = provider.getSigner();
+      if (!embeddedWallet) {
+        console.error('❌ No embedded wallet found in wallets array');
+        throw new Error('Embedded wallet not found. Please ensure Privy wallet is connected.');
+      }
+      
+      console.log('✅ Using embedded wallet:', embeddedWallet.address);
 
-      // Get MarketExecutor contract to read metaNonce
-      const marketExecutorABI = [
-        'function metaNonces(address) view returns (uint256)',
+      // Get wallet provider (EIP-1193)
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      if (!walletClient) {
+        throw new Error('Could not get wallet client');
+      }
+
+      // Get current nonce from contract via eth_call
+      const MarketExecutorABI = [
+        {
+          inputs: [{ name: '', type: 'address' }],
+          name: 'metaNonces',
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
       ];
-      const marketExecutor = new ethers.Contract(
-        marketExecutorAddress,
-        marketExecutorABI,
-        provider
-      );
 
-      // Get current nonce
-      const metaNonce = await marketExecutor.metaNonces(trader);
+      const nonceData = encodeFunctionData({
+        abi: MarketExecutorABI,
+        functionName: 'metaNonces',
+        args: [trader as `0x${string}`],
+      });
+
+      const nonceResult = await walletClient.request({
+        method: 'eth_call',
+        params: [{
+          to: marketExecutorAddress,
+          data: nonceData,
+        }, 'latest'],
+      });
+
+      const metaNonce = BigInt(nonceResult as string);
+      console.log('✅ Current meta nonce:', metaNonce.toString());
 
       // Create message hash (must match MarketExecutor.sol format)
-      const messageHash = ethers.solidityPackedKeccak256(
-        ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
-        [trader, symbol, isLong, collateral, leverage, metaNonce, marketExecutorAddress]
+      const messageHash = keccak256(
+        encodePacked(
+          ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
+          [trader as `0x${string}`, symbol, isLong, BigInt(collateral), BigInt(leverage), metaNonce, marketExecutorAddress as `0x${string}`]
+        )
       );
 
-      // Sign message
-      const signature = await signer.signMessage(ethers.getBytes(messageHash));
+      console.log('✍️ Requesting signature for tap-to-trade order...');
+
+      // Sign message using personal_sign (same as market/limit orders)
+      const signature = await walletClient.request({
+        method: 'personal_sign',
+        params: [messageHash, trader],
+      });
+
+      console.log('✅ Signature obtained');
 
       return {
-        signature,
+        signature: signature as string,
         nonce: metaNonce.toString(),
       };
     } catch (err: any) {
