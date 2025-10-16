@@ -50,7 +50,12 @@ const OrderPanel: React.FC = () => {
             <button
               key={type}
               onClick={() => setActiveOrderType(type)}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap min-w-fit ${
+              disabled={activeTab === 'swap'}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap min-w-fit ${
+                activeTab === 'swap'
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer'
+              } ${
                 activeOrderType === type
                   ? 'bg-[#1E2836] text-white shadow-sm'
                   : 'text-gray-400 hover:text-gray-200'
@@ -76,7 +81,7 @@ const OrderPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar-dark">
+      <div className="flex-1 overflow-y-auto custom-scrollbar-dark relative">
         {/* Render different components based on activeOrderType */}
         {activeOrderType === 'market' && <MarketOrder activeTab={activeTab} />}
         {activeOrderType === 'limit' && <LimitOrder activeTab={activeTab} />}
@@ -84,6 +89,24 @@ const OrderPanel: React.FC = () => {
         {activeOrderType === 'more' && (
           <div className="text-center py-8 text-gray-400">
             <p>More order types coming soon...</p>
+          </div>
+        )}
+
+        {/* Coming Soon Overlay for Swap Tab */}
+        {activeTab === 'swap' && (
+          <div className="absolute inset-0 bg-[#0B1017]/95 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="mb-4">
+                <Zap size={64} className="text-blue-500 mx-auto animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Swap Feature</h3>
+              <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 max-w-md">
+                <p className="text-sm text-blue-300">
+                  We're working hard to bring you the best swap experience. Stay tuned!
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

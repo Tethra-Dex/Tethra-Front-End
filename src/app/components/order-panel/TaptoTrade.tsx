@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Info, Grid as GridIcon } from 'lucide-react';
+import { ChevronDown, Info, Grid as GridIcon, Star } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
 import { useGridTradingContext } from '../../contexts/GridTradingContext';
 import { useTapToTrade } from '../../contexts/TapToTradeContext';
@@ -47,39 +47,66 @@ const TIMEFRAME_OPTIONS: TimeframeOption[] = [
   { label: '1W', value: 'W' },
 ];
 
-// Market Selector Component
+// Market Selector Component with Favorites (from MarketOrder)
 interface MarketSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (market: Market) => void;
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSelect }) => {
+const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSelect, triggerRef }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const toggleFavorite = (symbol: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(symbol)) {
+        newFavorites.delete(symbol);
+      } else {
+        newFavorites.add(symbol);
+      }
+      return newFavorites;
+    });
+  };
 
   const filteredMarkets = ALL_MARKETS.filter(market =>
     market.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    const aIsFav = favorites.has(a.symbol);
+    const bIsFav = favorites.has(b.symbol);
+    if (aIsFav && !bIsFav) return -1;
+    if (!aIsFav && bIsFav) return 1;
+    return 0;
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        onClose();
+      const target = event.target as Node;
+      // Ignore clicks on the trigger button or inside the panel
+      if (
+        (panelRef.current && panelRef.current.contains(target)) ||
+        (triggerRef?.current && triggerRef.current.contains(target))
+      ) {
+        return;
       }
+      onClose();
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, triggerRef]);
 
   if (!isOpen) return null;
 
   return (
     <div
       ref={panelRef}
-      className="absolute top-full mt-1 left-0 w-full max-h-60 bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden"
+      className="absolute top-full mt-1 right-0 w-fit min-w-[200px] max-h-[400px] bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden"
     >
       <div className="p-2 border-b border-[#2D3748]">
         <input
@@ -91,28 +118,42 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
           autoFocus
         />
       </div>
-      <div className="overflow-y-auto max-h-48 custom-scrollbar-dark">
-        {filteredMarkets.map(market => (
-          <div
-            key={market.symbol}
-            onClick={() => {
-              onSelect(market);
-              onClose();
-            }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-[#2D3748] cursor-pointer transition-colors"
-          >
-            <img
-              src={market.logoUrl}
-              alt={market.symbol}
-              className="w-5 h-5 rounded-full"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
+      <div className="overflow-y-auto max-h-[350px] custom-scrollbar-dark">
+        {filteredMarkets.map(market => {
+          const isFavorite = favorites.has(market.symbol);
+          return (
+            <div
+              key={market.symbol}
+              onClick={() => {
+                onSelect(market);
+                onClose();
               }}
-            />
-            <span className="text-white font-medium">{market.symbol}/USD</span>
-          </div>
-        ))}
+              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-[#2D3748] cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <img
+                  src={market.logoUrl}
+                  alt={market.symbol}
+                  className="w-5 h-5 rounded-full"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
+                />
+                <span className="text-white font-medium whitespace-nowrap">{market.symbol}/USD</span>
+              </div>
+              <button
+                onClick={(e) => toggleFavorite(market.symbol, e)}
+                className="p-1 hover:bg-[#3D4A5F] rounded transition-colors"
+              >
+                <Star
+                  size={14}
+                  className={`${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'} transition-colors`}
+                />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -130,6 +171,7 @@ const TapToTrade: React.FC = () => {
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null); // For market selector
 
   // Grid Trading dari Context
   const gridTrading = useGridTradingContext();
@@ -137,7 +179,7 @@ const TapToTrade: React.FC = () => {
   // Tap to Trade dari Context
   const tapToTrade = useTapToTrade();
 
-  const leverageMarkers = [0.1, 1, 2, 5, 10, 25, 50, 100];
+  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100]; // Updated to match MarketOrder
 
   // Close timeframe dropdown when clicking outside
   useEffect(() => {
@@ -274,6 +316,7 @@ const TapToTrade: React.FC = () => {
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-400">Asset</span>
             <button
+              ref={triggerButtonRef}
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
               className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative"
             >
@@ -295,6 +338,7 @@ const TapToTrade: React.FC = () => {
               isOpen={isMarketSelectorOpen}
               onClose={() => setIsMarketSelectorOpen(false)}
               onSelect={handleMarketSelect}
+              triggerRef={triggerButtonRef}
             />
           </div>
         </div>
@@ -510,17 +554,35 @@ const TapToTrade: React.FC = () => {
               <input
                 type="number"
                 min="0.1"
-                max="1000"
+                max="100"
                 step="0.1"
                 value={tapToTrade.gridSizeY}
-                onChange={(e) => tapToTrade.setGridSizeY(parseFloat(e.target.value) || 1)}
-                className="bg-transparent text-white outline-none w-full"
+                onChange={(e) => tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.5)}
+                className="bg-transparent text-white outline-none w-full [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100"
+                style={{
+                  colorScheme: 'dark'
+                }}
               />
-              <span className="text-gray-400 text-sm">$</span>
+              <span className="text-gray-400 text-sm">%</span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Each grid row = ${tapToTrade.gridSizeY.toFixed(2)} price difference
+              Each grid row = {tapToTrade.gridSizeY.toFixed(1)}% price difference
             </p>
+
+            {/* Price Difference Display */}
+            {currentPrice > 0 && (
+              <div className="mt-3">
+                <label className="text-xs text-gray-400 mb-2 block">
+                  Price difference per grid
+                </label>
+                <div className="bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center gap-2">
+                  <span className="text-white font-medium">
+                    {((Number(currentPrice) * tapToTrade.gridSizeY) / 100).toFixed(2)}
+                  </span>
+                  <span className="text-gray-400 text-sm">$</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Selected Cells Statistics */}
