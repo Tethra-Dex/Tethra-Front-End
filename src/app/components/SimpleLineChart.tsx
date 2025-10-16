@@ -482,16 +482,17 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Current price label with background
+        // Current price label with background (on the right side)
         const priceText = `$${currentPrice.toFixed(2)}`;
-        ctx.font = 'bold 12px monospace';
+        ctx.font = 'bold 11px monospace';
         const textWidth = ctx.measureText(priceText).width;
 
+        // Draw on right side, aligned with cursor Y label
         ctx.fillStyle = '#10b981';
-        ctx.fillRect(5, currentPriceY - 18, textWidth + 10, 20);
+        ctx.fillRect(canvas.width - textWidth - 14, currentPriceY - 10, textWidth + 8, 18);
 
-        ctx.fillStyle = '#000000';
-        ctx.fillText(priceText, 10, currentPriceY - 4);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(priceText, canvas.width - textWidth - 10, currentPriceY + 3);
 
         // Draw circular indicator on current price line at latest data point
         // This should always be at the end of the actual price line, not the NOW line
