@@ -36,9 +36,42 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [visibleCandles, setVisibleCandles] = useState(50); // Number of visible candles
   const [priceZoom, setPriceZoom] = useState(1); // Price zoom factor (affects Y-axis)
+  const [panOffset, setPanOffset] = useState(0); // Horizontal pan offset in number of candles
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null); // Mouse position for crosshair
 
   // Get tap to trade context for gridSizeX
   const tapToTrade = useTapToTrade();
+
+  // Handle keyboard navigation (arrow keys for panning, Home/Center for reset)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const panStep = 5; // Number of candles to pan per key press
+
+      switch(e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          setPanOffset(prev => prev - panStep); // Pan left (show older data)
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          setPanOffset(prev => prev + panStep); // Pan right (show newer/future data)
+          break;
+        case 'Home':
+        case 'c': // 'c' for center
+        case 'C':
+          e.preventDefault();
+          setPanOffset(0); // Reset to original position
+          setVisibleCandles(50); // Reset zoom to default
+          setPriceZoom(1); // Reset price zoom to default
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Update canvas dimensions
   useEffect(() => {
@@ -169,7 +202,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const pixelsPerCandle = (canvas.width * 0.5) / visibleCandles; // Left half for past data
 
       const timeToX = (index: number): number => {
-        const offset = index - latestDataIndex;
+        const offset = index - latestDataIndex - panOffset; // Apply pan offset
         return nowX + (offset * pixelsPerCandle);
       };
       
@@ -435,21 +468,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       }
       ctx.stroke();
 
-      // Draw NOW line (yellow - where latest data is)
-      ctx.strokeStyle = '#eab308'; // Yellow
-      ctx.lineWidth = 2;
-      ctx.setLineDash([10, 5]);
-      ctx.beginPath();
-      ctx.moveTo(nowX, 0);
-      ctx.lineTo(nowX, canvas.height);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Draw "NOW" label at the top of yellow line
-      ctx.fillStyle = '#eab308';
-      ctx.font = 'bold 12px monospace';
-      ctx.fillText('NOW', nowX - 20, 20);
-
       // Draw current price indicator
       if (currentPrice > 0) {
         const currentPriceY = priceToY(currentPrice);
@@ -474,6 +492,42 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
         ctx.fillStyle = '#000000';
         ctx.fillText(priceText, 10, currentPriceY - 4);
+
+        // Draw circular indicator on current price line at latest data point
+        // This should always be at the end of the actual price line, not the NOW line
+        const latestDataX = timeToX(chartData.length - 1);
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(latestDataX, currentPriceY, 5, 0, Math.PI * 2); // Circle with radius 5
+        ctx.fill();
+
+        // Draw white outline for better visibility
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(latestDataX, currentPriceY, 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Draw crosshair (follows mouse cursor)
+      if (mousePosition && tapToTradeEnabled) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; // White with transparency
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]); // Smaller dashes for crosshair
+
+        // Vertical line
+        ctx.beginPath();
+        ctx.moveTo(mousePosition.x, 0);
+        ctx.lineTo(mousePosition.x, canvas.height);
+        ctx.stroke();
+
+        // Horizontal line
+        ctx.beginPath();
+        ctx.moveTo(0, mousePosition.y);
+        ctx.lineTo(canvas.width, mousePosition.y);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
       }
 
       animationFrameRef.current = requestAnimationFrame(draw);
@@ -486,7 +540,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, selectedCells, hoveredCell, visibleCandles, tapToTrade.gridSizeX, interval, priceZoom]);
+  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, selectedCells, hoveredCell, visibleCandles, tapToTrade.gridSizeX, interval, priceZoom, panOffset, mousePosition]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -537,16 +591,21 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const latestDataIndex = chartData.length - 1;
     const pixelsPerCandle = (canvas.width * 0.5) / visibleCandles; // Same as drawing logic
 
-    const relativeX = clickX - nowX;
-    const candleOffset = Math.round(relativeX / pixelsPerCandle);
-    const absoluteCandleIndex = latestDataIndex + candleOffset;
-
-    // Snap to grid column
     const gridSizeX = tapToTrade.gridSizeX;
 
-    // Calculate actual timestamp for clicked cell
+    // Reverse engineer which index the click corresponds to
+    // timeToX formula: x = nowX + (index - latestDataIndex - panOffset) * pixelsPerCandle
+    // Solving for index: index = (x - nowX) / pixelsPerCandle + latestDataIndex + panOffset
+    const clickIndexFloat = (clickX - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
+
+    // Snap to grid boundaries
+    // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
+    // We want to find which grid cell [i, i+gridSizeX) contains clickIndexFloat
+    const snappedCandleIndex = Math.floor(clickIndexFloat / gridSizeX) * gridSizeX;
+
+    // Calculate actual timestamp for clicked cell using SNAPPED index
     let clickedTime: number;
-    const isFutureClick = absoluteCandleIndex >= chartData.length;
+    const isFutureClick = snappedCandleIndex >= chartData.length;
     if (isFutureClick) {
       // Future click
       const lastTime = chartData[chartData.length - 1].time;
@@ -556,18 +615,18 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         return (isNaN(min) ? 60 : min) * 60 * 1000;
       };
       const intervalMs = getIntervalMs(interval);
-      clickedTime = lastTime + ((absoluteCandleIndex - chartData.length + 1) * intervalMs);
+      clickedTime = lastTime + ((snappedCandleIndex - chartData.length + 1) * intervalMs);
     } else {
       // Past/present click
-      const safeIndex = Math.max(0, Math.min(absoluteCandleIndex, chartData.length - 1));
+      const safeIndex = Math.max(0, Math.min(snappedCandleIndex, chartData.length - 1));
       clickedTime = chartData[safeIndex].time;
     }
-    
+
     // Round time to grid interval
     const gridTimeRounded = Math.floor(clickedTime / (gridSizeX * 60000)) * (gridSizeX * 60000);
 
     // Check if click is reasonable (within some bounds)
-    if (absoluteCandleIndex > -100) { // Allow some past clicks
+    if (snappedCandleIndex > -100) { // Allow some past clicks
       const cellId = `cell-${priceLevelIndex}-${gridTimeRounded}`;
 
       const isBuy = actualPrice < currentPrice;
@@ -580,12 +639,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     } else {
       console.log('⚠️ Click rejected: absoluteCandleIndex:', absoluteCandleIndex);
     }
-  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, visibleCandles, interval, priceZoom]);
+  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, visibleCandles, interval, priceZoom, panOffset]);
 
   // Handle canvas hover
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!tapToTradeEnabled || !canvasRef.current || chartData.length === 0) {
+    if (!canvasRef.current || chartData.length === 0) {
       setHoveredCell(null);
+      setMousePosition(null);
       return;
     }
 
@@ -598,6 +658,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
+
+    // Update mouse position for crosshair
+    setMousePosition({ x: mouseX, y: mouseY });
+
+    if (!tapToTradeEnabled) {
+      return;
+    }
 
     // Calculate hovered cell (with zoom factor)
     const prices = chartData.map(d => d.price);
@@ -627,16 +694,21 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const latestDataIndex = chartData.length - 1;
     const pixelsPerCandle = (canvas.width * 0.5) / visibleCandles; // Same as drawing logic
 
-    const relativeX = mouseX - nowX;
-    const candleOffset = Math.round(relativeX / pixelsPerCandle);
-    const absoluteCandleIndex = latestDataIndex + candleOffset;
-
-    // Snap to grid column
     const gridSizeX = tapToTrade.gridSizeX;
 
-    // Calculate actual timestamp for hovered cell
+    // Reverse engineer which index the mouse corresponds to
+    // timeToX formula: x = nowX + (index - latestDataIndex - panOffset) * pixelsPerCandle
+    // Solving for index: index = (x - nowX) / pixelsPerCandle + latestDataIndex + panOffset
+    const mouseIndexFloat = (mouseX - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
+
+    // Snap to grid boundaries
+    // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
+    // We want to find which grid cell [i, i+gridSizeX) contains mouseIndexFloat
+    const snappedCandleIndex = Math.floor(mouseIndexFloat / gridSizeX) * gridSizeX;
+
+    // Calculate actual timestamp for hovered cell using SNAPPED index
     let hoveredTime: number;
-    const isFutureHover = absoluteCandleIndex >= chartData.length;
+    const isFutureHover = snappedCandleIndex >= chartData.length;
     if (isFutureHover) {
       // Future hover
       const lastTime = chartData[chartData.length - 1].time;
@@ -646,27 +718,28 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         return (isNaN(min) ? 60 : min) * 60 * 1000;
       };
       const intervalMs = getIntervalMs(interval);
-      hoveredTime = lastTime + ((absoluteCandleIndex - chartData.length + 1) * intervalMs);
+      hoveredTime = lastTime + ((snappedCandleIndex - chartData.length + 1) * intervalMs);
     } else {
       // Past/present hover
-      const safeIndex = Math.max(0, Math.min(absoluteCandleIndex, chartData.length - 1));
+      const safeIndex = Math.max(0, Math.min(snappedCandleIndex, chartData.length - 1));
       hoveredTime = chartData[safeIndex].time;
     }
-    
+
     // Round time to grid interval
     const gridTimeRounded = Math.floor(hoveredTime / (gridSizeX * 60000)) * (gridSizeX * 60000);
 
     // Check if hover is reasonable
-    if (absoluteCandleIndex > -100) {
+    if (snappedCandleIndex > -100) {
       const cellId = `cell-${priceLevelIndex}-${gridTimeRounded}`;
       setHoveredCell(cellId);
     } else {
       setHoveredCell(null);
     }
-  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, visibleCandles, priceZoom, currentPrice, interval]);
+  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, visibleCandles, priceZoom, currentPrice, interval, panOffset]);
 
   const handleCanvasLeave = useCallback(() => {
     setHoveredCell(null);
+    setMousePosition(null); // Hide crosshair when mouse leaves
   }, []);
 
   // Handle mouse wheel zoom (like TradingView - both X and Y axis)
