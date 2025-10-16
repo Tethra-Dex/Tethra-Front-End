@@ -528,6 +528,71 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         ctx.stroke();
 
         ctx.setLineDash([]);
+
+        // Calculate price at cursor position
+        const cursorPrice = chartMaxPrice - (mousePosition.y / canvas.height) * chartPriceRange;
+
+        // Calculate time at cursor position
+        const cursorIndexFloat = (mousePosition.x - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
+        let cursorTime: number;
+
+        if (cursorIndexFloat >= chartData.length) {
+          // Future time
+          const lastTime = chartData[chartData.length - 1].time;
+          const getIntervalMs = (int: string) => {
+            if (int === 'D') return 86400000;
+            const min = parseInt(int);
+            return (isNaN(min) ? 60 : min) * 60 * 1000;
+          };
+          const intervalMs = getIntervalMs(interval);
+          cursorTime = lastTime + ((cursorIndexFloat - chartData.length + 1) * intervalMs);
+        } else {
+          // Past/present time
+          const safeIndex = Math.max(0, Math.min(Math.floor(cursorIndexFloat), chartData.length - 1));
+          cursorTime = chartData[safeIndex].time;
+        }
+
+        const cursorDate = new Date(cursorTime);
+
+        // Draw price label on right side (Y-axis)
+        const priceText = `$${cursorPrice.toFixed(2)}`;
+        ctx.font = '11px monospace';
+        const priceTextWidth = ctx.measureText(priceText).width;
+
+        // Price label background
+        ctx.fillStyle = 'rgba(50, 50, 50, 0.9)';
+        ctx.fillRect(canvas.width - priceTextWidth - 10, mousePosition.y - 10, priceTextWidth + 8, 18);
+
+        // Price label text
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(priceText, canvas.width - priceTextWidth - 6, mousePosition.y + 3);
+
+        // Draw time label on bottom (X-axis)
+        const getIntervalMinutes = (intervalStr: string): number => {
+          if (intervalStr === 'D') return 1440;
+          const num = parseInt(intervalStr);
+          return isNaN(num) ? 60 : num;
+        };
+        const intervalMinutes = getIntervalMinutes(interval);
+
+        let timeText: string;
+        if (intervalMinutes >= 1440) {
+          // Show date for daily or longer
+          timeText = `${String(cursorDate.getDate()).padStart(2, '0')}/${String(cursorDate.getMonth() + 1).padStart(2, '0')} ${String(cursorDate.getHours()).padStart(2, '0')}:${String(cursorDate.getMinutes()).padStart(2, '0')}`;
+        } else {
+          // Show time HH:MM:SS
+          timeText = `${String(cursorDate.getHours()).padStart(2, '0')}:${String(cursorDate.getMinutes()).padStart(2, '0')}:${String(cursorDate.getSeconds()).padStart(2, '0')}`;
+        }
+
+        const timeTextWidth = ctx.measureText(timeText).width;
+
+        // Time label background
+        ctx.fillStyle = 'rgba(50, 50, 50, 0.9)';
+        ctx.fillRect(mousePosition.x - timeTextWidth / 2 - 4, canvas.height - 20, timeTextWidth + 8, 18);
+
+        // Time label text
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(timeText, mousePosition.x - timeTextWidth / 2, canvas.height - 7);
       }
 
       animationFrameRef.current = requestAnimationFrame(draw);
@@ -746,7 +811,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
 
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // Zoom out / Zoom in
+    // Scroll down (deltaY > 0) = zoom out (show more candles)
+    // Scroll up (deltaY < 0) = zoom in (show fewer candles)
+    const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9; // Zoom out / Zoom in
     
     // Zoom X-axis (time)
     setVisibleCandles(prev => {
