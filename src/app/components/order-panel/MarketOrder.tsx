@@ -11,6 +11,8 @@ import { useEmbeddedWallet } from '@/hooks/useEmbeddedWallet';
 import { useUSDCBalance } from '@/hooks/useUSDCBalance';
 import { USDC_DECIMALS } from '@/config/contracts';
 import { toast } from 'react-hot-toast';
+import { useTPSL } from '@/hooks/useTPSL';
+import { useUserPositions } from '@/hooks/usePositions';
 
 interface Market {
   symbol: string;
@@ -176,6 +178,8 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const { openPositionGasless, isPending: isRelayPending, hash: relayHash, usdcCharged } = useRelayMarketOrder();
   const { balance: paymasterBalance, isApproving, isDepositing, ensurePaymasterBalance } = usePaymasterFlow();
   const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useApproveUSDCForTrading();
+  const { setTPSL } = useTPSL();
+  const { positionIds, refetch: refetchPositions } = useUserPositions();
 
   const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
   const [showPreApprove, setShowPreApprove] = useState(false);
@@ -441,9 +445,11 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
     parseFloat(payAmount) <= 0 ||
     ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance);
 
-  // Show success notification with explorer link
+  // Show success notification with explorer link and auto-set TP/SL
   useEffect(() => {
     if (relayHash) {
+      const shouldSetTPSL = isTpSlEnabled && (takeProfitPrice || stopLossPrice);
+      
       toast.success(
         <div>
           <div>✅ Position opened! Gas paid in USDC: {usdcCharged}</div>
@@ -455,13 +461,73 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
           >
             View transaction
           </a>
+          {shouldSetTPSL && (
+            <div className="text-blue-400 text-xs mt-1">
+              🎯 Setting TP/SL automatically...
+            </div>
+          )}
         </div>,
-        { duration: 5000, id: 'position-success' }
+        { duration: 7000, id: 'position-success' }
       );
+      
+      // Auto-set TP/SL if enabled
+      if (shouldSetTPSL && embeddedAddress) {
+        const setTPSLForNewPosition = async () => {
+          try {
+            // Wait 3 seconds for position to be indexed
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Refetch positions to get latest
+            await refetchPositions?.();
+            
+            // Wait a bit more for state to update
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Get the latest position (should be the one just opened)
+            if (positionIds && positionIds.length > 0) {
+              const latestPositionId = Number(positionIds[positionIds.length - 1]);
+              
+              console.log('🎯 Setting TP/SL for position', latestPositionId);
+              
+              const success = await setTPSL({
+                positionId: latestPositionId,
+                trader: embeddedAddress,
+                takeProfit: takeProfitPrice || undefined,
+                stopLoss: stopLossPrice || undefined,
+              });
+              
+              if (success) {
+                toast.success('✅ TP/SL set successfully!', { duration: 3000 });
+              }
+            } else {
+              toast.error('⚠️ Could not auto-set TP/SL. Please set manually from positions table.', { duration: 5000 });
+            }
+          } catch (error) {
+            console.error('Failed to auto-set TP/SL:', error);
+            toast.error('⚠️ Could not auto-set TP/SL. Please set manually from positions table.', { duration: 5000 });
+          }
+        };
+        
+        setTPSLForNewPosition();
+      }
+      
       // Reset form
       setPayAmount('');
+      // Don't reset TP/SL values immediately - wait for auto-set to complete
+      if (!shouldSetTPSL) {
+        setTakeProfitPrice('');
+        setStopLossPrice('');
+        setIsTpSlEnabled(false);
+      } else {
+        // Reset after delay
+        setTimeout(() => {
+          setTakeProfitPrice('');
+          setStopLossPrice('');
+          setIsTpSlEnabled(false);
+        }, 5000);
+      }
     }
-  }, [relayHash, usdcCharged]);
+  }, [relayHash, usdcCharged, isTpSlEnabled, takeProfitPrice, stopLossPrice, embeddedAddress, setTPSL, refetchPositions, positionIds]);
 
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419]">

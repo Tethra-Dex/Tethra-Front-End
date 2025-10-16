@@ -9,6 +9,8 @@ import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 import PendingOrdersTable from './PendingOrdersTable';
 import { useMarket } from '../contexts/MarketContext';
+import TPSLModal from './TPSLModal';
+import { useTPSLConfig } from '@/hooks/useTPSL';
 
 // List of all markets for matching
 const ALL_MARKETS = [
@@ -34,12 +36,14 @@ const PositionRow = ({
   positionId,
   onClose,
   onPositionClick,
+  onTPSLClick,
   isSelected,
   onPositionLoaded
 }: {
   positionId: bigint;
   onClose: (positionId: bigint, symbol: string) => void;
   onPositionClick: (positionId: bigint, symbol: string, entryPrice: number, isLong: boolean) => void;
+  onTPSLClick: (positionId: bigint, trader: string, symbol: string, entryPrice: number, isLong: boolean) => void;
   isSelected: boolean;
   onPositionLoaded?: (positionId: bigint, isOpen: boolean) => void;
 }) => {
@@ -48,6 +52,9 @@ const PositionRow = ({
   // Use shared price hook - all positions with same symbol share same price
   const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
   const currentPrice = priceData?.price || null;
+  
+  // Fetch TP/SL config for this position
+  const { config: tpslConfig } = useTPSLConfig(position ? Number(position.id) : null);
   
   // Report position status when loaded
   useEffect(() => {
@@ -129,6 +136,12 @@ const PositionRow = ({
     }
     onPositionClick(position.id, position.symbol, entryPrice, position.isLong);
   };
+  
+  // Handle TP/SL button click
+  const handleTPSLClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onTPSLClick(position.id, position.trader, position.symbol, entryPrice, position.isLong);
+  };
 
   return (
     <tr
@@ -207,16 +220,41 @@ const PositionRow = ({
         <span className="text-white">${liquidationPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </td>
 
+      {/* TP/SL Status */}
+      <td className="px-4 py-3">
+        {tpslConfig ? (
+          <div className="flex flex-col gap-1 text-xs">
+            {tpslConfig.takeProfit && (
+              <div className="text-green-400">
+                TP: ${(parseFloat(tpslConfig.takeProfit) / 100000000).toFixed(2)}
+              </div>
+            )}
+            {tpslConfig.stopLoss && (
+              <div className="text-red-400">
+                SL: ${(parseFloat(tpslConfig.stopLoss) / 100000000).toFixed(2)}
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="text-gray-500 text-xs">-</span>
+        )}
+      </td>
+
       {/* Actions */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
+          <button 
+            onClick={handleTPSLClick}
+            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs font-medium rounded transition-colors cursor-pointer"
+          >
+            TP/SL
+          </button>
           <button 
             onClick={() => onClose(position.id, position.symbol)}
             className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium rounded transition-colors cursor-pointer"
           >
             Close
           </button>
-          <button className="text-gray-400 hover:text-white">⋮</button>
         </div>
       </td>
     </tr>
@@ -230,6 +268,17 @@ const BottomTrading = () => {
   const { address } = useEmbeddedWallet();
   const { closePosition, isPending: isClosing, txHash } = useGaslessClose();
   const { setActiveMarket, setSelectedPosition, selectedPosition, chartPositions, setChartPositions } = useMarket();
+  
+  // TP/SL Modal state
+  const [tpslModalOpen, setTpslModalOpen] = useState(false);
+  const [tpslModalData, setTpslModalData] = useState<{
+    positionId: number;
+    trader: string;
+    symbol: string;
+    entryPrice: number;
+    isLong: boolean;
+  } | null>(null);
+  const [tpslRefreshTrigger, setTpslRefreshTrigger] = useState(0);
   
   // Track open positions status
   const [positionStatuses, setPositionStatuses] = useState<Map<bigint, boolean>>(new Map());
@@ -267,6 +316,25 @@ const BottomTrading = () => {
 
       console.log(`📍 Switched to ${symbol} market, showing entry price at $${entryPrice.toFixed(2)}`);
     }
+  };
+  
+  // Handle TP/SL modal open
+  const handleTPSLModalOpen = (positionId: bigint, trader: string, symbol: string, entryPrice: number, isLong: boolean) => {
+    setTpslModalData({
+      positionId: Number(positionId),
+      trader,
+      symbol,
+      entryPrice,
+      isLong
+    });
+    setTpslModalOpen(true);
+  };
+  
+  // Handle TP/SL modal close - trigger refetch
+  const handleTPSLModalClose = () => {
+    setTpslModalOpen(false);
+    // Trigger refetch by incrementing counter
+    setTpslRefreshTrigger(prev => prev + 1);
   };
 
   // Handle close position - GASLESS via backend (hackathon mode 🔥)
@@ -335,12 +403,13 @@ const BottomTrading = () => {
                     <th className="px-4 py-3 text-left font-medium">ENTRY PRICE</th>
                     <th className="px-4 py-3 text-left font-medium">MARK PRICE</th>
                     <th className="px-4 py-3 text-left font-medium">LIQ. PRICE</th>
+                    <th className="px-4 py-3 text-left font-medium">TP / SL</th>
                     <th className="px-4 py-3 text-left font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-t border-gray-700">
-                    <td colSpan={8} className="text-center py-16 text-gray-500">
+                    <td colSpan={9} className="text-center py-16 text-gray-500">
                       No open positions
                     </td>
                   </tr>
@@ -359,19 +428,21 @@ const BottomTrading = () => {
                   <th className="px-4 py-3 text-left font-medium">SIZE</th>
                   <th className="px-4 py-3 text-left font-medium">NET VALUE</th>
                   <th className="px-4 py-3 text-left font-medium">COLLATERAL</th>
-                  <th className="px-4 py-3 text-left font-medium">ENTRY PRICE</th>
-                  <th className="px-4 py-3 text-left font-medium">MARK PRICE</th>
-                  <th className="px-4 py-3 text-left font-medium">LIQ. PRICE</th>
-                  <th className="px-4 py-3 text-left font-medium"></th>
-                </tr>
-              </thead>
+                    <th className="px-4 py-3 text-left font-medium">ENTRY PRICE</th>
+                    <th className="px-4 py-3 text-left font-medium">MARK PRICE</th>
+                    <th className="px-4 py-3 text-left font-medium">LIQ. PRICE</th>
+                    <th className="px-4 py-3 text-left font-medium">TP / SL</th>
+                    <th className="px-4 py-3 text-left font-medium"></th>
+                  </tr>
+                </thead>
               <tbody>
                 {positionIds.map((positionId) => (
                   <PositionRow
-                    key={positionId.toString()}
+                    key={`${positionId.toString()}-${tpslRefreshTrigger}`}
                     positionId={positionId}
                     onClose={handleClosePosition}
                     onPositionClick={handlePositionClick}
+                    onTPSLClick={handleTPSLModalOpen}
                     isSelected={selectedPosition?.positionId === positionId}
                     onPositionLoaded={handlePositionLoaded}
                   />
@@ -392,6 +463,7 @@ const BottomTrading = () => {
   };
 
   return (
+    <>
     <div className="bg-[#0B1017] border border-gray-700/50 rounded-md h-full flex flex-col">
       <div className="flex items-center justify-between border-b border-gray-800/50 px-4 flex-shrink-0">
         <div className="flex space-x-6">
@@ -435,6 +507,20 @@ const BottomTrading = () => {
         {renderContent()}
       </div>
     </div>
+    
+    {/* TP/SL Modal */}
+    {tpslModalOpen && tpslModalData && (
+      <TPSLModal
+        isOpen={tpslModalOpen}
+        onClose={handleTPSLModalClose}
+        positionId={tpslModalData.positionId}
+        trader={tpslModalData.trader}
+        symbol={tpslModalData.symbol}
+        entryPrice={tpslModalData.entryPrice}
+        isLong={tpslModalData.isLong}
+      />
+    )}
+    </>
   );
 };
 
