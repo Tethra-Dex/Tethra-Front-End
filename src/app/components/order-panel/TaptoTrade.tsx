@@ -313,13 +313,14 @@ const TapToTrade: React.FC = () => {
       {/* Market Selector */}
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Market</label>
-        <div className="bg-[#1A2332] rounded-lg p-3 relative">
+        <div className={`bg-[#1A2332] rounded-lg p-3 relative ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-400">Asset</span>
             <button
               ref={triggerButtonRef}
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-              className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative"
+              disabled={tapToTrade.isEnabled}
+              className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative disabled:cursor-not-allowed"
             >
               {activeMarket && (
                 <img
@@ -348,14 +349,15 @@ const TapToTrade: React.FC = () => {
       {/* Margin Input (USDC) */}
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Margin</label>
-        <div className="bg-[#1A2332] rounded-lg p-3">
+        <div className={`bg-[#1A2332] rounded-lg p-3 ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between items-center mb-2">
             <input
               type="text"
               placeholder="0.0"
               value={marginAmount}
               onChange={handleMarginInputChange}
-              className="bg-transparent text-2xl text-white outline-none w-full"
+              disabled={tapToTrade.isEnabled}
+              className="bg-transparent text-2xl text-white outline-none w-full disabled:cursor-not-allowed"
             />
             <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity">
               <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-xs">$</div>
@@ -380,7 +382,7 @@ const TapToTrade: React.FC = () => {
       </div>
 
       {/* Leverage Input */}
-      <div>
+      <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
         <div className="flex justify-between items-center mb-3">
           <span className="text-xs text-gray-400">Leverage</span>
           <div className="flex items-center gap-1">
@@ -389,7 +391,8 @@ const TapToTrade: React.FC = () => {
               value={leverageInput}
               onChange={handleLeverageInputChange}
               onBlur={handleLeverageInputBlur}
-              className="bg-[#2D3748] text-sm font-semibold text-white outline-none w-14 px-2 py-1 rounded text-right"
+              disabled={tapToTrade.isEnabled}
+              className="bg-[#2D3748] text-sm font-semibold text-white outline-none w-14 px-2 py-1 rounded text-right disabled:cursor-not-allowed"
             />
             <span className="text-sm font-semibold text-white">x</span>
           </div>
@@ -447,7 +450,8 @@ const TapToTrade: React.FC = () => {
             onMouseUp={handleLeverageMouseUp}
             onTouchStart={handleLeverageMouseDown}
             onTouchEnd={handleLeverageMouseUp}
-            className="absolute inset-0 w-full opacity-0 cursor-pointer"
+            disabled={tapToTrade.isEnabled}
+            className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           />
 
           <div className="absolute top-full mt-0.5 left-0 right-0">
@@ -470,12 +474,13 @@ const TapToTrade: React.FC = () => {
 
       {/* Timeframe Selector */}
       <div className="mb-4"></div>
-      <div>
+      <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
         <label className="text-xs text-gray-400 mb-2 block">Timeframe</label>
         <div className="relative" ref={timeframeRef}>
           <button
             onClick={() => setIsTimeframeOpen(!isTimeframeOpen)}
-            className="w-full bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center justify-between text-white hover:bg-[#2D3748] transition-colors"
+            disabled={tapToTrade.isEnabled}
+            className="w-full bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center justify-between text-white hover:bg-[#2D3748] transition-colors disabled:cursor-not-allowed"
           >
             <span className="font-semibold">{selectedTimeframeLabel}</span>
             <ChevronDown size={16} className={`transition-transform ${isTimeframeOpen ? 'rotate-180' : ''}`} />
@@ -522,7 +527,7 @@ const TapToTrade: React.FC = () => {
           </div>
           
           {/* X Coordinate - Time Grid */}
-          <div>
+          <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
             <label className="text-xs text-gray-400 mb-2 flex items-center gap-1">
               X Coordinate (Time Grid)
               <Info size={12} className="text-gray-500" />
@@ -535,7 +540,8 @@ const TapToTrade: React.FC = () => {
                 step="1"
                 value={tapToTrade.gridSizeX}
                 onChange={(e) => tapToTrade.setGridSizeX(parseInt(e.target.value))}
-                className="flex-1 h-2 bg-[#1A2332] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                disabled={tapToTrade.isEnabled}
+                className="flex-1 h-2 bg-[#1A2332] rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:cursor-not-allowed"
               />
               <div className="bg-[#1A2332] rounded px-3 py-1.5 min-w-[60px] text-center">
                 <span className="text-white font-semibold text-sm">{tapToTrade.gridSizeX}</span>
@@ -547,7 +553,7 @@ const TapToTrade: React.FC = () => {
           </div>
 
           {/* Y Coordinate - Price Grid */}
-          <div>
+          <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
             <label className="text-xs text-gray-400 mb-2 flex items-center gap-1">
               Y Coordinate (Price Grid)
               <Info size={12} className="text-gray-500" />
@@ -561,7 +567,8 @@ const TapToTrade: React.FC = () => {
                 step="0.1"
                 value={tapToTrade.gridSizeY}
                 onChange={(e) => tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.5)}
-                className="bg-transparent text-white outline-none w-full [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100"
+                disabled={tapToTrade.isEnabled}
+                className="bg-transparent text-white outline-none w-full [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100 disabled:cursor-not-allowed"
                 style={{
                   colorScheme: 'dark'
                 }}
@@ -606,23 +613,7 @@ const TapToTrade: React.FC = () => {
             </div>
           )}
 
-          {/* Instructions when tap to trade active but no cells selected */}
-          {tapToTrade.isEnabled && tapToTrade.selectedCells.size === 0 && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-xs font-semibold text-blue-400">How to Use</span>
-              </div>
-              <ul className="text-xs text-blue-300 space-y-1 ml-1">
-                <li>• Tap cells on the chart to select them</li>
-                <li>• Cells <strong className="text-green-400">below current price</strong> → Buy orders</li>
-                <li>• Cells <strong className="text-red-400">above current price</strong> → Sell orders</li>
-                <li>• Tap again to deselect a cell</li>
-              </ul>
-            </div>
-          )}
+        
 
         </div>
       )}
