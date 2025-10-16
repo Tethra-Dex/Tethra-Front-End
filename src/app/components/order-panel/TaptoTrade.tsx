@@ -4,6 +4,7 @@ import { ChevronDown, Info, Grid as GridIcon, Star } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
 import { useGridTradingContext } from '../../contexts/GridTradingContext';
 import { useTapToTrade } from '../../contexts/TapToTradeContext';
+import { useUSDCBalance } from '@/hooks/useUSDCBalance';
 
 interface Market {
   symbol: string;
@@ -161,10 +162,10 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
 
 const TapToTrade: React.FC = () => {
   const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
+  const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const [leverage, setLeverage] = useState(50);
   const [leverageInput, setLeverageInput] = useState<string>('50.0');
   const [marginAmount, setMarginAmount] = useState<string>('');
-  const [usdcBalance] = useState<string>('1000.00');
   const [xCoordinate, setXCoordinate] = useState<string>('');
   const [yCoordinate, setYCoordinate] = useState<string>('');
   const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
@@ -364,7 +365,9 @@ const TapToTrade: React.FC = () => {
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">{formatPrice(marginUsdValue)}</span>
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">{usdcBalance} USDC</span>
+              <span className="text-gray-400">
+                {isLoadingBalance ? 'Loading...' : `${usdcBalance} USDC`}
+              </span>
               <button
                 onClick={handleMaxClick}
                 className="bg-[#2D3748] px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-[#3d4a5f] transition-colors"
