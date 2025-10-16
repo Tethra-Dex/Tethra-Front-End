@@ -30,7 +30,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
@@ -413,8 +413,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
       // Draw time labels below grid columns (including future) - with dynamic grouping based on zoom
       if (tapToTradeEnabled) {
-        const lowestLevel = Math.floor(chartMinPrice / gridSize) * gridSize;
-        const highestLevel = Math.ceil(chartMaxPrice / gridSize) * gridSize;
         const gridSizeX = tapToTrade.gridSizeX;
 
         // Parse interval to get minutes
@@ -578,19 +576,22 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         ctx.fillStyle = '#ffffff';
         ctx.fillText(priceText, chartWidth + 9, currentPriceY + 3);
 
-        // Draw circular indicator on current price line at latest data point
-        // This should always be at the end of the actual price line, not the NOW line
+        // Draw circular indicator at the end of actual chart line
+        // Use the actual last data point price, not currentPrice
         const latestDataX = timeToX(chartData.length - 1);
+        const latestDataPrice = chartData[chartData.length - 1].price;
+        const latestDataY = priceToY(latestDataPrice);
+
         ctx.fillStyle = '#10b981';
         ctx.beginPath();
-        ctx.arc(latestDataX, currentPriceY, 5, 0, Math.PI * 2); // Circle with radius 5
+        ctx.arc(latestDataX, latestDataY, 5, 0, Math.PI * 2); // Circle with radius 5
         ctx.fill();
 
         // Draw white outline for better visibility
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(latestDataX, currentPriceY, 5, 0, Math.PI * 2);
+        ctx.arc(latestDataX, latestDataY, 5, 0, Math.PI * 2);
         ctx.stroke();
       }
 
