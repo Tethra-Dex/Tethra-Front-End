@@ -353,10 +353,32 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               gridTime = chartData[safeIndex].time;
             }
             
-            // Use stable cellId with GRID LEVEL INDEX (not absolute price that changes)
-            // This ensures cellId stays same even when currentPrice changes
+            // Convert to cellX, cellY coordinates (same format as TapToTradeContext)
             const gridTimeRounded = Math.floor(gridTime / (gridSizeX * 60000)) * (gridSizeX * 60000); // Round to gridSizeX minutes
-            const cellId = `cell-${priceLevel}-${gridTimeRounded}`;
+
+            // Calculate cellX (time column index)
+            const gridSession = tapToTrade.gridSession;
+            let cellX = 0;
+            let cellY = 0;
+
+            if (gridSession) {
+              const timeSeconds = Math.floor(gridTimeRounded / 1000);
+              const referenceTime = gridSession.referenceTime;
+              const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
+              cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
+
+              // Calculate cellY as RELATIVE offset from reference price
+              const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+              const gridStepDollar = (gridSize / 100) * referencePrice;
+              const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
+              cellY = priceLevel - referencePriceLevel; // Relative offset
+            } else {
+              // Fallback if no grid session
+              cellY = priceLevel;
+            }
+
+            // Use same cellId format as TapToTradeContext: "cellX,cellY"
+            const cellId = `${cellX},${cellY}`;
 
             // Check if this cell has orders from TapToTradeContext
             const cellOrderInfo = tapToTrade.cellOrders.get(cellId);
@@ -364,9 +386,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             const isHovered = hoveredCell === cellId;
 
             // Determine buy/sell based on cell order info or price position
+            // LONG (green): price below reference = buy low, sell high
+            // SHORT (red): price above reference = sell high, buy low
             const isBuy = hasOrders
               ? cellOrderInfo.isLong  // Use order direction if exists
-              : price < currentPrice; // Below current price = BUY = green
+              : cellY < 0; // Below reference (cellY negative) = LONG = green
 
             const isFuture = i >= chartData.length;
 
@@ -691,7 +715,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.cellOrders, interval, priceZoom, panOffset, verticalPanOffset, mousePosition, basePrice]);
+  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.gridSession, tapToTrade.cellOrders, interval, priceZoom, panOffset, verticalPanOffset, mousePosition, basePrice]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -791,21 +815,46 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     // Round time to grid interval
     const gridTimeRounded = Math.floor(clickedTime / (gridSizeX * 60000)) * (gridSizeX * 60000);
 
+    // Calculate cellX (time column index) - same logic as drawing
+    const gridSession = tapToTrade.gridSession;
+    let cellX = 0;
+    let cellY = 0;
+
+    if (gridSession) {
+      const timeSeconds = Math.floor(gridTimeRounded / 1000);
+      const referenceTime = gridSession.referenceTime;
+      const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
+      cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
+
+      // Calculate cellY as RELATIVE offset from reference price
+      const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+      const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
+      cellY = priceLevelIndex - referencePriceLevel; // Relative offset
+    } else {
+      // Fallback if no grid session
+      cellY = priceLevelIndex;
+    }
+
+    // Use same format as TapToTradeContext
+    const cellId = `${cellX},${cellY}`;
+
     // Check if click is reasonable (within some bounds)
     if (snappedCandleIndex > -100) { // Allow some past clicks
-      const cellId = `cell-${priceLevelIndex}-${gridTimeRounded}`;
-
-      const isBuy = actualPrice < currentPrice;
+      // Determine LONG/SHORT based on cellY relative to reference
+      // cellY < 0 (below reference) = LONG (buy low)
+      // cellY > 0 (above reference) = SHORT (sell high)
+      const isLong = cellY < 0;
       const futureLabel = isFutureClick ? ' [FUTURE]' : '';
 
-      console.log(`📍 Tapped: ${isBuy ? 'BUY' : 'SELL'} @ $${actualPrice.toFixed(2)}, time: ${new Date(clickedTime).toLocaleTimeString()}${futureLabel}`);
-      console.log(`📍 CellId: ${cellId}, priceLevel: ${priceLevelIndex}, gridTime: ${gridTimeRounded}`);
+      console.log(`📍 Tapped: ${isLong ? 'LONG' : 'SHORT'} @ $${actualPrice.toFixed(2)}, time: ${new Date(clickedTime).toLocaleTimeString()}${futureLabel}`);
+      console.log(`📍 CellId: "${cellId}", cellX: ${cellX}, cellY: ${cellY} (${cellY < 0 ? 'below ref' : 'above ref'})`);
+      console.log(`📍 Calling onCellTap with cellId: "${cellId}"`);
 
-      onCellTap(cellId, actualPrice, clickedTime, isBuy);
+      onCellTap(cellId, actualPrice, clickedTime, isLong);
     } else {
       console.log('⚠️ Click rejected: snappedCandleIndex:', snappedCandleIndex);
     }
-  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, visibleCandles, interval, priceZoom, panOffset, verticalPanOffset, basePrice]);
+  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, interval, priceZoom, panOffset, verticalPanOffset, basePrice]);
 
   // Handle canvas hover
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -909,14 +958,36 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     // Round time to grid interval
     const gridTimeRounded = Math.floor(hoveredTime / (gridSizeX * 60000)) * (gridSizeX * 60000);
 
+    // Calculate cellX (time column index) - same logic as drawing
+    const gridSession = tapToTrade.gridSession;
+    let cellX = 0;
+    let cellY = 0;
+
+    if (gridSession) {
+      const timeSeconds = Math.floor(gridTimeRounded / 1000);
+      const referenceTime = gridSession.referenceTime;
+      const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
+      cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
+
+      // Calculate cellY as RELATIVE offset from reference price
+      const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+      const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
+      cellY = priceLevelIndex - referencePriceLevel; // Relative offset
+    } else {
+      // Fallback if no grid session
+      cellY = priceLevelIndex;
+    }
+
+    // Use same format as TapToTradeContext
+    const cellId = `${cellX},${cellY}`;
+
     // Check if hover is reasonable
     if (snappedCandleIndex > -100) {
-      const cellId = `cell-${priceLevelIndex}-${gridTimeRounded}`;
       setHoveredCell(cellId);
     } else {
       setHoveredCell(null);
     }
-  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, visibleCandles, priceZoom, currentPrice, interval, panOffset, verticalPanOffset, basePrice]);
+  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, priceZoom, currentPrice, interval, panOffset, verticalPanOffset, basePrice]);
 
   const handleCanvasLeave = useCallback(() => {
     setHoveredCell(null);

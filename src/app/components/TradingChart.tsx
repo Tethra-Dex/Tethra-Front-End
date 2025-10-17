@@ -795,45 +795,19 @@ const TradingChart: React.FC = () => {
 
     // Handle tap to trade cell click
     const handleTapCellClick = (cellId: string, price: number, time: number, isBuy: boolean) => {
-        // Extract cellX and cellY from cellId (format: "cell-priceLevel-time")
-        // For now, we'll use a simplified coordinate system
-        // You may need to adjust this based on your actual cellId format
-        const parts = cellId.split('-');
-        if (parts.length >= 3) {
-            const timeValue = parseInt(parts[2]);
-            const gridSession = tapToTrade.gridSession;
+        // Extract cellX and cellY from cellId (format: "cellX,cellY")
+        // Example: "5,10" means cellX=5, cellY=10
+        const parts = cellId.split(',');
+        if (parts.length === 2) {
+            const cellX = parseInt(parts[0]);
+            const cellY = parseInt(parts[1]);
 
-            let cellX = 0;
-            let cellY = 0;
+            console.log(`🎯 TradingChart: Calling handleCellClick with cellX=${cellX}, cellY=${cellY}`);
 
-            if (gridSession) {
-                const timeSeconds = Math.floor(timeValue / 1000);
-                const referenceTime = gridSession.referenceTime;
-                const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
-
-                cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
-
-                const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
-                const basisPointsPerCell = gridSession.gridSizeYPercent;
-
-                if (referencePrice > 0 && basisPointsPerCell > 0 && Number.isFinite(price)) {
-                    const deltaBasisPoints = Math.abs((price - referencePrice) / referencePrice) * 10000;
-                    const steps = Math.max(1, Math.round(deltaBasisPoints / basisPointsPerCell));
-                    cellY = isBuy ? steps : -steps;
-                } else {
-                    cellY = isBuy ? 1 : -1;
-                }
-            } else {
-                const columnDurationMs = Math.max(1, tapToTrade.gridSizeX * 60000);
-                cellX = Math.floor(timeValue / columnDurationMs);
-                cellY = isBuy ? 1 : -1;
-            }
-
-            if (cellY === 0) {
-                cellY = isBuy ? 1 : -1;
-            }
-
+            // Directly pass to tapToTrade context
             tapToTrade.handleCellClick(cellX, cellY);
+        } else {
+            console.error('❌ Invalid cellId format:', cellId);
         }
     };
 

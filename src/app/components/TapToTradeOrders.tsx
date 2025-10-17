@@ -88,40 +88,6 @@ const TapToTradeOrders = () => {
     }
   };
 
-  // Cancel all orders in a cell
-  const cancelCell = async (cellId: string) => {
-    if (!address || !gridSession) return;
-
-    const cellOrders = orders.filter(o => o.cellId === cellId && o.status === 'PENDING');
-    cellOrders.forEach(order => setCancellingOrders(prev => new Set(prev).add(order.id)));
-
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/api/tap-to-trade/cancel-cell`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gridSessionId: gridSession.id,
-          cellId,
-          trader: address
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        await fetchOrders(); // Refresh orders
-      }
-    } catch (error) {
-      console.error('Failed to cancel cell orders:', error);
-    } finally {
-      cellOrders.forEach(order => {
-        setCancellingOrders(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(order.id);
-          return newSet;
-        });
-      });
-    }
-  };
 
   // Cancel all orders
   const cancelAllOrders = async () => {
@@ -221,7 +187,7 @@ const TapToTradeOrders = () => {
           <button
             onClick={cancelAllOrders}
             disabled={cancellingOrders.size > 0}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Cancel All ({pendingOrders.length})
           </button>
@@ -281,23 +247,13 @@ const TapToTradeOrders = () => {
                 </td>
                 <td className="px-4 py-3">
                   {order.status === 'PENDING' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => cancelOrder(order.id)}
-                        disabled={cancellingOrders.has(order.id)}
-                        className="px-2 py-1 bg-red-600/80 hover:bg-red-600 text-white text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {cancellingOrders.has(order.id) ? 'Cancelling...' : 'Cancel'}
-                      </button>
-                      <button
-                        onClick={() => cancelCell(order.cellId)}
-                        disabled={cancellingOrders.has(order.id)}
-                        className="px-2 py-1 bg-orange-600/80 hover:bg-orange-600 text-white text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={`Cancel all orders in cell ${order.cellId}`}
-                      >
-                        Cancel Cell
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => cancelOrder(order.id)}
+                      disabled={cancellingOrders.has(order.id)}
+                      className="px-3 py-1 bg-red-600/80 hover:bg-red-600 text-white text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {cancellingOrders.has(order.id) ? 'Cancelling...' : 'Cancel'}
+                    </button>
                   )}
                   {order.status === 'EXECUTED' && order.executedTxHash && (
                     <a

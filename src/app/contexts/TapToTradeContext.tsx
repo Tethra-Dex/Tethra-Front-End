@@ -76,6 +76,59 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track nonce locally to avoid race conditions with multiple orders
+  const [localNonce, setLocalNonce] = useState<bigint>(BigInt(0));
+
+  /**
+   * Initialize nonce from contract
+   */
+  const initializeNonce = async () => {
+    try {
+      const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+      if (!embeddedWallet) {
+        console.warn('Cannot initialize nonce: embedded wallet not found');
+        return;
+      }
+
+      const traderAddress = embeddedWallet.address;
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      if (!walletClient) {
+        console.warn('Cannot initialize nonce: wallet client not available');
+        return;
+      }
+
+      const MarketExecutorABI = [
+        {
+          inputs: [{ name: '', type: 'address' }],
+          name: 'metaNonces',
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ];
+
+      const nonceData = encodeFunctionData({
+        abi: MarketExecutorABI,
+        functionName: 'metaNonces',
+        args: [traderAddress as `0x${string}`],
+      });
+
+      const nonceResult = await walletClient.request({
+        method: 'eth_call',
+        params: [{
+          to: MARKET_EXECUTOR_ADDRESS,
+          data: nonceData,
+        }, 'latest'],
+      });
+
+      const currentNonce = BigInt(nonceResult as string);
+      setLocalNonce(currentNonce);
+      console.log('✅ Initialized local nonce:', currentNonce.toString());
+    } catch (err) {
+      console.error('Failed to initialize nonce:', err);
+    }
+  };
+
   const toggleMode = async (params?: {
     symbol: string;
     margin: string;
@@ -109,6 +162,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       setCellOrders(new Map());
       setIsEnabled(false);
       setError(null);
+      setLocalNonce(BigInt(0)); // Reset nonce
       console.log(`🎯 Tap to Trade mode: DISABLED`);
 
     } else {
@@ -174,6 +228,10 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         const session = result.data as GridSession;
         setGridSession(session);
         setIsEnabled(true);
+
+        // Initialize nonce from contract when enabling
+        await initializeNonce();
+
         console.log('✅ Grid session created:', session.id);
         console.log(`🎯 Tap to Trade mode: ENABLED`);
 
@@ -212,12 +270,14 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       const startTime = gridSession.referenceTime + (cellX * columnDurationSeconds);
       const endTime = startTime + columnDurationSeconds;
 
-      // Determine if LONG or SHORT based on cellY
-      const isLong = cellY > 0;
+      // Determine if LONG or SHORT based on trigger price vs reference price
+      // LONG: buy when price is LOW (trigger below reference) - profit when price goes UP
+      // SHORT: sell when price is HIGH (trigger above reference) - profit when price goes DOWN
+      const isLong = cellY < 0; // Below reference = LONG, Above reference = SHORT
 
-      // Calculate collateral per order (marginTotal divided by total grid cells)
-      const totalCells = gridSession.gridSizeX * (gridSession.gridSizeYPercent / 100);
-      const collateralPerOrder = Math.floor(parseFloat(gridSession.marginTotal) / totalCells).toString();
+      // Each cell click = 1 full order with entire margin amount
+      // If user taps same cell 2x, it creates 2 separate orders with full margin each
+      const collateralPerOrder = gridSession.marginTotal;
 
       // Find embedded wallet - try multiple approaches
       console.log('🔍 Looking for embedded wallet...');
@@ -248,33 +308,9 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         throw new Error('Could not get wallet client');
       }
 
-      // Get current nonce from contract via eth_call
-      const MarketExecutorABI = [
-        {
-          inputs: [{ name: '', type: 'address' }],
-          name: 'metaNonces',
-          outputs: [{ name: '', type: 'uint256' }],
-          stateMutability: 'view',
-          type: 'function',
-        },
-      ];
-
-      const nonceData = encodeFunctionData({
-        abi: MarketExecutorABI,
-        functionName: 'metaNonces',
-        args: [traderAddress as `0x${string}`],
-      });
-
-      const nonceResult = await walletClient.request({
-        method: 'eth_call',
-        params: [{
-          to: MARKET_EXECUTOR_ADDRESS,
-          data: nonceData,
-        }, 'latest'],
-      });
-
-      const currentNonce = BigInt(nonceResult as string);
-      console.log('✅ Current meta nonce:', currentNonce.toString());
+      // Use local nonce (prevents race condition when creating multiple orders)
+      const currentNonce = localNonce;
+      console.log('✅ Using local nonce for signature:', currentNonce.toString());
 
       // Sign order message
       const messageHash = keccak256(
@@ -292,7 +328,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         )
       );
 
-      console.log('\u270d\ufe0f Requesting signature for tap-to-trade order...');
+      console.log('✍️ Requesting signature for tap-to-trade order...');
 
       // Sign message using personal_sign (same as market/limit orders)
       const signature = await walletClient.request({
@@ -301,6 +337,10 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       });
 
       console.log('✅ Signature obtained');
+
+      // Increment local nonce IMMEDIATELY after signature (prevent race condition)
+      setLocalNonce(prev => prev + BigInt(1));
+      console.log('📈 Incremented local nonce to:', (currentNonce + BigInt(1)).toString());
 
       // Create order in backend
       const cellId = `${cellX},${cellY}`;
