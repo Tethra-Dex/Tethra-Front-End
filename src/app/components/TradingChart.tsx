@@ -930,7 +930,7 @@ const TradingChart: React.FC = () => {
                                 key={`${activeMarket.binanceSymbol}-${timeframe}-tap`}
                                 symbol={activeMarket.binanceSymbol}
                                 interval={timeframe}
-                                currentPrice={parseFloat(currentMarketData?.price || '0')}
+                                currentPrice={parseFloat(currentOraclePrice?.price?.toString() || currentMarketData?.price || '0')}
                                 tapToTradeEnabled={true}
                                 gridSize={tapToTrade.gridSizeY}
                                 onCellTap={handleTapCellClick}

@@ -30,7 +30,7 @@ const DRAWING_TOOLS = [
 const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
-    const wsRef = useRef<WebSocket | null>(null);
+    const wsRef = useRef<{ ws: WebSocket; cleanup: () => void } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeDrawingTool, setActiveDrawingTool] = useState<string | null>(null);
     const [showDrawingTools, setShowDrawingTools] = useState(false);
@@ -98,6 +98,18 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                                 downBorderColor: '#ef4444',
                                 upWickColor: '#10b981',
                                 downWickColor: '#ef4444'
+                            },
+                            area: {
+                                lineSize: 2,
+                                lineColor: '#2962FF',
+                                value: 'close',
+                                backgroundColor: [{
+                                    offset: 0,
+                                    color: 'rgba(41, 98, 255, 0.01)'
+                                }, {
+                                    offset: 1,
+                                    color: 'rgba(41, 98, 255, 0.2)'
+                                }]
                             }
                         },
                         grid: {
@@ -114,8 +126,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                             size: 'auto'
                         },
                         yAxis: {
-                            size: 'auto',
-                            type: 'normal' // Use normal scale for dollar-based grid
+                            size: 'auto'
                         }
                     }
                 });
@@ -171,7 +182,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
 
                 // Setup WebSocket for real-time updates
                 if (wsRef.current) {
-                    wsRef.current.close();
+                    wsRef.current.cleanup();
                 }
 
                 wsRef.current = binanceDataFeed.createWebSocket(
@@ -266,7 +277,7 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                 window.visualViewport.removeEventListener('resize', handleResize);
             }
             if (wsRef.current) {
-                wsRef.current.close();
+                wsRef.current.cleanup();
                 wsRef.current = null;
             }
             if (chartRef.current && chartContainerRef.current) {
@@ -275,6 +286,29 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
             }
         };
     }, [symbol, interval]);
+
+    // Toggle chart type based on grid trading mode
+    useEffect(() => {
+        if (!chartRef.current) return;
+
+        if (gridTrading.gridConfig.enabled) {
+            // Switch to line chart for grid trading
+            chartRef.current.setStyles({
+                candle: {
+                    type: 'area'
+                }
+            });
+            console.log('📊 Switched to line chart for grid trading');
+        } else {
+            // Switch back to candlestick chart
+            chartRef.current.setStyles({
+                candle: {
+                    type: 'candle_solid'
+                }
+            });
+            console.log('📊 Switched to candlestick chart');
+        }
+    }, [gridTrading.gridConfig.enabled]);
 
     // Draw entry price line when position is selected
     useEffect(() => {

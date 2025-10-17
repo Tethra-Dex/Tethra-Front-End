@@ -128,6 +128,25 @@ const TapToTradeOrders = () => {
     return (parseFloat(price) / 100000000).toFixed(2);
   };
 
+  // Calculate and format price range based on grid cell
+  const formatPriceRange = (order: TapToTradeOrder) => {
+    if (!gridSession) {
+      return `$${formatPrice(order.triggerPrice)}`;
+    }
+
+    const triggerPrice = parseFloat(order.triggerPrice) / 100000000;
+    const gridSizeYPercent = gridSession.gridSizeYPercent / 100; // Convert from basis points to %
+    const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+
+    // Calculate half step (since trigger is center of range)
+    const halfStep = (gridSizeYPercent / 100) * referencePrice / 2;
+
+    const minPrice = triggerPrice - halfStep;
+    const maxPrice = triggerPrice + halfStep;
+
+    return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+  };
+
   // Format collateral with 2 decimals
   const formatCollateral = (collateral: string) => {
     return (parseFloat(collateral) / 1000000).toFixed(2);
@@ -227,8 +246,8 @@ const TapToTradeOrders = () => {
                     {order.isLong ? 'LONG' : 'SHORT'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-white">
-                  ${formatPrice(order.triggerPrice)}
+                <td className="px-4 py-3 text-white font-mono text-sm">
+                  {formatPriceRange(order)}
                 </td>
                 <td className="px-4 py-3 text-white">
                   ${formatCollateral(order.collateral)}

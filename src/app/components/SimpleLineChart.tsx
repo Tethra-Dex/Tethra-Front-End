@@ -144,8 +144,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
               // Check if we should update last candle or add new one
               if (lastIndex >= 0 && newData[lastIndex].time === candle.time) {
+                // Update existing candle with new data
                 newData[lastIndex] = { time: candle.time, price: candle.close };
               } else {
+                // Add new candle
                 newData.push({ time: candle.time, price: candle.close });
                 // Keep only last 100 candles
                 if (newData.length > 100) {
@@ -177,6 +179,28 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       }
     };
   }, [symbol, interval]);
+
+  // Sync chartData with currentPrice from props for real-time updates
+  // This ensures the blue line endpoint matches the green line and circle
+  useEffect(() => {
+    if (currentPrice > 0 && chartData.length > 0) {
+      setChartData(prevData => {
+        const newData = [...prevData];
+        const lastIndex = newData.length - 1;
+
+        // Only update if price has actually changed to avoid infinite loops
+        if (lastIndex >= 0 && Math.abs(newData[lastIndex].price - currentPrice) > 0.001) {
+          // Update the last candle's close price to match currentPrice
+          newData[lastIndex] = {
+            ...newData[lastIndex],
+            price: currentPrice
+          };
+        }
+
+        return newData;
+      });
+    }
+  }, [currentPrice]);
 
   // Drawing function
   useEffect(() => {
@@ -583,10 +607,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       ctx.stroke();
 
       // Draw current price indicator
-      if (currentPrice > 0) {
+      // IMPORTANT: Use currentPrice prop for consistency across all components
+      // This ensures the price shown matches TradingChart header and other displays
+      if (currentPrice > 0 && chartData.length > 0) {
         const currentPriceY = priceToY(currentPrice);
+        const latestDataX = timeToX(chartData.length - 1);
 
-        // Current price line
+        // Current price line - horizontal line showing current price
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
@@ -608,22 +635,17 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         ctx.fillStyle = '#ffffff';
         ctx.fillText(priceText, chartWidth + 9, currentPriceY + 3);
 
-        // Draw circular indicator at the end of actual chart line
-        // Use the actual last data point price, not currentPrice
-        const latestDataX = timeToX(chartData.length - 1);
-        const latestDataPrice = chartData[chartData.length - 1].price;
-        const latestDataY = priceToY(latestDataPrice);
-
+        // Draw circular indicator at the end of line at current price level
         ctx.fillStyle = '#10b981';
         ctx.beginPath();
-        ctx.arc(latestDataX, latestDataY, 5, 0, Math.PI * 2); // Circle with radius 5
+        ctx.arc(latestDataX, currentPriceY, 5, 0, Math.PI * 2); // Circle with radius 5
         ctx.fill();
 
         // Draw white outline for better visibility
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(latestDataX, latestDataY, 5, 0, Math.PI * 2);
+        ctx.arc(latestDataX, currentPriceY, 5, 0, Math.PI * 2);
         ctx.stroke();
       }
 
