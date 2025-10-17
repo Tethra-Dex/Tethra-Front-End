@@ -93,7 +93,7 @@ const PositionRow = ({
   let unrealizedPnl = 0;
   let pnlPercentage = 0;
   let netValue = collateral;
-  let markPrice = currentPrice || entryPrice;
+  const markPrice = currentPrice || entryPrice;
   
   if (currentPrice && entryPrice > 0) {
     const priceDiff = position.isLong 

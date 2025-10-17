@@ -7,14 +7,6 @@ import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { Coins, TrendingUp, Clock } from 'lucide-react';
 import usePoolData from '../hooks/usePoolData';
 
-// TypeScript declaration for window.ethereum
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-    };
-  }
-}
 
 const TETHRA_TOKEN = process.env.NEXT_PUBLIC_TETHRA_TOKEN_ADDRESS as `0x${string}`;
 const TETHRA_STAKING = process.env.NEXT_PUBLIC_TETHRA_STAKING_ADDRESS as `0x${string}`;

@@ -2,7 +2,7 @@
  * Hooks for USDC Paymaster interactions
  */
 
-import { useReadContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { useReadContract, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
 import { parseUnits, formatUnits, encodeFunctionData } from 'viem';
 import { useState, useEffect } from 'react';
 import { baseSepolia } from 'wagmi/chains';
@@ -110,7 +110,7 @@ export function useDepositToPaymaster() {
  * Hook to withdraw USDC from paymaster
  */
 export function useWithdrawFromPaymaster() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -118,7 +118,7 @@ export function useWithdrawFromPaymaster() {
   const withdraw = async (amount: string) => {
     const amountBigInt = parseUnits(amount, USDC_DECIMALS);
     
-    writeContract({
+    await writeContractAsync({
       address: USDC_PAYMASTER_ADDRESS,
       abi: USDCPaymasterABI,
       functionName: 'withdraw',

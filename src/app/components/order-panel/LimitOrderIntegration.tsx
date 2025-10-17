@@ -51,11 +51,11 @@ export function useLimitOrderSubmit() {
       const cost = calculateLimitOrderCost({
         collateralUsd: params.collateral,
         leverage: params.leverage,
-        executionFee: executionFee ?? 0n,
+        executionFee: executionFee ?? BigInt(0),
         tradingFeeBps,
       });
 
-      if (cost.totalCost === 0n) {
+      if (cost.totalCost === BigInt(0)) {
         toast.error('Invalid order amount');
         return false;
       }

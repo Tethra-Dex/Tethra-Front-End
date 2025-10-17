@@ -146,8 +146,10 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                 };
 
                 const initialBarSpace = getBarSpaceForTimeframe(interval);
-                chart.setBarSpace(initialBarSpace);
-                console.log(`📊 Set bar space to ${initialBarSpace}px for ${interval} timeframe`);
+                if (chart) {
+                    chart.setBarSpace(initialBarSpace);
+                    console.log(`📊 Set bar space to ${initialBarSpace}px for ${interval} timeframe`);
+                }
 
                 // Fetch historical candles
                 const candles = await binanceDataFeed.fetchCandles(symbol, interval, 500);

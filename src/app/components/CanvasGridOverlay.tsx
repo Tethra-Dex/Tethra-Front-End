@@ -21,7 +21,7 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
   interval,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 

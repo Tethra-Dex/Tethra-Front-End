@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAccount, useContractWrite, useContractRead } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { Coins, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 
@@ -99,37 +99,43 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
   const [activeTab, setActiveTab] = useState<'stake' | 'unstake'>('stake');
 
   // Contract reads
-  const { data: userBalance } = useContractRead({
+  const { data: userBalance } = useReadContract({
     address: TETHRA_TOKEN,
     abi: tokenABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    enabled: !!address,
+    query: {
+      enabled: !!address,
+    },
   });
 
-  const { data: allowance } = useContractRead({
+  const { data: allowance } = useReadContract({
     address: TETHRA_TOKEN,
     abi: tokenABI,
     functionName: 'allowance',
     args: address ? [address, TETHRA_STAKING] : undefined,
-    enabled: !!address,
+    query: {
+      enabled: !!address,
+    },
   });
 
-  const { data: userStakeInfo } = useContractRead({
+  const { data: userStakeInfo } = useReadContract({
     address: TETHRA_STAKING,
     abi: stakingABI,
     functionName: 'getUserStakeInfo',
     args: address ? [address] : undefined,
-    enabled: !!address,
+    query: {
+      enabled: !!address,
+    },
   });
 
-  const { data: totalStaked } = useContractRead({
+  const { data: totalStaked } = useReadContract({
     address: TETHRA_STAKING,
     abi: stakingABI,
     functionName: 'totalStaked',
   });
 
-  const { data: currentAPR } = useContractRead({
+  const { data: currentAPR } = useReadContract({
     address: TETHRA_STAKING,
     abi: stakingABI,
     functionName: 'calculateAPR',
@@ -137,29 +143,7 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
   });
 
   // Contract writes
-  const { writeAsync: approveWrite } = useContractWrite({
-    address: TETHRA_TOKEN,
-    abi: tokenABI,
-    functionName: 'approve',
-  });
-
-  const { writeAsync: stakeWrite } = useContractWrite({
-    address: TETHRA_STAKING,
-    abi: stakingABI,
-    functionName: 'stake',
-  });
-
-  const { writeAsync: unstakeWrite } = useContractWrite({
-    address: TETHRA_STAKING,
-    abi: stakingABI,
-    functionName: 'unstake',
-  });
-
-  const { writeAsync: claimWrite } = useContractWrite({
-    address: TETHRA_STAKING,
-    abi: stakingABI,
-    functionName: 'claimRewards',
-  });
+  const { writeContractAsync } = useWriteContract();
 
   // Format user data
   const formatBalance = (balance?: bigint) => {
@@ -185,7 +169,10 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
   const handleApprove = async (amount: string) => {
     try {
       const amountBigInt = parseUnits(amount, 18);
-      await approveWrite({
+      await writeContractAsync({
+        address: TETHRA_TOKEN,
+        abi: tokenABI,
+        functionName: 'approve',
         args: [TETHRA_STAKING, amountBigInt],
       });
     } catch (error) {
@@ -203,7 +190,10 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
       }
       
       const amountBigInt = parseUnits(stakeAmount, 18);
-      await stakeWrite({
+      await writeContractAsync({
+        address: TETHRA_STAKING,
+        abi: stakingABI,
+        functionName: 'stake',
         args: [amountBigInt],
       });
       setStakeAmount('');
@@ -217,7 +207,10 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
     
     try {
       const amountBigInt = parseUnits(unstakeAmount, 18);
-      await unstakeWrite({
+      await writeContractAsync({
+        address: TETHRA_STAKING,
+        abi: stakingABI,
+        functionName: 'unstake',
         args: [amountBigInt],
       });
       setUnstakeAmount('');
@@ -228,7 +221,11 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
 
   const handleClaim = async () => {
     try {
-      await claimWrite();
+      await writeContractAsync({
+        address: TETHRA_STAKING,
+        abi: stakingABI,
+        functionName: 'claimRewards',
+      });
     } catch (error) {
       console.error('Claim failed:', error);
     }
@@ -275,26 +272,26 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
       {address ? (
         <>
           {/* User Stats */}
-          <div className=\"bg-slate-800/30 rounded-lg p-4 mb-6\">
-            <h3 className=\"font-semibold text-white mb-3\">Your Staking</h3>
-            <div className=\"grid grid-cols-1 md:grid-cols-3 gap-4\">
+          <div className="bg-slate-800/30 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-white mb-3">Your Staking</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className=\"text-sm text-gray-400\">Staked Amount</p>
-                <p className=\"font-semibold text-white\">{formatBalance(userStakedAmount)} TETH</p>
+                <p className="text-sm text-gray-400">Staked Amount</p>
+                <p className="font-semibold text-white">{formatBalance(userStakedAmount)} TETH</p>
               </div>
               <div>
-                <p className=\"text-sm text-gray-400\">Pending Rewards</p>
-                <p className=\"font-semibold text-green-400\">{formatUSDC(pendingRewards)} USDC</p>
+                <p className="text-sm text-gray-400">Pending Rewards</p>
+                <p className="font-semibold text-green-400">{formatUSDC(pendingRewards)} USDC</p>
               </div>
               <div>
-                <p className=\"text-sm text-gray-400\">Available Balance</p>
-                <p className=\"font-semibold text-white\">{formatBalance(userBalance)} TETH</p>
+                <p className="text-sm text-gray-400">Available Balance</p>
+                <p className="font-semibold text-white">{formatBalance(userBalance)} TETH</p>
               </div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className=\"flex gap-1 bg-slate-800/30 rounded-lg p-1 mb-6\">
+          <div className="flex gap-1 bg-slate-800/30 rounded-lg p-1 mb-6">
             <button
               onClick={() => setActiveTab('stake')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -319,22 +316,22 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
 
           {/* Stake Tab */}
           {activeTab === 'stake' && (
-            <div className=\"space-y-4\">
+            <div className="space-y-4">
               <div>
-                <label className=\"block text-sm font-medium text-gray-300 mb-2\">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Amount to Stake
                 </label>
-                <div className=\"relative\">
+                <div className="relative">
                   <input
-                    type=\"number\"
+                    type="number"
                     value={stakeAmount}
                     onChange={(e) => setStakeAmount(e.target.value)}
-                    placeholder=\"0.0\"
-                    className=\"w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500\"
+                    placeholder="0.0"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   />
                   <button
                     onClick={() => setStakeAmount(formatBalance(userBalance))}
-                    className=\"absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 text-sm hover:text-blue-300\"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 text-sm hover:text-blue-300"
                   >
                     MAX
                   </button>
@@ -344,7 +341,7 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
               <button
                 onClick={handleStake}
                 disabled={!stakeAmount || Number(stakeAmount) <= 0}
-                className=\"w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors\"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
               >
                 {needsApproval(stakeAmount) ? 'Approve TETH' : 'Stake TETH'}
               </button>
@@ -353,32 +350,32 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
 
           {/* Unstake Tab */}
           {activeTab === 'unstake' && (
-            <div className=\"space-y-4\">
+            <div className="space-y-4">
               {!canUnstakeWithoutPenalty && Number(formatBalance(userStakedAmount)) > 0 && (
-                <div className=\"flex items-start gap-2 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg\">
-                  <AlertCircle size={16} className=\"text-yellow-400 mt-0.5\" />
+                <div className="flex items-start gap-2 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
+                  <AlertCircle size={16} className="text-yellow-400 mt-0.5" />
                   <div>
-                    <p className=\"text-sm text-yellow-400 font-medium\">Early Unstaking Penalty</p>
-                    <p className=\"text-xs text-yellow-300\">10% penalty applies for unstaking within 7 days</p>
+                    <p className="text-sm text-yellow-400 font-medium">Early Unstaking Penalty</p>
+                    <p className="text-xs text-yellow-300">10% penalty applies for unstaking within 7 days</p>
                   </div>
                 </div>
               )}
               
               <div>
-                <label className=\"block text-sm font-medium text-gray-300 mb-2\">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Amount to Unstake
                 </label>
-                <div className=\"relative\">
+                <div className="relative">
                   <input
-                    type=\"number\"
+                    type="number"
                     value={unstakeAmount}
                     onChange={(e) => setUnstakeAmount(e.target.value)}
-                    placeholder=\"0.0\"
-                    className=\"w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-red-500\"
+                    placeholder="0.0"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-red-500"
                   />
                   <button
                     onClick={() => setUnstakeAmount(formatBalance(userStakedAmount))}
-                    className=\"absolute right-2 top-1/2 -translate-y-1/2 text-red-400 text-sm hover:text-red-300\"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 text-sm hover:text-red-300"
                   >
                     MAX
                   </button>
@@ -388,7 +385,7 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
               <button
                 onClick={handleUnstake}
                 disabled={!unstakeAmount || Number(unstakeAmount) <= 0}
-                className=\"w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors\"
+                className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
               >
                 Unstake TETH
               </button>
@@ -397,10 +394,10 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
 
           {/* Claim Rewards */}
           {Number(formatUSDC(pendingRewards)) > 0 && (
-            <div className=\"mt-6 pt-6 border-t border-slate-700\">
+            <div className="mt-6 pt-6 border-t border-slate-700">
               <button
                 onClick={handleClaim}
-                className=\"w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors\"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors"
               >
                 Claim {formatUSDC(pendingRewards)} USDC Rewards
               </button>
@@ -408,8 +405,8 @@ export default function StakingInterface({ className = '' }: StakingInterfacePro
           )}
         </>
       ) : (
-        <div className=\"text-center py-8\">
-          <p className=\"text-gray-400\">Connect your wallet to start staking TETH</p>
+        <div className="text-center py-8">
+          <p className="text-gray-400">Connect your wallet to start staking TETH</p>
         </div>
       )}
     </div>

@@ -27,7 +27,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
         loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {
-          createOnLogin: 'all-users',
+          ethereum: {
+            createOnLogin: 'all-users',
+          },
         },
         defaultChain: baseSepolia,
         supportedChains: [baseSepolia],
@@ -54,7 +56,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
               containerClassName="toast-container"
               gutter={8}
               reverseOrder={false}
-              limit={4}
             />
             {children}
           </TPSLProvider>

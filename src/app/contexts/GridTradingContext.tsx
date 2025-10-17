@@ -4,7 +4,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useGridTrading } from '../hooks/useGridTrading';
 import { useMarket } from './MarketContext';
 
-interface GridTradingContextType extends ReturnType<typeof useGridTrading> {}
+type GridTradingContextType = ReturnType<typeof useGridTrading>;
 
 const GridTradingContext = createContext<GridTradingContextType | null>(null);
 

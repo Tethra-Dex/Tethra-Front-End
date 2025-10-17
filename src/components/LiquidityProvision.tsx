@@ -6,14 +6,7 @@ import { usePublicClient } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { Droplets, TrendingUp, Clock } from 'lucide-react';
 
-// TypeScript declaration for window.ethereum
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-    };
-  }
-}
+// Use type assertion for window.ethereum to avoid global declaration conflicts
 
 const LIQUIDITY_MINING = process.env.NEXT_PUBLIC_LIQUIDITY_MINING_ADDRESS as `0x${string}`;
 const USDC_TOKEN = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS as `0x${string}`;
@@ -186,11 +179,12 @@ export default function LiquidityProvision({ className = '' }: LiquidityProvisio
   }, [publicClient, userAddress]);
 
   const switchToBaseSepolia = async () => {
-    if (!window.ethereum) return;
+    const ethereum = (window as any).ethereum;
+    if (!ethereum) return;
     
     try {
       // Try to switch to Base Sepolia
-      await window.ethereum.request({
+      await ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: '0x14a34' }], // 84532 in hex
       });
@@ -198,7 +192,7 @@ export default function LiquidityProvision({ className = '' }: LiquidityProvisio
       // Chain not added to MetaMask, add it
       if (switchError.code === 4902) {
         try {
-          await window.ethereum.request({
+          await ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
               chainId: '0x14a34',
@@ -229,7 +223,8 @@ export default function LiquidityProvision({ className = '' }: LiquidityProvisio
       return;
     }
 
-    if (!window.ethereum) {
+    const ethereum = (window as any).ethereum;
+    if (!ethereum) {
       alert('Please install MetaMask or connect an external wallet');
       return;
     }
@@ -256,7 +251,7 @@ export default function LiquidityProvision({ className = '' }: LiquidityProvisio
         });
         
         // Send approve transaction
-        const approveTxHash = await window.ethereum.request({
+        const approveTxHash = await ethereum.request({
           method: 'eth_sendTransaction',
           params: [{
             from: userAddress,
@@ -291,7 +286,7 @@ export default function LiquidityProvision({ className = '' }: LiquidityProvisio
       });
       
       // Send add liquidity transaction
-      const liquidityTxHash = await window.ethereum.request({
+      const liquidityTxHash = await ethereum.request({
         method: 'eth_sendTransaction',
         params: [{
           from: userAddress,

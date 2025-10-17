@@ -67,14 +67,13 @@ export const CONTRACTS = {
   },
 } as const;
 
-// Helper function to get contract address by name
-export function getContractAddress(contractName: keyof typeof CONTRACTS): string {
-  const category = Object.keys(CONTRACTS).find((key) =>
-    Object.keys(CONTRACTS[key as keyof typeof CONTRACTS]).includes(contractName)
-  );
-  
-  if (category) {
-    return CONTRACTS[category as keyof typeof CONTRACTS][contractName as any];
+// Helper function to get contract address by name - simplified to avoid TypeScript complexity
+export function getContractAddress(contractName: string): string {
+  // Search through all contract categories
+  for (const [categoryKey, categoryValue] of Object.entries(CONTRACTS)) {
+    if (contractName in categoryValue) {
+      return (categoryValue as any)[contractName];
+    }
   }
   
   throw new Error(`Contract "${contractName}" not found`);

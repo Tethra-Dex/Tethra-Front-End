@@ -18,7 +18,7 @@ interface PricesState {
 }
 
 let sharedPrices: PricesState = {};
-let priceListeners: Set<() => void> = new Set();
+const priceListeners: Set<() => void> = new Set();
 let ws: WebSocket | null = null;
 let reconnectTimeout: NodeJS.Timeout | null = null;
 

@@ -135,7 +135,7 @@ export default function CopyTradePage() {
 
   // Sort traders based on selected metric
   const getSortedTraders = () => {
-    let sorted = [...mockTraders];
+    const sorted = [...mockTraders];
 
     if (selectedMetric) {
       sorted.sort((a: any, b: any) => {

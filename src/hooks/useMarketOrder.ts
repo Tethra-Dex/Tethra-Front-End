@@ -766,7 +766,9 @@ export function useRelayMarketOrder() {
       
       setHash(result.txHash as `0x${string}`);
       setUsdcCharged(result.usdcChargedFormatted);
-      setPositionId(result.positionId);
+      // Note: positionId needs to be extracted from transaction receipt or logs
+      // For now, we'll set to 0 as a placeholder
+      setPositionId(0);
       setIsSuccess(true);
       
       // Don't show toast here - let the component handle it with more details
