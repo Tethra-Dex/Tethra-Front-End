@@ -49,9 +49,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
                   color: '#fff',
                   pointerEvents: 'auto',
                 },
-                duration: 3000,
+                duration: 1500,
               }}
               containerClassName="toast-container"
+              gutter={8}
+              reverseOrder={false}
+              limit={4}
             />
             {children}
           </TPSLProvider>

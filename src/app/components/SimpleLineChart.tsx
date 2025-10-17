@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { binanceDataFeed, Candle } from '../services/binanceDataFeed';
 import { useTapToTrade } from '../contexts/TapToTradeContext';
+import { toast } from 'react-hot-toast';
 
 interface SimpleLineChartProps {
   symbol: string;
@@ -45,6 +46,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const [basePrice, setBasePrice] = useState<number>(0); // Base price for grid calculation (fixed reference)
   const [currentTime, setCurrentTime] = useState<number>(Date.now()); // Real-time clock for grid time calculation
   const [chartType, setChartType] = useState<ChartType>('line'); // Chart type: 'line' or 'candle'
+  
+  // Quick Trade states
+  const [quickTradeCollateral, setQuickTradeCollateral] = useState<string>('');
+  const [quickTradeLeverage, setQuickTradeLeverage] = useState<string>('');
 
   // Get tap to trade context for gridSizeX
   const tapToTrade = useTapToTrade();
@@ -1233,8 +1238,208 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     });
   }, []);
 
+  // Quick Trade handlers
+  const handleQuickTrade = (isLong: boolean) => {
+    const collateral = parseFloat(quickTradeCollateral);
+    const leverage = parseFloat(quickTradeLeverage);
+    
+    if (isNaN(collateral) || collateral <= 0) {
+      toast.error('Invalid collateral amount', { duration: 1500 });
+      return;
+    }
+    
+    if (isNaN(leverage) || leverage <= 0) {
+      toast.error('Invalid leverage', { duration: 1500 });
+      return;
+    }
+    
+    const action = isLong ? 'LONG' : 'SHORT';
+    const price = currentPrice.toFixed(2);
+    
+    toast.success(
+      `${action} $${collateral} @ $${price} (${leverage}x)`,
+      {
+        duration: 1500,
+        style: {
+          background: isLong ? '#10b981' : '#ef4444',
+          color: '#fff',
+        },
+      }
+    );
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Hide number input spinners */}
+      <style>{`
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
+      {/* Quick Trade Panel - top right */}
+      {tapToTradeEnabled && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '135px', // Move away from price scale
+          zIndex: 10,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          borderRadius: '3px',
+          padding: '6px',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          width: '100px', // Fixed compact width
+          boxSizing: 'border-box',
+          backdropFilter: 'blur(4px)'
+        }}>
+          {/* Title */}
+          <div style={{
+            fontSize: '8px',
+            fontWeight: '600',
+            color: '#94a3b8',
+            marginBottom: '4px',
+            fontFamily: 'monospace',
+            textAlign: 'center',
+            letterSpacing: '0.3px'
+          }}>
+            QUICK TRADE
+          </div>
+          
+          {/* Inputs - horizontal layout */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '3px',
+            marginBottom: '4px',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            {/* Collateral Input */}
+            <input
+              type="number"
+              value={quickTradeCollateral}
+              onChange={(e) => setQuickTradeCollateral(e.target.value)}
+              placeholder="$"
+              title="Collateral"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '3px 2px',
+                fontSize: '9px',
+                fontFamily: 'monospace',
+                backgroundColor: 'rgba(30, 30, 40, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '2px',
+                color: '#ffffff',
+                outline: 'none',
+                textAlign: 'center',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+              }}
+            />
+            
+            {/* Leverage Input */}
+            <input
+              type="number"
+              value={quickTradeLeverage}
+              onChange={(e) => setQuickTradeLeverage(e.target.value)}
+              placeholder="x"
+              title="Leverage"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '3px 2px',
+                fontSize: '9px',
+                fontFamily: 'monospace',
+                backgroundColor: 'rgba(30, 30, 40, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '2px',
+                color: '#ffffff',
+                outline: 'none',
+                textAlign: 'center',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+              }}
+            />
+          </div>
+          
+          {/* Buy/Sell Buttons */}
+          <div style={{
+            display: 'flex',
+            gap: '3px'
+          }}>
+            {/* BUY Button */}
+            <button
+              onClick={() => handleQuickTrade(true)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                fontSize: '9px',
+                fontWeight: '700',
+                backgroundColor: '#10b981',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '2px',
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+                transition: 'all 0.15s',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#059669';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#10b981';
+              }}
+            >
+              BUY
+            </button>
+            
+            {/* SELL Button */}
+            <button
+              onClick={() => handleQuickTrade(false)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                fontSize: '9px',
+                fontWeight: '700',
+                backgroundColor: '#ef4444',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '2px',
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+                transition: 'all 0.15s',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#dc2626';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ef4444';
+              }}
+            >
+              SELL
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Chart type toggle button - top left */}
       <div style={{
         position: 'absolute',
