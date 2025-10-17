@@ -383,6 +383,18 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         // Convert gridSizeY from % to basis points (0.5% = 50 basis points)
         const gridSizeYPercent = Math.round(gridSizeY * 100);
 
+        // Calculate reference time - snap to start of current timeframe window
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const columnDurationSeconds = gridSizeX * timeframeSeconds;
+        const referenceTimeSnapped = Math.floor(nowSeconds / columnDurationSeconds) * columnDurationSeconds;
+        
+        console.log('📅 Reference time calculation:');
+        console.log('  nowSeconds:', new Date(nowSeconds * 1000).toISOString());
+        console.log('  timeframeSeconds:', timeframeSeconds);
+        console.log('  gridSizeX:', gridSizeX);
+        console.log('  columnDurationSeconds:', columnDurationSeconds);
+        console.log('  referenceTimeSnapped:', new Date(referenceTimeSnapped * 1000).toISOString());
+
         const response = await fetch(`${BACKEND_API_URL}/api/grid/create-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -394,7 +406,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
             timeframeSeconds,
             gridSizeX,
             gridSizeYPercent,
-            referenceTime: Math.floor(Date.now() / 1000),
+            referenceTime: referenceTimeSnapped,
             referencePrice: priceWith8Decimals,
           }),
         });
