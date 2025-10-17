@@ -72,12 +72,65 @@ const formatTimeUntil = (timestamp: number) => {
     const now = Date.now();
     const diff = timestamp - now;
     if (diff <= 0) return 'Now';
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
+};
+
+// Real-time clock component for Jakarta time (GMT+7)
+const RealTimeClock: React.FC = () => {
+    const [currentTime, setCurrentTime] = useState('');
+    const [currentDate, setCurrentDate] = useState('');
+
+    useEffect(() => {
+        const updateTime = () => {
+            const now = new Date();
+
+            // Convert to Jakarta time (GMT+7)
+            const jakartaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+
+            // Format time (HH:MM:SS)
+            const hours = jakartaTime.getHours().toString().padStart(2, '0');
+            const minutes = jakartaTime.getMinutes().toString().padStart(2, '0');
+            const seconds = jakartaTime.getSeconds().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+
+            // Format date (DD MMM YYYY)
+            const dateString = jakartaTime.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+
+            setCurrentTime(timeString);
+            setCurrentDate(dateString);
+        };
+
+        // Update immediately
+        updateTime();
+
+        // Update every second
+        const interval = setInterval(updateTime, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="flex flex-col">
+            <span className="text-xs text-slate-400">Jakarta Time (GMT+7)</span>
+            <div className="flex flex-col">
+                <span className="font-semibold font-mono text-sm text-slate-200">
+                    {currentTime}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                    {currentDate}
+                </span>
+            </div>
+        </div>
+    );
 };
 
 interface MarketSelectorProps {
@@ -560,6 +613,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                                 {formatVolume(parseFloat(props.futuresData.openInterestValue))}
                             </span>
                         </div>
+                        <RealTimeClock />
                     </>
                 )}
             </div>
@@ -657,17 +711,28 @@ const TradingChart: React.FC = () => {
         return () => clearInterval(interval);
     }, [markets]);
 
-    // WebSocket for real-time spot prices (Binance)
+    // WebSocket for real-time spot prices (Binance) with ping mechanism
     useEffect(() => {
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
+        let pingInterval: NodeJS.Timeout | null = null;
 
-        ws.onopen = () => console.log('✅ Binance WebSocket connected');
+        ws.onopen = () => {
+            console.log('✅ Binance WebSocket connected');
+
+            // Start ping interval to keep connection alive (every 3 minutes)
+            pingInterval = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ method: 'ping' }));
+                    console.log('🏓 Ping sent to Binance ticker WebSocket');
+                }
+            }, 180000); // 3 minutes (180000ms)
+        };
 
         ws.onmessage = (event) => {
             const tickers = JSON.parse(event.data);
             const newPrices: Record<string, string> = {};
             const newMarketData: Record<string, MarketData> = {};
-            
+
             for (const ticker of tickers) {
                 newPrices[ticker.s] = parseFloat(ticker.c).toString();
                 newMarketData[ticker.s] = {
@@ -679,15 +744,29 @@ const TradingChart: React.FC = () => {
                     volume24h: (parseFloat(ticker.q)).toString()
                 };
             }
-            
+
             setAllPrices(newPrices);
             setMarketDataMap(newMarketData);
         };
 
         ws.onerror = (error) => console.error('❌ Binance WebSocket error:', error);
-        ws.onclose = () => console.log('🔌 Binance WebSocket closed');
+
+        ws.onclose = () => {
+            console.log('🔌 Binance WebSocket closed');
+
+            // Clear ping interval when connection closes
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+        };
 
         return () => {
+            // Clear ping interval on cleanup
+            if (pingInterval) {
+                clearInterval(pingInterval);
+            }
+
             if (ws.readyState === WebSocket.OPEN) {
                 ws.close();
             }

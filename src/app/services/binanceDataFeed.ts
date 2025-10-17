@@ -86,16 +86,21 @@ export class BinanceDataFeed {
     }
 
     /**
-     * Create WebSocket connection for real-time updates
+     * Create WebSocket connection for real-time updates with ping mechanism
+     * Binance WebSocket auto-disconnects after 24 hours of inactivity
+     * We send a ping every 3 minutes (180000ms) to keep the connection alive
      */
     createWebSocket(
         symbol: string,
         timeframe: string,
         onCandle: (candle: Candle) => void
-    ): WebSocket {
+    ): { ws: WebSocket; cleanup: () => void } {
         const interval = this.convertTimeframe(timeframe);
         const stream = `${symbol.toLowerCase()}@kline_${interval}`;
         const ws = new WebSocket(`${this.wsUrl}/${stream}`);
+
+        // Ping interval to keep connection alive (every 3 minutes)
+        let pingInterval: NodeJS.Timeout | null = null;
 
         ws.onmessage = (event) => {
             try {
@@ -124,14 +129,40 @@ export class BinanceDataFeed {
         };
 
         ws.onopen = () => {
-            console.log(`WebSocket connected for ${symbol} ${interval}`);
+            console.log(`✅ WebSocket connected for ${symbol} ${interval}`);
+
+            // Start ping interval when connection is established
+            pingInterval = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    // Send ping frame to keep connection alive
+                    ws.send(JSON.stringify({ method: 'ping' }));
+                    console.log(`🏓 Ping sent to ${symbol} ${interval} WebSocket`);
+                }
+            }, 180000); // 3 minutes (180000ms)
         };
 
         ws.onclose = () => {
-            console.log(`WebSocket closed for ${symbol} ${interval}`);
+            console.log(`🔌 WebSocket closed for ${symbol} ${interval}`);
+
+            // Clear ping interval when connection closes
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
         };
 
-        return ws;
+        // Return both WebSocket and cleanup function
+        const cleanup = () => {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                ws.close();
+            }
+        };
+
+        return { ws, cleanup };
     }
 }
 

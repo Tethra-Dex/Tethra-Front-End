@@ -114,6 +114,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
   // Fetch initial data and setup WebSocket
   useEffect(() => {
+    let cleanupFn: (() => void) | null = null;
+
     const initializeData = async () => {
       try {
         console.log(`📊 Fetching candles for ${symbol}`);
@@ -127,12 +129,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         setChartData(data);
         console.log(`✅ Loaded ${data.length} data points`);
 
-        // Setup WebSocket for real-time updates
+        // Setup WebSocket for real-time updates with ping mechanism
         if (wsRef.current) {
           wsRef.current.close();
         }
 
-        wsRef.current = binanceDataFeed.createWebSocket(
+        const { ws, cleanup } = binanceDataFeed.createWebSocket(
           symbol,
           interval,
           (candle: Candle) => {
@@ -155,6 +157,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             });
           }
         );
+
+        wsRef.current = ws;
+        cleanupFn = cleanup; // Store cleanup function
       } catch (error) {
         console.error('Error initializing chart:', error);
       }
@@ -163,7 +168,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     initializeData();
 
     return () => {
-      if (wsRef.current) {
+      // Call cleanup function if it exists (to clear ping interval and close WebSocket)
+      if (cleanupFn) {
+        cleanupFn();
+      } else if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
