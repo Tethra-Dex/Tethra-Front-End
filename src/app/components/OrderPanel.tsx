@@ -1,14 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Info, Settings, TrendingUp, TrendingDown, Zap } from 'lucide-react';
 import MarketOrder from './order-panel/MarketOrder';
 import LimitOrder from './order-panel/LimitOrder';
 import TapToTrade from './order-panel/TaptoTrade';
+import { useTapToTrade } from '../contexts/TapToTradeContext';
 
 const OrderPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'long' | 'short' | 'swap'>('short');
   const [activeOrderType, setActiveOrderType] = useState<'market' | 'limit' | 'Tap to Trade' | 'more'>('market');
+  const { isEnabled: tapToTradeEnabled } = useTapToTrade();
+
+  // Auto-switch to Market when Tap to Trade is disabled (only if it was previously enabled)
+  const prevTapToTradeEnabled = React.useRef(tapToTradeEnabled);
+  useEffect(() => {
+    // Only switch if tap-to-trade was enabled before and now disabled
+    if (prevTapToTradeEnabled.current && !tapToTradeEnabled && activeOrderType === 'Tap to Trade') {
+      setActiveOrderType('market');
+    }
+    prevTapToTradeEnabled.current = tapToTradeEnabled;
+  }, [tapToTradeEnabled, activeOrderType]);
 
   return (
     <div className="h-full flex flex-col bg-[#0B1017] text-gray-100 relative overflow-hidden">
@@ -22,9 +34,9 @@ const OrderPanel: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            disabled={activeOrderType === 'Tap to Trade'}
+            disabled={tapToTradeEnabled}
             className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative border-b-2 ${
-              activeOrderType === 'Tap to Trade'
+              tapToTradeEnabled
                 ? 'cursor-not-allowed opacity-50'
                 : 'cursor-pointer'
             } ${
@@ -50,9 +62,9 @@ const OrderPanel: React.FC = () => {
             <button
               key={type}
               onClick={() => setActiveOrderType(type)}
-              disabled={activeTab === 'swap'}
+              disabled={activeTab === 'swap' || (tapToTradeEnabled && type !== 'Tap to Trade')}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap min-w-fit ${
-                activeTab === 'swap'
+                activeTab === 'swap' || (tapToTradeEnabled && type !== 'Tap to Trade')
                   ? 'cursor-not-allowed opacity-50'
                   : 'cursor-pointer'
               } ${

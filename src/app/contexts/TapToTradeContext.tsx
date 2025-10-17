@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { keccak256, encodePacked, encodeFunctionData } from 'viem';
 
@@ -78,6 +78,9 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Track nonce locally to avoid race conditions with multiple orders
   const [localNonce, setLocalNonce] = useState<bigint>(BigInt(0));
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const resignIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const attemptedResignOrders = useRef<Set<string>>(new Set()); // Track orders we've already attempted to re-sign
 
   /**
    * Initialize nonce from contract
@@ -129,6 +132,167 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  /**
+   * Auto re-sign orders that need re-signing (nonce mismatch)
+   */
+  const checkAndResignOrders = async () => {
+    if (!isEnabled || !gridSession || !user?.wallet?.address) {
+      return;
+    }
+
+    try {
+      // Get Privy embedded wallet
+      const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+      if (!embeddedWallet) {
+        return;
+      }
+
+      const traderAddress = embeddedWallet.address;
+
+      // Fetch orders that need re-signing
+      const response = await fetch(
+        `${BACKEND_API_URL}/api/tap-to-trade/orders?trader=${traderAddress}&status=NEEDS_RESIGN`
+      );
+      const result = await response.json();
+
+      if (!result.success || !result.data || result.data.length === 0) {
+        return;
+      }
+
+      console.log(`\ud83d\udd04 Found ${result.data.length} orders that need re-signing`);
+
+      // Re-sign each order (only once per order)
+      for (const order of result.data) {
+        // Skip if we've already attempted to re-sign this order
+        if (attemptedResignOrders.current.has(order.id)) {
+          console.log(`⏭️ Already attempted re-sign for order ${order.id}, skipping...`);
+          continue;
+        }
+
+        // Mark as attempted
+        attemptedResignOrders.current.add(order.id);
+        try {
+          console.log(`\u270d\ufe0f Re-signing order ${order.id}...`);
+
+          const walletClient = await embeddedWallet.getEthereumProvider();
+          if (!walletClient) {
+            continue;
+          }
+
+          // Fetch fresh nonce
+          const MarketExecutorABI = [
+            {
+              inputs: [{ name: '', type: 'address' }],
+              name: 'metaNonces',
+              outputs: [{ name: '', type: 'uint256' }],
+              stateMutability: 'view',
+              type: 'function',
+            },
+          ];
+
+          const nonceData = encodeFunctionData({
+            abi: MarketExecutorABI,
+            functionName: 'metaNonces',
+            args: [traderAddress as `0x${string}`],
+          });
+
+          const nonceResult = await walletClient.request({
+            method: 'eth_call',
+            params: [{
+              to: MARKET_EXECUTOR_ADDRESS,
+              data: nonceData,
+            }, 'latest'],
+          });
+
+          const freshNonce = BigInt(nonceResult as string);
+          console.log(`\u2705 Fresh nonce: ${freshNonce.toString()}`);
+
+          // Create new signature with fresh nonce
+          const messageHash = keccak256(
+            encodePacked(
+              ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
+              [
+                traderAddress as `0x${string}`,
+                order.symbol,
+                order.isLong,
+                BigInt(order.collateral),
+                BigInt(order.leverage),
+                freshNonce,
+                MARKET_EXECUTOR_ADDRESS as `0x${string}`
+              ]
+            )
+          );
+
+          // User will see signature request popup here
+          const newSignature = await walletClient.request({
+            method: 'personal_sign',
+            params: [messageHash, traderAddress],
+          });
+
+          // Update signature in backend
+          const updateResponse = await fetch(`${BACKEND_API_URL}/api/tap-to-trade/update-signature`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: order.id,
+              nonce: freshNonce.toString(),
+              signature: newSignature,
+              trader: traderAddress,
+            }),
+          });
+
+          const updateResult = await updateResponse.json();
+          if (updateResult.success) {
+            console.log(`\u2705 Successfully re-signed order ${order.id}`);
+            // Remove from attempted list on success so it can be re-attempted if needed again
+            attemptedResignOrders.current.delete(order.id);
+          } else {
+            console.error(`\u274c Failed to update signature for order ${order.id}:`, updateResult.error);
+          }
+        } catch (err: any) {
+          // User cancelled signature or error occurred
+          if (err.code === 4001 || err.message?.includes('User rejected')) {
+            console.warn(`\u274c User cancelled re-signing order ${order.id}`);
+            // Mark as cancelled in backend
+            try {
+              await fetch(`${BACKEND_API_URL}/api/tap-to-trade/cancel-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: order.id,
+                  trader: traderAddress,
+                }),
+              });
+            } catch (cancelErr) {
+              console.error('Failed to cancel order:', cancelErr);
+            }
+          } else {
+            console.error(`\u274c Error re-signing order ${order.id}:`, err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error checking for orders to re-sign:', err);
+    }
+  };
+
+  // Poll for orders that need re-signing
+  useEffect(() => {
+    if (isEnabled && gridSession) {
+      // Check immediately
+      checkAndResignOrders();
+
+      // Then check every 15 seconds (not too frequent to avoid spam)
+      resignIntervalRef.current = setInterval(checkAndResignOrders, 15000);
+
+      return () => {
+        if (resignIntervalRef.current) {
+          clearInterval(resignIntervalRef.current);
+        }
+      };
+    }
+  }, [isEnabled, gridSession, user?.wallet?.address, wallets]);
+
   const toggleMode = async (params?: {
     symbol: string;
     margin: string;
@@ -141,12 +305,17 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       if (gridSession) {
         try {
           setIsLoading(true);
+          
+          // Get Privy embedded wallet
+          const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+          const traderAddress = embeddedWallet?.address || gridSession.trader;
+          
           await fetch(`${BACKEND_API_URL}/api/grid/cancel-session`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               gridId: gridSession.id,
-              trader: user?.wallet?.address,
+              trader: traderAddress,
             }),
           });
 
@@ -163,7 +332,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       setIsEnabled(false);
       setError(null);
       setLocalNonce(BigInt(0)); // Reset nonce
-      console.log(`🎯 Tap to Trade mode: DISABLED`);
+      attemptedResignOrders.current.clear(); // Clear attempted re-sign tracking
+      console.log(`\ud83c\udfaf Tap to Trade mode: DISABLED`);
 
     } else {
       // ENABLE mode - Create grid session
@@ -176,6 +346,16 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         setError('Wallet not connected');
         return;
       }
+
+      // Get Privy embedded wallet for tap-to-trade
+      const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+      if (!embeddedWallet) {
+        setError('Privy embedded wallet not found. Tap-to-trade requires Privy AA wallet.');
+        return;
+      }
+
+      const traderAddress = embeddedWallet.address;
+      console.log('💼 Using Privy wallet for tap-to-trade:', traderAddress);
 
       setIsLoading(true);
       setError(null);
@@ -207,7 +387,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            trader: user.wallet.address,
+            trader: traderAddress,
             symbol: params.symbol,
             marginTotal: marginInBaseUnits,
             leverage: params.leverage,
@@ -254,6 +434,13 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       return;
     }
 
+    // Prevent multiple orders from being created simultaneously (nonce collision)
+    if (isCreatingOrder) {
+      console.warn('⏳ Please wait, another order is being created...');
+      return;
+    }
+
+    setIsCreatingOrder(true);
     setIsLoading(true);
     setError(null);
 
@@ -308,9 +495,34 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         throw new Error('Could not get wallet client');
       }
 
-      // Use local nonce (prevents race condition when creating multiple orders)
-      const currentNonce = localNonce;
-      console.log('✅ Using local nonce for signature:', currentNonce.toString());
+      // ALWAYS fetch fresh nonce from contract for each order
+      // This prevents signature failures due to stale nonce
+      const MarketExecutorABI = [
+        {
+          inputs: [{ name: '', type: 'address' }],
+          name: 'metaNonces',
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ];
+
+      const nonceData = encodeFunctionData({
+        abi: MarketExecutorABI,
+        functionName: 'metaNonces',
+        args: [traderAddress as `0x${string}`],
+      });
+
+      const nonceResult = await walletClient.request({
+        method: 'eth_call',
+        params: [{
+          to: MARKET_EXECUTOR_ADDRESS,
+          data: nonceData,
+        }, 'latest'],
+      });
+
+      const currentNonce = BigInt(nonceResult as string);
+      console.log('✅ Fetched fresh nonce from contract:', currentNonce.toString());
 
       // Sign order message
       const messageHash = keccak256(
@@ -337,10 +549,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       });
 
       console.log('✅ Signature obtained');
-
-      // Increment local nonce IMMEDIATELY after signature (prevent race condition)
-      setLocalNonce(prev => prev + BigInt(1));
-      console.log('📈 Incremented local nonce to:', (currentNonce + BigInt(1)).toString());
 
       // Create order in backend
       const cellId = `${cellX},${cellY}`;
@@ -402,6 +610,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       console.error('Failed to create order:', err);
     } finally {
       setIsLoading(false);
+      setIsCreatingOrder(false);
     }
   };
 
