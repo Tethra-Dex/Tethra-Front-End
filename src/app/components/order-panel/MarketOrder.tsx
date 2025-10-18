@@ -105,7 +105,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
         <input
           type="text"
           placeholder="Search Market"
-          className="w-full px-3 py-2 bg-[#0F1419] border border-[#2D3748] rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full px-3 py-2 bg-[#0F1419] border border-[#2D3748] rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           autoFocus
@@ -455,12 +455,12 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             href={`https://sepolia.basescan.org/tx/${relayHash}`} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-blue-400 hover:underline text-xs"
+            className="text-blue-300 hover:underline text-xs"
           >
             View transaction
           </a>
           {shouldSetTPSL && (
-            <div className="text-blue-400 text-xs mt-1">
+            <div className="text-blue-300 text-xs mt-1">
               🎯 Setting TP/SL automatically...
             </div>
           )}
@@ -527,8 +527,8 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419]">
       <div>
-        <label className="text-xs text-gray-400 mb-1 block">Pay</label>
-        <div className="bg-[#1A2332] rounded-lg p-3">
+        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3">
+          <label className="text-xs text-gray-400 mb-2 block">Pay</label>
           <div className="flex justify-between items-center mb-2">
             <input
               type="text"
@@ -537,9 +537,9 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               onChange={handlePayInputChange}
               className="bg-transparent text-2xl text-white outline-none w-full"
             />
-            <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative">
-              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-xs">$</div>
-              USDC
+            <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity relative">
+              <div className="w-7 h-7 rounded-full bg-blue-300 flex items-center justify-center text-sm font-semibold">$</div>
+              <span className="font-medium">USDC</span>
             </button>
           </div>
           <div className="flex justify-between text-xs">
@@ -560,10 +560,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
       </div>
 
       <div>
-        <label className="text-xs text-gray-400 mb-1 block">
-          {activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}
-        </label>
-        <div className="bg-[#1A2332] rounded-lg p-3 relative">
+        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 relative">
+          <label className="text-xs text-gray-400 mb-2 block">
+            {activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}
+          </label>
           <div className="flex justify-between items-center mb-2 gap-2">
             <input
               type="text"
@@ -575,22 +575,22 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             <button
               ref={triggerButtonRef}
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-              className="flex items-center gap-1.5 bg-transparent rounded-lg px-2 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
+              className="flex items-center gap-2 bg-transparent rounded-lg px-2 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
             >
               {activeMarket && (
                 <img
                   src={activeMarket.logoUrl}
                   alt={activeMarket.symbol}
-                  className="w-5 h-5 rounded-full flex-shrink-0"
+                  className="w-7 h-7 rounded-full flex-shrink-0"
                   onError={(e) => {
                     const target = e.currentTarget;
                     target.style.display = 'none';
                   }}
                 />
               )}
-              <span className="whitespace-nowrap">{activeTab === 'swap' ? activeMarket?.symbol || 'BTC' : `${activeMarket?.symbol || 'BTC'}/USD`}</span>
+              <span className="whitespace-nowrap font-medium">{activeTab === 'swap' ? activeMarket?.symbol || 'BTC' : `${activeMarket?.symbol || 'BTC'}/USD`}</span>
               <ChevronDown
-                size={14}
+                size={16}
                 className={`flex-shrink-0 transition-transform duration-200 ${isMarketSelectorOpen ? 'rotate-180' : ''}`}
               />
             </button>
@@ -650,10 +650,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                     left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
                   }}
                 >
-                  <div className="relative bg-blue-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                  <div className="relative bg-blue-300/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
                     <span className="text-sm font-bold">{formatLeverage(leverage)}x</span>
                     {/* Arrow pointing down */}
-                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-300/90"></div>
                   </div>
                 </div>
               )}
@@ -717,9 +717,9 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
           <div className="mb-4"></div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-400">Pool</span>
-            <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-400 transition-colors">
+            <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-300 transition-colors">
               {activeMarket?.symbol || 'BTC'}-USDC
-              
+
             </button>
           </div>
 
@@ -728,9 +728,9 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               <span className="text-gray-400">Collateral In</span>
               <Info size={12} className="text-gray-500" />
             </div>
-            <button className="flex items-center gap-1 text-white hover:text-blue-400 transition-colors">
+            <button className="flex items-center gap-1 text-white hover:text-blue-300 transition-colors">
               USDC
-              
+
             </button>
           </div>
         </>
@@ -747,7 +747,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                 checked={isTpSlEnabled}
                 onChange={(e) => setIsTpSlEnabled(e.target.checked)}
               />
-              <span className={`absolute cursor-pointer inset-0 rounded-full transition-all ${isTpSlEnabled ? 'bg-blue-500' : 'bg-[#2D3748]'}`}>
+              <span className={`absolute cursor-pointer inset-0 rounded-full transition-all ${isTpSlEnabled ? 'bg-blue-300' : 'bg-[#2D3748]'}`}>
                 <span className={`absolute left-0.5 top-0.5 h-4 w-4 bg-white rounded-full transition-transform ${isTpSlEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
               </span>
             </label>
@@ -761,7 +761,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-xs text-gray-400">Take Profit</label>
                   <button
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                    className="text-xs text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
                     onClick={() => setTakeProfitPrice('')}
                   >
                     + Add
@@ -797,7 +797,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-xs text-gray-400">Stop Loss</label>
                   <button
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                    className="text-xs text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
                     onClick={() => setStopLossPrice('')}
                   >
                     + Add
@@ -834,18 +834,18 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
       {/* Pre-Approve Section */}
       {authenticated && !hasLargeAllowance && activeTab !== 'swap' && (
-        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-500/30">
+        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-300/30">
           <div className="flex items-start gap-2">
-            <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+            <Info size={16} className="text-blue-300 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm text-blue-400 font-medium mb-1">⚡ Enable One-Click Trading</p>
+              <p className="text-sm text-blue-300 font-medium mb-1">⚡ Enable One-Click Trading</p>
               <p className="text-xs text-gray-400 mb-2">
                 Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade for security.
               </p>
               <button
                 onClick={handlePreApprove}
                 disabled={isApprovalPending}
-                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors"
+                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors"
               >
                 {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
               </button>
@@ -880,7 +880,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             ? 'bg-green-600 hover:bg-green-700'
             : activeTab === 'short'
             ? 'bg-red-600 hover:bg-red-700'
-            : 'bg-blue-600 hover:bg-blue-700'
+            : 'bg-blue-400 hover:bg-blue-500'
         }`}
       >
         {getButtonText()}

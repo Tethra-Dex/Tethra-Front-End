@@ -113,7 +113,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
         <input
           type="text"
           placeholder="Search Market"
-          className="w-full px-3 py-2 bg-[#0F1419] border border-[#2D3748] rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full px-3 py-2 bg-[#0F1419] border border-[#2D3748] rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           autoFocus
@@ -352,7 +352,7 @@ const TapToTrade: React.FC = () => {
                   setIsModeDropdownOpen(false);
                 }}
                 className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
-                  tradeMode === 'open-position' ? 'bg-[#2D3748] text-blue-400' : 'text-white'
+                  tradeMode === 'open-position' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                 }`}
               >
                 Open Position
@@ -363,7 +363,7 @@ const TapToTrade: React.FC = () => {
                   setIsModeDropdownOpen(false);
                 }}
                 className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
-                  tradeMode === 'trade-per-s' ? 'bg-[#2D3748] text-blue-400' : 'text-white'
+                  tradeMode === 'trade-per-s' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                 }`}
               >
                 Trade per s
@@ -375,11 +375,11 @@ const TapToTrade: React.FC = () => {
 
       {/* Trade per s Info Banner */}
       {tradeMode === 'trade-per-s' && (
-        <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-3">
+        <div className="bg-blue-300/10 border border-blue-300/50 rounded-lg p-3">
           <div className="flex items-start gap-2">
-            <Info size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+            <Info size={16} className="text-blue-300 flex-shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
-              <div className="text-xs font-semibold text-blue-400">Trade per Second Mode</div>
+              <div className="text-xs font-semibold text-blue-300">Trade per Second Mode</div>
               <div className="text-xs text-blue-300 space-y-0.5">
                 <div>• Chart updates in real-time per second</div>
                 <div>• Fixed grid: 10 seconds per X-axis</div>
@@ -441,7 +441,7 @@ const TapToTrade: React.FC = () => {
               className="bg-transparent text-2xl text-white outline-none w-full disabled:cursor-not-allowed"
             />
             <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity">
-              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-xs">$</div>
+              <div className="w-5 h-5 rounded-full bg-blue-300 flex items-center justify-center text-xs">$</div>
               USDC
             </button>
           </div>
@@ -502,7 +502,7 @@ const TapToTrade: React.FC = () => {
                     left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
                   }}
                 >
-                  <div className="relative bg-blue-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                  <div className="relative bg-blue-300/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
                     <span className="text-sm font-bold">{leverage.toFixed(1)}x</span>
                     {/* Arrow pointing down */}
                     <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
@@ -581,7 +581,7 @@ const TapToTrade: React.FC = () => {
                       key={option.value}
                       onClick={() => handleTimeframeSelect(option.value)}
                       className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
-                        timeframe === option.value ? 'bg-[#2D3748] text-blue-400' : 'text-white'
+                        timeframe === option.value ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                       }`}
                     >
                       {option.label}
@@ -597,10 +597,10 @@ const TapToTrade: React.FC = () => {
 
       {/* Tap to Trade Status Banner */}
       {tapToTrade.isEnabled && (
-        <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-3">
+        <div className="bg-blue-300/10 border border-blue-300/50 rounded-lg p-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-bold text-blue-400">Tap to Trade Active</span>
+            <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
+            <span className="text-sm font-bold text-blue-300">Tap to Trade Active</span>
           </div>
           <p className="text-xs text-blue-300 mt-1">
             Tap grid cells on chart to select orders
@@ -637,7 +637,7 @@ const TapToTrade: React.FC = () => {
                 value={tapToTrade.gridSizeX}
                 onChange={(e) => tapToTrade.setGridSizeX(parseInt(e.target.value))}
                 disabled={tapToTrade.isEnabled}
-                className="flex-1 h-2 bg-[#1A2332] rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:cursor-not-allowed"
+                className="flex-1 h-2 bg-[#1A2332] rounded-lg appearance-none cursor-pointer accent-blue-300 disabled:cursor-not-allowed"
               />
               <div className="bg-[#1A2332] rounded px-3 py-1.5 min-w-[60px] text-center">
                 <span className="text-white font-semibold text-sm">{tapToTrade.gridSizeX}</span>
@@ -745,7 +745,7 @@ const TapToTrade: React.FC = () => {
             }
           }}
           disabled={tapToTrade.isLoading || !marginAmount}
-          className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-300 hover:bg-blue-400 transition-all shadow-lg shadow-blue-300/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {tapToTrade.isLoading ? (
             <>

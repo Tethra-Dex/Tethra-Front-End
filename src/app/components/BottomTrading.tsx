@@ -149,7 +149,7 @@ const PositionRow = ({
     <tr
       onClick={handleRowClick}
       className={`border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors cursor-pointer ${
-        isSelected ? 'bg-blue-500/10 border-blue-500/30' : ''
+        isSelected ? 'bg-blue-300/10 border-blue-300/30' : ''
       }`}
     >
       {/* Position / Market */}
@@ -245,9 +245,9 @@ const PositionRow = ({
       {/* Actions */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={handleTPSLClick}
-            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs font-medium rounded transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-blue-300/20 hover:bg-blue-300/30 text-blue-300 text-xs font-medium rounded transition-colors cursor-pointer"
           >
             TP/SL
           </button>
@@ -500,7 +500,7 @@ const BottomTrading = () => {
                 )}
               </span>
               {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-300"></div>
               )}
             </button>
           ))}
@@ -511,7 +511,7 @@ const BottomTrading = () => {
               type="checkbox"
               checked={chartPositions}
               onChange={(e) => setChartPositions(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+              className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-300 focus:ring-blue-300 focus:ring-offset-0"
             />
             <span>Chart positions</span>
           </label>

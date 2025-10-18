@@ -65,7 +65,7 @@ export default function DashboardTrade() {
                 isExpanded ? 'space-x-3 px-3 py-3' : 'justify-center py-3'
               } ${
                 isActive
-                  ? 'bg-blue-500/15 text-blue-400'
+                  ? 'bg-blue-300/15 text-blue-300'
                   : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
               }`}
               title={!isExpanded ? item.label : ''}
@@ -92,7 +92,7 @@ export default function DashboardTrade() {
 
       {/* Built on Base Badge */}
       <div className="mt-auto w-full">
-        <div className={`flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer ${
+        <div className={`flex items-center space-x-2 bg-gradient-to-r from-blue-400 to-blue-300 rounded-lg shadow-lg hover:shadow-blue-300/20 transition-all duration-300 cursor-pointer ${
           isExpanded ? 'justify-center px-3 py-2.5' : 'justify-center p-2.5'
         }`}>
           <Image

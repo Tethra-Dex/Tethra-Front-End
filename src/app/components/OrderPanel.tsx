@@ -21,7 +21,7 @@ const OrderPanel: React.FC = () => {
         {[
           { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} />, color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)', shadowColor: 'rgba(16, 185, 129, 0.3)' },
           { key: 'short' as const, label: 'Short', icon: <TrendingDown size={16} />, color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)', shadowColor: 'rgba(239, 68, 68, 0.3)' },
-          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} />, color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)', shadowColor: 'rgba(59, 130, 246, 0.3)' },
+          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} />, color: '#93C5FD', bgColor: 'rgba(147, 197, 253, 0.15)', shadowColor: 'rgba(147, 197, 253, 0.3)' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -103,12 +103,12 @@ const OrderPanel: React.FC = () => {
           <div className="absolute inset-0 bg-[#0B1017]/95 backdrop-blur-sm z-50 flex items-center justify-center">
             <div className="text-center px-6">
               <div className="mb-4">
-                <Zap size={64} className="text-blue-500 mx-auto animate-pulse" />
+                <Zap size={64} className="text-blue-300 mx-auto animate-pulse" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Swap Feature</h3>
               <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 max-w-md">
-                <p className="text-sm text-blue-300">
+              <div className="bg-blue-300/10 border border-blue-300/30 rounded-lg p-4 max-w-md">
+                <p className="text-sm text-blue-400">
                   We're working hard to bring you the best swap experience. Stay tuned!
                 </p>
               </div>

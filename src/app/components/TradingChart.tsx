@@ -236,7 +236,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                 <input
                     type="text"
                     placeholder="Search Market"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     autoFocus
@@ -251,7 +251,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                 >
                     Price
                     {sortBy === 'price' ? (
-                        <span className="text-blue-400">
+                        <span className="text-blue-300">
                             {sortOrder === 'desc' ? '↓' : '↑'}
                         </span>
                     ) : (
@@ -267,7 +267,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                 >
                     24h Change
                     {sortBy === '24hChange' ? (
-                        <span className="text-blue-400">
+                        <span className="text-blue-300">
                             {sortOrder === 'desc' ? '↓' : '↑'}
                         </span>
                     ) : (
@@ -283,7 +283,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                 >
                     24h Volume
                     {sortBy === '24hVolume' ? (
-                        <span className="text-blue-400">
+                        <span className="text-blue-300">
                             {sortOrder === 'desc' ? '↓' : '↑'}
                         </span>
                     ) : (
@@ -299,7 +299,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                 >
                     Funding Rate
                     {sortBy === 'fundingRate' ? (
-                        <span className="text-blue-400">
+                        <span className="text-blue-300">
                             {sortOrder === 'desc' ? '↓' : '↑'}
                         </span>
                     ) : (
@@ -315,7 +315,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
                 >
                     Open Interest
                     {sortBy === 'openInterest' ? (
-                        <span className="text-blue-400">
+                        <span className="text-blue-300">
                             {sortOrder === 'desc' ? '↓' : '↑'}
                         </span>
                     ) : (
@@ -500,7 +500,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                     <select
                         value={props.currentTimeframe}
                         onChange={(e) => props.onTimeframeChange(e.target.value)}
-                        className="appearance-none bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 pr-10 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="appearance-none bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 pr-10 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >
                         {timeframes.map((tf) => (
                             <option key={tf.value} value={tf.value} className="bg-slate-800 text-slate-100">
