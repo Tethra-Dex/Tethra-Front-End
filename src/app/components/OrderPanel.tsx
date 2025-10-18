@@ -32,14 +32,14 @@ const OrderPanel: React.FC = () => {
                 ? 'cursor-not-allowed opacity-50'
                 : 'cursor-pointer'
             } ${
-              activeTab === tab.key
+              activeTab === tab.key && !tapToTradeEnabled
                 ? 'text-white'
                 : 'text-gray-400 hover:text-gray-200'
             }`}
             style={{
-              backgroundColor: activeTab === tab.key ? tab.bgColor : 'transparent',
-              boxShadow: activeTab === tab.key ? `inset 0 0 20px ${tab.shadowColor}, 0 0 10px ${tab.shadowColor}` : 'none',
-              borderBottom: activeTab === tab.key ? `2px solid ${tab.color}` : '2px solid transparent'
+              backgroundColor: activeTab === tab.key && !tapToTradeEnabled ? tab.bgColor : 'transparent',
+              boxShadow: activeTab === tab.key && !tapToTradeEnabled ? `inset 0 0 20px ${tab.shadowColor}, 0 0 10px ${tab.shadowColor}` : 'none',
+              borderBottom: activeTab === tab.key && !tapToTradeEnabled ? `2px solid ${tab.color}` : '2px solid transparent'
             }}
           >
             <div className="flex items-center justify-center gap-2">
