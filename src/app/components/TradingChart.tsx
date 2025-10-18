@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import WalletConnectButton from './WalletConnectButton';
 import TradingVueChart from './TradingVueChart';
 import SimpleLineChart from './SimpleLineChart';
+import PerSecondChart from './PerSecondChart';
 
 interface Market {
     symbol: string;
@@ -922,15 +923,23 @@ const TradingChart: React.FC = () => {
                 {activeMarket && (
                     <>
                         {tapToTrade.isEnabled ? (
-                            <SimpleLineChart
-                                key={`${activeMarket.binanceSymbol}-${timeframe}-tap`}
-                                symbol={activeMarket.binanceSymbol}
-                                interval={timeframe}
-                                currentPrice={parseFloat(currentOraclePrice?.price?.toString() || currentMarketData?.price || '0')}
-                                tapToTradeEnabled={true}
-                                gridSize={tapToTrade.gridSizeY}
-                                onCellTap={handleTapCellClick}
-                            />
+                            tapToTrade.tradeMode === 'trade-per-s' ? (
+                                <PerSecondChart
+                                    key={`${activeMarket.binanceSymbol}-per-s`}
+                                    symbol={activeMarket.symbol}
+                                    currentPrice={parseFloat(currentOraclePrice?.price?.toString() || currentMarketData?.price || '0')}
+                                />
+                            ) : (
+                                <SimpleLineChart
+                                    key={`${activeMarket.binanceSymbol}-${timeframe}-tap`}
+                                    symbol={activeMarket.binanceSymbol}
+                                    interval={timeframe}
+                                    currentPrice={parseFloat(currentOraclePrice?.price?.toString() || currentMarketData?.price || '0')}
+                                    tapToTradeEnabled={true}
+                                    gridSize={tapToTrade.gridSizeY}
+                                    onCellTap={handleTapCellClick}
+                                />
+                            )
                         ) : (
                             <TradingVueChart
                                 key={`${activeMarket.binanceSymbol}-${timeframe}`}

@@ -171,14 +171,20 @@ const TapToTrade: React.FC = () => {
   const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
+  const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null); // For market selector
+  const modeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Grid Trading dari Context
   const gridTrading = useGridTradingContext();
 
   // Tap to Trade dari Context
   const tapToTrade = useTapToTrade();
+
+  // Use trade mode from context
+  const tradeMode = tapToTrade.tradeMode;
+  const setTradeMode = tapToTrade.setTradeMode;
 
   const leverageMarkers = [1, 2, 5, 10, 25, 50, 100]; // Updated to match MarketOrder
 
@@ -195,6 +201,20 @@ const TapToTrade: React.FC = () => {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isTimeframeOpen]);
+
+  // Close mode dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modeDropdownRef.current && !modeDropdownRef.current.contains(event.target as Node)) {
+        setIsModeDropdownOpen(false);
+      }
+    };
+
+    if (isModeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isModeDropdownOpen]);
 
   // Handler untuk mengganti market dan update chart
   const handleMarketSelect = (market: Market) => {
@@ -310,6 +330,49 @@ const TapToTrade: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419] h-full">
+      {/* Trade Mode Selector */}
+      <div>
+        <label className="text-xs text-gray-400 mb-1 block">Trade Mode</label>
+        <div className="relative" ref={modeDropdownRef}>
+          <button
+            onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
+            className="w-full bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center justify-between text-white hover:bg-[#2D3748] transition-colors"
+          >
+            <span className="font-semibold">
+              {tradeMode === 'open-position' ? 'Open Position' : 'Trade per s'}
+            </span>
+            <ChevronDown size={16} className={`transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isModeDropdownOpen && (
+            <div className="absolute top-full mt-1 left-0 w-full bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden">
+              <button
+                onClick={() => {
+                  setTradeMode('open-position');
+                  setIsModeDropdownOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
+                  tradeMode === 'open-position' ? 'bg-[#2D3748] text-blue-400' : 'text-white'
+                }`}
+              >
+                Open Position
+              </button>
+              <button
+                onClick={() => {
+                  setTradeMode('trade-per-s');
+                  setIsModeDropdownOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
+                  tradeMode === 'trade-per-s' ? 'bg-[#2D3748] text-blue-400' : 'text-white'
+                }`}
+              >
+                Trade per s
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Market Selector */}
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Market</label>
@@ -477,37 +540,41 @@ const TapToTrade: React.FC = () => {
         </div>
       </div>
 
-      {/* Timeframe Selector */}
-      <div className="mb-4"></div>
-      <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
-        <label className="text-xs text-gray-400 mb-2 block">Timeframe</label>
-        <div className="relative" ref={timeframeRef}>
-          <button
-            onClick={() => setIsTimeframeOpen(!isTimeframeOpen)}
-            disabled={tapToTrade.isEnabled}
-            className="w-full bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center justify-between text-white hover:bg-[#2D3748] transition-colors disabled:cursor-not-allowed"
-          >
-            <span className="font-semibold">{selectedTimeframeLabel}</span>
-            <ChevronDown size={16} className={`transition-transform ${isTimeframeOpen ? 'rotate-180' : ''}`} />
-          </button>
+      {/* Timeframe Selector - Only for Open Position mode */}
+      {tradeMode === 'open-position' && (
+        <>
+          <div className="mb-4"></div>
+          <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
+            <label className="text-xs text-gray-400 mb-2 block">Timeframe</label>
+            <div className="relative" ref={timeframeRef}>
+              <button
+                onClick={() => setIsTimeframeOpen(!isTimeframeOpen)}
+                disabled={tapToTrade.isEnabled}
+                className="w-full bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center justify-between text-white hover:bg-[#2D3748] transition-colors disabled:cursor-not-allowed"
+              >
+                <span className="font-semibold">{selectedTimeframeLabel}</span>
+                <ChevronDown size={16} className={`transition-transform ${isTimeframeOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-          {isTimeframeOpen && (
-            <div className="absolute top-full mt-1 left-0 w-full bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden">
-              {TIMEFRAME_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleTimeframeSelect(option.value)}
-                  className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
-                    timeframe === option.value ? 'bg-[#2D3748] text-blue-400' : 'text-white'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+              {isTimeframeOpen && (
+                <div className="absolute top-full mt-1 left-0 w-full bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden">
+                  {TIMEFRAME_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleTimeframeSelect(option.value)}
+                      className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
+                        timeframe === option.value ? 'bg-[#2D3748] text-blue-400' : 'text-white'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
 
       {/* Tap to Trade Status Banner */}
@@ -529,8 +596,8 @@ const TapToTrade: React.FC = () => {
         </div>
       )}
 
-      {/* Grid Configuration (always shown) */}
-      {true && (
+      {/* Grid Configuration - Only for Open Position mode */}
+      {tradeMode === 'open-position' && (
         <div className="space-y-3 border-t border-[#1A202C] pt-3">
           <div className="text-xs font-semibold text-gray-400 flex items-center gap-2 mb-2">
             <GridIcon size={14} />
@@ -638,14 +705,26 @@ const TapToTrade: React.FC = () => {
               return;
             }
 
-            // Call toggleMode with parameters to create grid session
-            await tapToTrade.toggleMode({
-              symbol: activeMarket?.symbol || 'BTC',
-              margin: marginAmount,
-              leverage: leverage,
-              timeframe: timeframe,
-              currentPrice: Number(currentPrice) || 0,
-            });
+            // Different behavior for different modes
+            if (tradeMode === 'open-position') {
+              // Call toggleMode with parameters to create grid session
+              await tapToTrade.toggleMode({
+                symbol: activeMarket?.symbol || 'BTC',
+                margin: marginAmount,
+                leverage: leverage,
+                timeframe: timeframe,
+                currentPrice: Number(currentPrice) || 0,
+              });
+            } else {
+              // Trade per s mode - just enable the mode
+              await tapToTrade.toggleMode({
+                symbol: activeMarket?.symbol || 'BTC',
+                margin: marginAmount,
+                leverage: leverage,
+                timeframe: '1', // 1 minute default for per-second trading
+                currentPrice: Number(currentPrice) || 0,
+              });
+            }
           }}
           disabled={tapToTrade.isLoading || !marginAmount}
           className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-500 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -656,14 +735,14 @@ const TapToTrade: React.FC = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Enabling...
+              Starting...
             </>
           ) : (
             <>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
               </svg>
-              Enable Tap to Trade
+              {tradeMode === 'trade-per-s' ? 'Start Tap to Trade' : 'Enable Tap to Trade'}
             </>
           )}
         </button>
@@ -682,6 +761,10 @@ const TapToTrade: React.FC = () => {
       {/* Info Section */}
       <div className="text-xs text-gray-500 space-y-1 border-t border-[#1A202C] pt-3">
         <div className="flex justify-between">
+          <span>Mode:</span>
+          <span className="text-white">{tradeMode === 'open-position' ? 'Open Position' : 'Trade per s'}</span>
+        </div>
+        <div className="flex justify-between">
           <span>Market:</span>
           <span className="text-white">{activeMarket?.symbol || 'BTC'}/USD</span>
         </div>
@@ -693,10 +776,12 @@ const TapToTrade: React.FC = () => {
           <span>Leverage:</span>
           <span className="text-white">{leverage.toFixed(1)}x</span>
         </div>
-        <div className="flex justify-between">
-          <span>Timeframe:</span>
-          <span className="text-white">{selectedTimeframeLabel}</span>
-        </div>
+        {tradeMode === 'open-position' && (
+          <div className="flex justify-between">
+            <span>Timeframe:</span>
+            <span className="text-white">{selectedTimeframeLabel}</span>
+          </div>
+        )}
         {xCoordinate && (
           <div className="flex justify-between">
             <span>X (Time):</span>

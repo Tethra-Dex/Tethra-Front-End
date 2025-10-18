@@ -29,9 +29,13 @@ interface CellOrderInfo {
   isLong: boolean;
 }
 
+type TradeMode = 'open-position' | 'trade-per-s';
+
 interface TapToTradeContextType {
   // Mode state
   isEnabled: boolean;
+  tradeMode: TradeMode;
+  setTradeMode: (mode: TradeMode) => void;
   toggleMode: (params?: {
     symbol: string;
     margin: string;
@@ -67,6 +71,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const { user } = usePrivy();
   const { wallets } = useWallets();
   const [isEnabled, setIsEnabled] = useState(false);
+  const [tradeMode, setTradeMode] = useState<TradeMode>('open-position');
   const [gridSizeX, setGridSizeX] = useState(1); // 1 candle per column by default
   const [gridSizeY, setGridSizeY] = useState(0.5); // 0.5% per row by default
   const [cellOrders, setCellOrders] = useState<Map<string, CellOrderInfo>>(new Map());
@@ -630,6 +635,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
     <TapToTradeContext.Provider
       value={{
         isEnabled,
+        tradeMode,
+        setTradeMode,
         toggleMode,
         gridSizeX,
         gridSizeY,
