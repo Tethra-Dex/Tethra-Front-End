@@ -373,6 +373,24 @@ const TapToTrade: React.FC = () => {
         </div>
       </div>
 
+      {/* Trade per s Info Banner */}
+      {tradeMode === 'trade-per-s' && (
+        <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <div className="text-xs font-semibold text-blue-400">Trade per Second Mode</div>
+              <div className="text-xs text-blue-300 space-y-0.5">
+                <div>• Chart updates in real-time per second</div>
+                <div>• Fixed grid: 10 seconds per X-axis</div>
+                <div>• Price grid: $10 per Y-axis increment</div>
+                <div>• Grid is fixed (no zoom in/out)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Market Selector */}
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Market</label>

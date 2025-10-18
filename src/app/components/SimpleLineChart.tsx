@@ -1522,7 +1522,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          cursor: tapToTradeEnabled ? 'pointer' : 'default',
+          cursor: tapToTradeEnabled
+            ? (hoveredCell ? 'pointer' : 'default')
+            : 'default',
         }}
       />
     </div>
