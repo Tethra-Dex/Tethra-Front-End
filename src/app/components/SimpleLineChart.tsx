@@ -359,9 +359,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         const lowestLevel = Math.floor(chartMinPrice / gridStepDollar) * gridStepDollar;
         const highestLevel = Math.ceil(chartMaxPrice / gridStepDollar) * gridStepDollar;
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; // Increased opacity from 0.1 to 0.25
+        ctx.lineWidth = 1.5; // Increased from 1 to 1.5
+        ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
 
         for (let price = lowestLevel; price <= highestLevel; price += gridStepDollar) {
           const y = priceToY(price);
@@ -381,8 +381,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
       // Draw vertical grid lines (time) - including future area
       if (tapToTradeEnabled) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Increased opacity from 0.05 to 0.2
+        ctx.lineWidth = 1.5; // Increased from 1 to 1.5
+        ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
 
         // Draw for past candles
         for (let i = 0; i < chartData.length; i++) {
@@ -396,7 +397,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         }
 
         // Draw for future candles (solid lines, same as past) - until end of chart
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; // Same opacity as past candles
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Increased opacity from 0.05 to 0.2
         for (let i = 0; i < maxFutureCandles; i++) {
           const futureIndex = chartData.length + i;
           const x = timeToX(futureIndex);
@@ -408,6 +409,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           }
           if (x > chartWidth) break; // Stop if beyond chart
         }
+
+        // Reset line dash to solid for other drawings
+        ctx.setLineDash([]);
       }
 
       // Draw grid cells (tap areas) - including future area

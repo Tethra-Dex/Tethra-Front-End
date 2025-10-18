@@ -283,9 +283,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       };
 
       // Draw horizontal grid lines (price levels - $10 increments)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; // Increased opacity from 0.1 to 0.25
+      ctx.lineWidth = 1.5; // Increased from 1 to 1.5
+      ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
 
       const lowestPriceLevel = Math.floor(displayMinPrice / GRID_Y_DOLLARS) * GRID_Y_DOLLARS;
       const highestPriceLevel = Math.ceil(displayMaxPrice / GRID_Y_DOLLARS) * GRID_Y_DOLLARS;
@@ -305,8 +305,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       ctx.setLineDash([]);
 
       // Draw vertical grid lines (time - 10 second increments)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Increased opacity from 0.05 to 0.2
+      ctx.lineWidth = 1.5; // Increased from 1 to 1.5
+      ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
 
       const now = Date.now();
 
@@ -343,6 +344,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           }
         }
       }
+
+      // Reset line dash to solid for other drawings
+      ctx.setLineDash([]);
 
       // Draw grid cells (clickable areas) with hover and selection states
       let currentHoveredCell: string | null = null;

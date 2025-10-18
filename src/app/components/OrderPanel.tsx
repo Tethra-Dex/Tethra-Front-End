@@ -12,40 +12,34 @@ const OrderPanel: React.FC = () => {
   const [activeOrderType, setActiveOrderType] = useState<'market' | 'limit' | 'Tap to Trade' | 'more'>('market');
   const { isEnabled: tapToTradeEnabled } = useTapToTrade();
 
-  // Auto-switch to Market when Tap to Trade is disabled (only if it was previously enabled)
-  const prevTapToTradeEnabled = React.useRef(tapToTradeEnabled);
-  useEffect(() => {
-    // Only switch if tap-to-trade was enabled before and now disabled
-    if (prevTapToTradeEnabled.current && !tapToTradeEnabled && activeOrderType === 'Tap to Trade') {
-      setActiveOrderType('market');
-    }
-    prevTapToTradeEnabled.current = tapToTradeEnabled;
-  }, [tapToTradeEnabled, activeOrderType]);
+  // No auto-switch - stay in Tap to Trade tab even when disabled
 
   return (
     <div className="h-full flex flex-col bg-[#0B1017] text-gray-100 relative overflow-hidden">
 
       <div className="flex border-b border-[#1A202C] bg-[#0B1017]">
         {[
-          { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} />, color: '#10B981' },
-          { key: 'short' as const, label: 'Short', icon: <TrendingDown size={16} />, color: '#EF4444' },
-          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} />, color: '#3B82F6' },
+          { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} />, color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)', shadowColor: 'rgba(16, 185, 129, 0.3)' },
+          { key: 'short' as const, label: 'Short', icon: <TrendingDown size={16} />, color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.15)', shadowColor: 'rgba(239, 68, 68, 0.3)' },
+          { key: 'swap' as const, label: 'Swap', icon: <Zap size={16} />, color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)', shadowColor: 'rgba(59, 130, 246, 0.3)' },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             disabled={tapToTradeEnabled}
-            className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative border-b-2 ${
+            className={`flex-1 py-4 text-sm font-bold transition-all duration-200 relative ${
               tapToTradeEnabled
                 ? 'cursor-not-allowed opacity-50'
                 : 'cursor-pointer'
             } ${
               activeTab === tab.key
                 ? 'text-white'
-                : 'text-gray-400 hover:text-gray-200 border-transparent'
+                : 'text-gray-400 hover:text-gray-200'
             }`}
             style={{
-              borderBottomColor: activeTab === tab.key ? tab.color : 'transparent'
+              backgroundColor: activeTab === tab.key ? tab.bgColor : 'transparent',
+              boxShadow: activeTab === tab.key ? `inset 0 0 20px ${tab.shadowColor}, 0 0 10px ${tab.shadowColor}` : 'none',
+              borderBottom: activeTab === tab.key ? `2px solid ${tab.color}` : '2px solid transparent'
             }}
           >
             <div className="flex items-center justify-center gap-2">
