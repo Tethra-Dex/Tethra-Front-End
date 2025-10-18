@@ -104,7 +104,7 @@ export default function DashboardTrade() {
           />
           {isExpanded && (
             <span className="text-xs font-bold text-white tracking-wide whitespace-nowrap">
-              Built on Base
+              Build on Base
             </span>
           )}
         </div>

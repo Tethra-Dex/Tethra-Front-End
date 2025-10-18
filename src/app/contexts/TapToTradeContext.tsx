@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { keccak256, encodePacked, encodeFunctionData } from 'viem';
+import { useSessionKey, SessionKey } from '../../hooks/useSessionKey';
 
 interface GridSession {
   id: string;
@@ -58,6 +59,10 @@ interface TapToTradeContextType {
   gridSession: GridSession | null;
   isLoading: boolean;
   error: string | null;
+
+  // Session key - NEW: for signature-less trading
+  sessionKey: SessionKey | null;
+  sessionTimeRemaining: number; // milliseconds
 }
 
 const TapToTradeContext = createContext<TapToTradeContextType | undefined>(undefined);
@@ -86,6 +91,42 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const resignIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedResignOrders = useRef<Set<string>>(new Set()); // Track orders we've already attempted to re-sign
+
+  // Session key for signature-less trading
+  const {
+    sessionKey,
+    isSessionValid,
+    createSession,
+    signWithSession,
+    clearSession,
+    getTimeRemaining,
+  } = useSessionKey();
+  const [sessionTimeRemaining, setSessionTimeRemaining] = useState(0);
+
+  // Update session time remaining every second for UI display
+  useEffect(() => {
+    if (!sessionKey) {
+      setSessionTimeRemaining(0);
+      return;
+    }
+
+    const updateTimer = () => {
+      const remaining = getTimeRemaining();
+      setSessionTimeRemaining(remaining);
+
+      // Auto-disable if session expired
+      if (remaining <= 0 && isEnabled) {
+        console.log('⏰ Session expired, disabling tap-to-trade...');
+        setError('Session expired. Please re-enable tap-to-trade.');
+        setIsEnabled(false);
+      }
+    };
+
+    updateTimer(); // Initial update
+    const interval = setInterval(updateTimer, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [sessionKey, isEnabled, getTimeRemaining]);
 
   /**
    * Initialize nonce from contract
@@ -335,6 +376,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       // Clear cell orders when disabling
       setCellOrders(new Map());
       setIsEnabled(false);
+      clearSession(); // Clear session key
       setError(null);
       setLocalNonce(BigInt(0)); // Reset nonce
       attemptedResignOrders.current.clear(); // Clear attempted re-sign tracking
@@ -424,6 +466,21 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
 
         const session = result.data as GridSession;
         setGridSession(session);
+
+        // Create session key for signature-less trading (THIS IS THE ONLY SIGNATURE NEEDED!)
+        console.log('🔑 Creating session key...');
+        const walletClient = await embeddedWallet.getEthereumProvider();
+        const newSession = await createSession(
+          traderAddress,
+          walletClient,
+          30 * 60 * 1000 // 30 minutes session
+        );
+
+        if (!newSession) {
+          throw new Error('Failed to create session key. User may have rejected signature.');
+        }
+
+        console.log('✅ Session key created! No more signatures needed for 30 minutes.');
         setIsEnabled(true);
 
         // Initialize nonce from contract when enabling
@@ -541,6 +598,11 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       const currentNonce = BigInt(nonceResult as string);
       console.log('✅ Fetched fresh nonce from contract:', currentNonce.toString());
 
+      // Check if session key is valid
+      if (!isSessionValid()) {
+        throw new Error('Session key expired or invalid. Please re-enable tap-to-trade.');
+      }
+
       // Sign order message
       const messageHash = keccak256(
         encodePacked(
@@ -557,15 +619,17 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         )
       );
 
-      console.log('✍️ Requesting signature for tap-to-trade order...');
+      console.log('✍️ Signing with session key (NO USER PROMPT!)...');
 
-      // Sign message using personal_sign (same as market/limit orders)
-      const signature = await walletClient.request({
-        method: 'personal_sign',
-        params: [messageHash, traderAddress],
-      });
+      // Sign message using SESSION KEY (no user prompt!)
+      const signature = await signWithSession(messageHash);
 
-      console.log('✅ Signature obtained');
+      if (!signature) {
+        throw new Error('Failed to sign with session key');
+      }
+
+      console.log('✅ Signature obtained (automatically with session key!)');
+      console.log('⚡ No popup, no waiting - instant signing!');
 
       // Create order in backend
       const cellId = `${cellX},${cellY}`;
@@ -587,6 +651,13 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
             endTime,
             nonce: currentNonce.toString(),
             signature,
+            // Session key info for backend validation
+            sessionKey: sessionKey ? {
+              address: sessionKey.address,
+              expiresAt: sessionKey.expiresAt,
+              authorizedBy: sessionKey.authorizedBy,
+              authSignature: sessionKey.authSignature,
+            } : undefined,
           }]
         }),
       });
@@ -647,6 +718,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         gridSession,
         isLoading,
         error,
+        sessionKey,
+        sessionTimeRemaining,
       }}
     >
       {children}
