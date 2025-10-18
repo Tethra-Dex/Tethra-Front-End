@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { init, dispose } from 'klinecharts';
-import { binanceDataFeed, Candle } from '../services/binanceDataFeed';
+import { pythDataFeed, Candle } from '../services/pythDataFeed';
 import { useMarket } from '../contexts/MarketContext';
 import { useGridTradingContext } from '../contexts/GridTradingContext';
 import CanvasGridOverlay from './CanvasGridOverlay';
@@ -151,8 +151,8 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                     console.log(`📊 Set bar space to ${initialBarSpace}px for ${interval} timeframe`);
                 }
 
-                // Fetch historical candles
-                const candles = await binanceDataFeed.fetchCandles(symbol, interval, 500);
+                // Fetch historical candles (Pyth Oracle or Binance fallback)
+                const candles = await pythDataFeed.fetchCandles(symbol, interval, 500);
 
                 if (candles.length === 0) {
                     console.error(`❌ No candles fetched for ${symbol}`);
@@ -182,12 +182,12 @@ const TradingVueChart: React.FC<TradingVueChartProps> = memo(({ symbol, interval
                     name: 'simpleAnnotation'
                 });
 
-                // Setup WebSocket for real-time updates
+                // Setup WebSocket for real-time updates (Pyth Oracle or Binance fallback)
                 if (wsRef.current) {
                     wsRef.current.cleanup();
                 }
 
-                wsRef.current = binanceDataFeed.createWebSocket(
+                wsRef.current = pythDataFeed.createWebSocket(
                     symbol,
                     interval,
                     (candle: Candle) => {

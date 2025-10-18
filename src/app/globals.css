@@ -735,3 +735,29 @@ body {
 .copy-trade-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #3a4451;
 }
+
+/* Global Scrollbar Styling - Dark Theme sesuai dengan tema aplikasi */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1F2937 #0B1017;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: #0B1017;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #1F2937;
+  border-radius: 4px;
+  border: 1px solid #374151;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #374151;
+}

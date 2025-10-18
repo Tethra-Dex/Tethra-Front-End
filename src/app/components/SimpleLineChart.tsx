@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { binanceDataFeed, Candle } from '../services/binanceDataFeed';
+import { pythDataFeed, Candle } from '../services/pythDataFeed';
 import { useTapToTrade } from '../contexts/TapToTradeContext';
 import { toast } from 'react-hot-toast';
 
@@ -139,8 +139,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
     const initializeData = async () => {
       try {
-        console.log(`📊 Fetching candles for ${symbol}`);
-        const candles = await binanceDataFeed.fetchCandles(symbol, interval, 100);
+        console.log(`📊 Fetching candles from Pyth Oracle for ${symbol}`);
+        const candles = await pythDataFeed.fetchCandles(symbol, interval, 100);
 
         const data: ChartData[] = candles.map(candle => ({
           time: candle.time,
@@ -151,14 +151,14 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         }));
 
         setChartData(data);
-        console.log(`✅ Loaded ${data.length} data points`);
+        console.log(`✅ Loaded ${data.length} data points from Pyth Oracle`);
 
-        // Setup WebSocket for real-time updates with ping mechanism
+        // Setup WebSocket for real-time updates from Pyth Oracle
         if (wsRef.current) {
           wsRef.current.close();
         }
 
-        const { ws, cleanup } = binanceDataFeed.createWebSocket(
+        const { ws, cleanup } = pythDataFeed.createWebSocket(
           symbol,
           interval,
           (candle: Candle) => {

@@ -426,17 +426,12 @@ interface ChartHeaderProps {
 }
 
 const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
+    // Use Oracle price data if available, otherwise fallback to Binance
+    const displayPrice = props.oraclePrice?.price || (props.marketData?.price ? parseFloat(props.marketData.price) : 0);
     const priceChangePercent = props.marketData?.priceChangePercent ? parseFloat(props.marketData.priceChangePercent) : 0;
     const isPositive = priceChangePercent >= 0;
     const fundingRate = props.futuresData ? parseFloat(props.futuresData.fundingRate) : 0;
     const isFundingPositive = fundingRate >= 0;
-
-    // Calculate price difference between Binance and Oracle
-    // Positive = Binance higher than Oracle
-    // Negative = Binance lower than Oracle
-    const binancePrice = props.marketData?.price ? parseFloat(props.marketData.price) : 0;
-    const oraclePrice = props.oraclePrice?.price || 0;
-    const priceDiff = binancePrice && oraclePrice ? ((binancePrice - oraclePrice) / oraclePrice * 100) : 0;
 
     // Timeframe options
     const timeframes = [
@@ -522,24 +517,14 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
-                
-                <div className="flex flex-col">
-                    <span className="text-xs text-slate-400">Price</span>
-                    <span className="font-semibold font-mono text-lg text-white">
-                        {props.marketData?.price ? formatPrice(parseFloat(props.marketData.price)) : '$--'}
-                    </span>
-                </div>
 
                 <div className="flex flex-col">
-                    <span className="text-xs text-slate-400">24h Change</span>
-                    <div className="flex items-center gap-1">
-                        <span className={`font-semibold font-mono text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                            {props.marketData?.priceChangePercent ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(2)}%` : '--'}
-                        </span>
-                        <span className={`text-xs font-mono ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                            {props.marketData?.priceChange ? `(${isPositive ? '+' : ''}${formatPrice(parseFloat(props.marketData.priceChange))})` : ''}
-                        </span>
-                    </div>
+                    <span className="font-semibold font-mono text-lg text-white">
+                        {displayPrice ? formatPrice(displayPrice) : '$--'}
+                    </span>
+                    <span className={`font-semibold font-mono text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        {props.marketData?.priceChangePercent ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(2)}%` : '--'}
+                    </span>
                 </div>
 
                 <div className="flex flex-col">
@@ -562,37 +547,6 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         {props.marketData?.volume24h ? formatVolume(parseFloat(props.marketData.volume24h)) : '--'}
                     </span>
                 </div>
-                
-                {/* Oracle Price - Pyth Network */}
-                {props.oraclePrice && (
-                    <div className="flex flex-col px-3 py-2 bg-yellow-400/10 border border-yellow-400/30 rounded">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider">PYTH Oracle</span>
-                            {props.oraclePrice.confidence && (
-                                <span className="text-[9px] text-yellow-400/60">
-                                    (±${props.oraclePrice.confidence.toFixed(2)})
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold font-mono text-lg text-yellow-400">
-                                ${props.oraclePrice.price.toFixed(2)}
-                            </span>
-                            {priceDiff !== 0 && (
-                                <div className="flex flex-col text-[10px]">
-                                    <span className={`font-semibold ${
-                                        priceDiff > 0 
-                                            ? 'text-red-400'    // Binance higher = Oracle lower (red down)
-                                            : 'text-green-400'  // Binance lower = Oracle higher (green up)
-                                    }`}>
-                                        {priceDiff > 0 ? '▼' : '▲'} {Math.abs(priceDiff).toFixed(3)}%
-                                    </span>
-                                    <span className="text-slate-500">vs Binance</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
                 
                 {/* Futures Data */}
                 {props.futuresData && (
