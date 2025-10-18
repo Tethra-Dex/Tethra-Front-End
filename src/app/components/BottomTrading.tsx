@@ -478,7 +478,7 @@ const BottomTrading = () => {
 
   return (
     <>
-    <div className="bg-[#0B1017] border border-gray-700/50 rounded-md h-full flex flex-col">
+    <div className="bg-[#0B1017] border border-gray-700/50 rounded-lg h-full flex flex-col">
       <div className="flex items-center justify-between border-b border-gray-800/50 px-4 flex-shrink-0">
         <div className="flex space-x-6">
           {tabs.map((tab) => (

@@ -18,7 +18,7 @@ export default function DashboardTrade() {
 
   return (
     <aside
-      className={`flex flex-col items-start bg-[#0D1017] text-gray-300 h-full py-6 relative w-full ${
+      className={`flex flex-col items-start bg-[#0D1017] text-gray-300 h-full py-6 relative w-full rounded-lg ${
         isExpanded ? 'px-3' : 'px-2'
       }`}
     >

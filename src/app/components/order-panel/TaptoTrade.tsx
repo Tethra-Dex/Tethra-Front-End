@@ -330,13 +330,13 @@ const TapToTrade: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419] h-full">
-      {/* Trade per s Info Banner */}
-      {tradeMode === 'trade-per-s' && (
+      {/* One Tap Profit Info Banner */}
+      {tradeMode === 'one-tap-profit' && (
         <div className="bg-blue-300/10 border border-blue-300/50 rounded-lg p-3">
           <div className="flex items-start gap-2">
             <Info size={16} className="text-blue-300 flex-shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
-              <div className="text-xs font-semibold text-blue-300">Trade per Second Mode</div>
+              <div className="text-xs font-semibold text-blue-300">One Tap Profit Mode</div>
               <div className="text-xs text-blue-300 space-y-0.5">
                 <div>• Chart updates in real-time per second</div>
                 <div>• Fixed grid: 10 seconds per X-axis</div>
@@ -713,12 +713,12 @@ const TapToTrade: React.FC = () => {
                 currentPrice: Number(currentPrice) || 0,
               });
             } else {
-              // Trade per s mode - just enable the mode
+              // One Tap Profit mode - just enable the mode
               await tapToTrade.toggleMode({
                 symbol: activeMarket?.symbol || 'BTC',
                 margin: marginAmount,
                 leverage: leverage,
-                timeframe: '1', // 1 minute default for per-second trading
+                timeframe: '1', // 1 minute default for one-tap-profit trading
                 currentPrice: Number(currentPrice) || 0,
               });
             }
@@ -739,7 +739,7 @@ const TapToTrade: React.FC = () => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
               </svg>
-              {tradeMode === 'trade-per-s' ? 'Start Tap to Trade' : 'Enable Tap to Trade'}
+              {tradeMode === 'one-tap-profit' ? 'Start Tap to Trade' : 'Enable Tap to Trade'}
             </>
           )}
         </button>
@@ -759,7 +759,7 @@ const TapToTrade: React.FC = () => {
       <div className="text-xs text-gray-500 space-y-1 border-t border-[#1A202C] pt-3">
         <div className="flex justify-between">
           <span>Mode:</span>
-          <span className="text-white">{tradeMode === 'open-position' ? 'Open Position' : 'Trade per s'}</span>
+          <span className="text-white">{tradeMode === 'open-position' ? 'Open Position' : 'One Tap Profit'}</span>
         </div>
         <div className="flex justify-between">
           <span>Market:</span>

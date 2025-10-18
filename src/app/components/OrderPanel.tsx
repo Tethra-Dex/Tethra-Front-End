@@ -32,7 +32,7 @@ const OrderPanel: React.FC = () => {
   }, [isTapToTradeDropdownOpen]);
 
   return (
-    <div className="h-full flex flex-col bg-[#0B1017] text-gray-100 relative overflow-hidden">
+    <div className="h-full flex flex-col bg-[#0B1017] text-gray-100 relative overflow-hidden rounded-lg">
 
       <div className="flex border-b border-[#1A202C] bg-[#0B1017]">
         {[
@@ -126,14 +126,14 @@ const OrderPanel: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setTradeMode('trade-per-s');
+                      setTradeMode('one-tap-profit');
                       setIsTapToTradeDropdownOpen(false);
                     }}
                     className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors ${
-                      tradeMode === 'trade-per-s' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
+                      tradeMode === 'one-tap-profit' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                     }`}
                   >
-                    Trade per s
+                    One Tap Profit
                   </button>
                 </div>
               )}

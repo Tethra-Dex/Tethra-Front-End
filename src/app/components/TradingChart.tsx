@@ -842,7 +842,7 @@ const TradingChart: React.FC = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col bg-black text-slate-100">
+        <div className="w-full h-full flex flex-col bg-black text-slate-100 rounded-lg overflow-hidden">
             {/* Header with flexible height - can be 1 or 2 rows */}
             <div style={{ flexShrink: 0, flexGrow: 0 }}>
                 <ChartHeader

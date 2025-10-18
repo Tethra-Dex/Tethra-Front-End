@@ -29,7 +29,7 @@ interface CellOrderInfo {
   isLong: boolean;
 }
 
-type TradeMode = 'open-position' | 'trade-per-s';
+type TradeMode = 'open-position' | 'one-tap-profit';
 
 interface TapToTradeContextType {
   // Mode state
