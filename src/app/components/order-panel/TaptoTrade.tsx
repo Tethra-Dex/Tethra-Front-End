@@ -330,49 +330,6 @@ const TapToTrade: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419] h-full">
-      {/* Trade Mode Selector */}
-      <div>
-        <label className="text-xs text-gray-400 mb-1 block">Trade Mode</label>
-        <div className="relative" ref={modeDropdownRef}>
-          <button
-            onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
-            className="w-full bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center justify-between text-white hover:bg-[#2D3748] transition-colors"
-          >
-            <span className="font-semibold">
-              {tradeMode === 'open-position' ? 'Open Position' : 'Trade per s'}
-            </span>
-            <ChevronDown size={16} className={`transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {isModeDropdownOpen && (
-            <div className="absolute top-full mt-1 left-0 w-full bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden">
-              <button
-                onClick={() => {
-                  setTradeMode('open-position');
-                  setIsModeDropdownOpen(false);
-                }}
-                className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
-                  tradeMode === 'open-position' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
-                }`}
-              >
-                Open Position
-              </button>
-              <button
-                onClick={() => {
-                  setTradeMode('trade-per-s');
-                  setIsModeDropdownOpen(false);
-                }}
-                className={`w-full px-3 py-2 text-left hover:bg-[#2D3748] transition-colors ${
-                  tradeMode === 'trade-per-s' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
-                }`}
-              >
-                Trade per s
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Trade per s Info Banner */}
       {tradeMode === 'trade-per-s' && (
         <div className="bg-blue-300/10 border border-blue-300/50 rounded-lg p-3">
@@ -393,29 +350,29 @@ const TapToTrade: React.FC = () => {
 
       {/* Market Selector */}
       <div>
-        <label className="text-xs text-gray-400 mb-1 block">Market</label>
-        <div className={`bg-[#1A2332] rounded-lg p-3 relative ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={`bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 relative ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className="text-xs text-gray-400 mb-2 block">Market</label>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Asset</span>
+            <span className="text-2xl text-white font-medium">{activeMarket?.symbol || 'BTC'}</span>
             <button
               ref={triggerButtonRef}
               onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
               disabled={tapToTrade.isEnabled}
-              className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity relative disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-transparent rounded-lg px-2 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity relative disabled:cursor-not-allowed"
             >
               {activeMarket && (
                 <img
                   src={activeMarket.logoUrl}
                   alt={activeMarket.symbol}
-                  className="w-5 h-5 rounded-full"
+                  className="w-7 h-7 rounded-full"
                   onError={(e) => {
                     const target = e.currentTarget;
                     target.style.display = 'none';
                   }}
                 />
               )}
-              <span className="text-white font-semibold">{activeMarket?.symbol || 'BTC'}/USD</span>
-              <ChevronDown size={14} />
+              <span className="text-white font-medium whitespace-nowrap">{activeMarket?.symbol || 'BTC'}/USD</span>
+              <ChevronDown size={16} className={`transition-transform duration-200 ${isMarketSelectorOpen ? 'rotate-180' : ''}`} />
             </button>
             <MarketSelector
               isOpen={isMarketSelectorOpen}
@@ -424,13 +381,16 @@ const TapToTrade: React.FC = () => {
               triggerRef={triggerButtonRef}
             />
           </div>
+          <div className="flex justify-between text-xs mt-2">
+            <span className="text-gray-500">Current Price: {currentPrice ? `$${Number(currentPrice).toFixed(2)}` : 'Loading...'}</span>
+          </div>
         </div>
       </div>
 
       {/* Margin Input (USDC) */}
       <div>
-        <label className="text-xs text-gray-400 mb-1 block">Margin</label>
-        <div className={`bg-[#1A2332] rounded-lg p-3 ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={`bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className="text-xs text-gray-400 mb-2 block">Margin</label>
           <div className="flex justify-between items-center mb-2">
             <input
               type="text"
@@ -440,9 +400,9 @@ const TapToTrade: React.FC = () => {
               disabled={tapToTrade.isEnabled}
               className="bg-transparent text-2xl text-white outline-none w-full disabled:cursor-not-allowed"
             />
-            <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-sm cursor-pointer hover:opacity-75 transition-opacity">
-              <div className="w-5 h-5 rounded-full bg-blue-300 flex items-center justify-center text-xs">$</div>
-              USDC
+            <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity">
+              <div className="w-7 h-7 rounded-full bg-blue-300 flex items-center justify-center text-sm font-semibold">$</div>
+              <span className="font-medium">USDC</span>
             </button>
           </div>
           <div className="flex justify-between text-xs">
@@ -470,26 +430,41 @@ const TapToTrade: React.FC = () => {
         <div className="flex items-center gap-3">
           {/* Slider Container */}
           <div className="flex-1 relative pt-1 pb-4">
-            <div className="relative h-0.5 bg-[#2D3748] rounded-full">
+            <div className="relative h-1 bg-[#2D3748] rounded-full">
+              {/* Blue progress line */}
+              <div
+                className="absolute top-0 left-0 h-full bg-blue-400 rounded-full"
+                style={{
+                  width: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`
+                }}
+              />
+
+              {/* Markers */}
               {leverageMarkers.map((marker, index) => {
                 const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
                 const position = (markerIndex / maxSliderValue) * 100;
+                const isActive = getCurrentSliderIndex() >= markerIndex;
                 return (
                   <div
                     key={index}
-                    className="absolute top-3/4 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
+                    className={`absolute w-3 h-3 rounded-full border-2 transition-colors duration-150 ${
+                      isActive ? 'bg-blue-400 border-blue-400' : 'bg-[#1A2332] border-[#4A5568]'
+                    }`}
                     style={{
                       left: `${position}%`,
+                      top: '50%',
                       transform: 'translate(-50%, -50%)'
                     }}
                   />
                 );
               })}
 
+              {/* Slider handle */}
               <div
-                className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
+                className="absolute w-5 h-5 bg-white rounded-full shadow-lg cursor-pointer border-2 border-blue-400"
                 style={{
                   left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                  top: '50%',
                   transform: 'translate(-50%, -50%)'
                 }}
               />
@@ -497,15 +472,16 @@ const TapToTrade: React.FC = () => {
               {/* Leverage Tooltip */}
               {showLeverageTooltip && (
                 <div
-                  className="absolute -top-12 -translate-x-1/2 transition-opacity duration-200"
+                  className="absolute -top-12 transition-opacity duration-200"
                   style={{
                     left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                    transform: 'translateX(-50%)'
                   }}
                 >
-                  <div className="relative bg-blue-300/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                  <div className="relative bg-blue-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
                     <span className="text-sm font-bold">{leverage.toFixed(1)}x</span>
                     {/* Arrow pointing down */}
-                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-500/90"></div>
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-400"></div>
                   </div>
                 </div>
               )}
@@ -523,18 +499,21 @@ const TapToTrade: React.FC = () => {
               onTouchStart={handleLeverageMouseDown}
               onTouchEnd={handleLeverageMouseUp}
               disabled={tapToTrade.isEnabled}
-              className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              className="absolute inset-0 w-full opacity-0 cursor-grab active:cursor-grabbing disabled:cursor-not-allowed z-10"
             />
 
-            <div className="absolute top-full mt-0.5 left-0 right-0">
+            <div className="absolute top-full mt-2 left-0 right-0">
               {leverageMarkers.map((marker, index) => {
                 const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
                 const position = (markerIndex / maxSliderValue) * 100;
                 return (
                   <span
                     key={index}
-                    className="absolute text-xs text-gray-500 -translate-x-1/2"
-                    style={{ left: `${position}%` }}
+                    className="absolute text-xs text-gray-400 font-medium"
+                    style={{
+                      left: `${position}%`,
+                      transform: 'translateX(-50%)'
+                    }}
                   >
                     {marker < 1 ? marker.toFixed(1) : marker}x
                   </span>

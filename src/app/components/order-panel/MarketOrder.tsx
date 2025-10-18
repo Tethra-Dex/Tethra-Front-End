@@ -162,8 +162,8 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const { authenticated, user } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const { address: embeddedAddress, hasEmbeddedWallet } = useEmbeddedWallet();
-  const [leverage, setLeverage] = useState(50);
-  const [leverageInput, setLeverageInput] = useState<string>('50.0');
+  const [leverage, setLeverage] = useState(10);
+  const [leverageInput, setLeverageInput] = useState<string>('10.0');
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const [payAmount, setPayAmount] = useState<string>('');
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
@@ -618,26 +618,41 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         <div className="flex items-center gap-3">
           {/* Slider Container */}
           <div className="flex-1 relative pt-1 pb-4">
-            <div className="relative h-0.5 bg-[#2D3748] rounded-full">
+            <div className="relative h-1 bg-[#2D3748] rounded-full">
+              {/* Blue progress line */}
+              <div
+                className="absolute top-0 left-0 h-full bg-blue-400 rounded-full"
+                style={{
+                  width: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`
+                }}
+              />
+
+              {/* Markers */}
               {leverageMarkers.map((marker, index) => {
                 const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
                 const position = (markerIndex / maxSliderValue) * 100;
+                const isActive = getCurrentSliderIndex() >= markerIndex;
                 return (
                   <div
                     key={index}
-                    className="absolute top-3/4 -translate-y-1/2 w-1 h-1 rounded-full bg-[#4A5568]"
+                    className={`absolute w-3 h-3 rounded-full border-2 transition-colors duration-150 ${
+                      isActive ? 'bg-blue-400 border-blue-400' : 'bg-[#1A2332] border-[#4A5568]'
+                    }`}
                     style={{
                       left: `${position}%`,
+                      top: '50%',
                       transform: 'translate(-50%, -50%)'
                     }}
                   />
                 );
               })}
 
+              {/* Slider handle */}
               <div
-                className="absolute top-2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg cursor-pointer"
+                className="absolute w-5 h-5 bg-white rounded-full shadow-lg cursor-pointer border-2 border-blue-400"
                 style={{
                   left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                  top: '50%',
                   transform: 'translate(-50%, -50%)'
                 }}
               />
@@ -645,15 +660,16 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               {/* Leverage Tooltip */}
               {showLeverageTooltip && (
                 <div
-                  className="absolute -top-12 -translate-x-1/2 transition-opacity duration-200"
+                  className="absolute -top-12 transition-opacity duration-200"
                   style={{
                     left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                    transform: 'translateX(-50%)'
                   }}
                 >
-                  <div className="relative bg-blue-300/90 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                  <div className="relative bg-blue-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
                     <span className="text-sm font-bold">{formatLeverage(leverage)}x</span>
                     {/* Arrow pointing down */}
-                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-300/90"></div>
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-400"></div>
                   </div>
                 </div>
               )}
@@ -670,18 +686,21 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               onMouseUp={handleLeverageMouseUp}
               onTouchStart={handleLeverageMouseDown}
               onTouchEnd={handleLeverageMouseUp}
-              className="absolute inset-0 w-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full opacity-0 cursor-grab active:cursor-grabbing z-10"
             />
 
-            <div className="absolute top-full mt-0.5 left-0 right-0">
+            <div className="absolute top-full mt-2 left-0 right-0">
               {leverageMarkers.map((marker, index) => {
                 const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
                 const position = (markerIndex / maxSliderValue) * 100;
                 return (
                   <span
                     key={index}
-                    className="absolute text-xs text-gray-500 -translate-x-1/2"
-                    style={{ left: `${position}%` }}
+                    className="absolute text-xs text-gray-400 font-medium"
+                    style={{
+                      left: `${position}%`,
+                      transform: 'translateX(-50%)'
+                    }}
                   >
                     {marker < 1 ? marker.toFixed(1) : marker}x
                   </span>
