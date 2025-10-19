@@ -70,17 +70,24 @@ const PendingOrdersTable = () => {
         </thead>
         <tbody>
           {orders.map((order) => {
+            // Debug: Log order data to console
+            console.log('Order data:', {
+              id: order.id.toString(),
+              orderType: order.orderType,
+              symbol: order.symbol,
+              isLong: order.isLong,
+              collateral: order.collateral.toString(),
+              leverage: order.leverage.toString(),
+            });
+            
             const triggerPrice = parseFloat(formatUnits(order.triggerPrice, 8));
-            const collateral = order.orderType === OrderType.LIMIT_OPEN 
-              ? parseFloat(formatUnits(order.collateral, 6))
-              : 0;
-            const leverage = order.orderType === OrderType.LIMIT_OPEN
-              ? Number(order.leverage)
-              : 0;
+            // Show collateral and leverage for ALL order types for debugging
+            const collateral = parseFloat(formatUnits(order.collateral, 6));
+            const leverage = Number(order.leverage);
             const createdDate = new Date(Number(order.createdAt) * 1000);
 
             const orderTypeLabel = 
-              order.orderType === OrderType.LIMIT_OPEN ? 'Limit Open' :
+              order.orderType === OrderType.LIMIT_OPEN ? 'Limit' :
               order.orderType === OrderType.LIMIT_CLOSE ? 'Take Profit' :
               'Stop Loss';
 
@@ -105,15 +112,11 @@ const PendingOrdersTable = () => {
 
                 {/* Direction */}
                 <td className="px-4 py-3">
-                  {order.orderType === OrderType.LIMIT_OPEN ? (
-                    <span className={`font-medium ${
-                      order.isLong ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {order.isLong ? 'Long' : 'Short'}
-                    </span>
-                  ) : (
-                    <span className="text-gray-500">-</span>
-                  )}
+                  <span className={`font-medium ${
+                    order.isLong ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {order.isLong ? 'Long' : 'Short'}
+                  </span>
                 </td>
 
                 {/* Trigger Price */}
@@ -128,7 +131,7 @@ const PendingOrdersTable = () => {
 
                 {/* Collateral */}
                 <td className="px-4 py-3">
-                  {order.orderType === OrderType.LIMIT_OPEN ? (
+                  {collateral > 0 ? (
                     <span className="text-white">${collateral.toFixed(2)}</span>
                   ) : (
                     <span className="text-gray-500">-</span>
@@ -137,7 +140,7 @@ const PendingOrdersTable = () => {
 
                 {/* Leverage */}
                 <td className="px-4 py-3">
-                  {order.orderType === OrderType.LIMIT_OPEN ? (
+                  {leverage > 0 ? (
                     <span className="text-white">{leverage}x</span>
                   ) : (
                     <span className="text-gray-500">-</span>
