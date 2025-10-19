@@ -226,6 +226,10 @@ const TapToTrade: React.FC = () => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setMarginAmount(value);
+      // Sync with context for OneTapProfit mode
+      if (tradeMode === 'one-tap-profit') {
+        tapToTrade.setBetAmount(value);
+      }
     }
   };
 
@@ -390,7 +394,7 @@ const TapToTrade: React.FC = () => {
       {/* Margin Input (USDC) */}
       <div>
         <div className={`bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 ${tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
-          <label className="text-xs text-gray-400 mb-2 block">Margin</label>
+          <label className="text-xs text-gray-400 mb-2 block">{tradeMode === 'one-tap-profit' ? 'Bet Amount' : 'Margin'}</label>
           <div className="flex justify-between items-center mb-2">
             <input
               type="text"
@@ -422,9 +426,10 @@ const TapToTrade: React.FC = () => {
         </div>
       </div>
 
-      {/* Leverage Input */}
-      <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
-        <label className="text-xs text-gray-400 mb-2 block">Leverage</label>
+      {/* Leverage Input - Hidden for One Tap Profit */}
+      {tradeMode !== 'one-tap-profit' && (
+        <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
+          <label className="text-xs text-gray-400 mb-2 block">Leverage</label>
         
         {/* Slider and Value Box in One Row */}
         <div className="flex items-center gap-3">
@@ -535,7 +540,8 @@ const TapToTrade: React.FC = () => {
             <span className="text-sm font-semibold text-white">x</span>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Timeframe Selector - Only for Open Position mode */}
       {tradeMode === 'open-position' && (
@@ -841,13 +847,15 @@ const TapToTrade: React.FC = () => {
           <span className="text-white">{activeMarket?.symbol || 'BTC'}/USD</span>
         </div>
         <div className="flex justify-between">
-          <span>Margin:</span>
+          <span>{tradeMode === 'one-tap-profit' ? 'Bet Amount:' : 'Margin:'}</span>
           <span className="text-white">{formatPrice(marginUsdValue)}</span>
         </div>
-        <div className="flex justify-between">
-          <span>Leverage:</span>
-          <span className="text-white">{leverage.toFixed(1)}x</span>
-        </div>
+        {tradeMode !== 'one-tap-profit' && (
+          <div className="flex justify-between">
+            <span>Leverage:</span>
+            <span className="text-white">{leverage.toFixed(1)}x</span>
+          </div>
+        )}
         {tradeMode === 'open-position' && (
           <div className="flex justify-between">
             <span>Timeframe:</span>

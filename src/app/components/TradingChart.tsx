@@ -882,6 +882,7 @@ const TradingChart: React.FC = () => {
                                     key={`${activeMarket.binanceSymbol}-per-s`}
                                     symbol={activeMarket.symbol}
                                     currentPrice={parseFloat(currentOraclePrice?.price?.toString() || currentMarketData?.price || '0')}
+                                    betAmount={tapToTrade.betAmount}
                                 />
                             ) : (
                                 <SimpleLineChart

@@ -50,6 +50,10 @@ interface TapToTradeContextType {
   gridSizeY: number; // Price step per grid row (in %)
   setGridSizeX: (size: number) => void;
   setGridSizeY: (size: number) => void;
+  
+  // Bet amount for OneTapProfit mode
+  betAmount: string;
+  setBetAmount: (amount: string) => void;
 
   // Cell interactions - NEW: immediate order creation
   handleCellClick: (cellX: number, cellY: number) => Promise<void>;
@@ -81,6 +85,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const [gridSizeX, setGridSizeX] = useState(1); // 1 candle per column by default
   const [gridSizeY, setGridSizeY] = useState(0.5); // 0.5% per row by default
   const [cellOrders, setCellOrders] = useState<Map<string, CellOrderInfo>>(new Map());
+  const [betAmount, setBetAmount] = useState('10'); // Default 10 USDC for OneTapProfit
 
   // Backend integration state
   const [gridSession, setGridSession] = useState<GridSession | null>(null);
@@ -782,6 +787,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         gridSizeY,
         setGridSizeX,
         setGridSizeY,
+        betAmount,
+        setBetAmount,
         handleCellClick,
         cellOrders,
         sessionKey,

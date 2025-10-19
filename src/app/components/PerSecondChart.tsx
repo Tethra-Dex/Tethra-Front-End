@@ -2,10 +2,13 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useMarket } from '../contexts/MarketContext';
+import { useOneTapProfit } from '../hooks/useOneTapProfit';
+import { toast } from 'react-hot-toast';
 
 interface PerSecondChartProps {
   symbol: string;
   currentPrice: number;
+  betAmount?: string; // Bet amount from sidebar (optional, default 10)
 }
 
 // Market logos mapping (from TradingChart)
@@ -35,7 +38,9 @@ interface PricePoint {
 const PerSecondChart: React.FC<PerSecondChartProps> = ({
   symbol,
   currentPrice,
+  betAmount: propBetAmount = '10', // Default 10 USDC if not provided
 }) => {
+  const { placeBet, isPlacingBet } = useOneTapProfit();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | undefined>(undefined);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
@@ -52,11 +57,47 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set()); // Track selected grid cells
   const [hoveredCell, setHoveredCell] = useState<string | null>(null); // Track hovered cell
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredCellInfo, setHoveredCellInfo] = useState<{
+    targetPrice: number;
+    targetTime: number;
+    multiplier: number;
+  } | null>(null);
 
   // Fixed grid configuration (tidak bisa di-zoom)
   const GRID_X_SECONDS = 10; // 1 grid = 10 detik
-  // For Solana in one-tap-profit mode, use 0.1 price difference
-  const GRID_Y_DOLLARS = symbol === 'SOL' ? 0.1 : 10; // 1 grid = $0.1 for SOL, $10 for others
+  // For Solana in one-tap-profit mode, use 0.05 price difference per grid
+  const GRID_Y_DOLLARS = symbol === 'SOL' ? 0.05 : 10; // 1 grid = $0.05 for SOL, $10 for others
+
+  // Calculate multiplier (matches smart contract logic)
+  const calculateMultiplier = useCallback((entryPrice: number, targetPrice: number, entryTime: number, targetTime: number): number => {
+    // Calculate price distance percentage (in basis points)
+    let priceDistance;
+    if (targetPrice > entryPrice) {
+      priceDistance = ((targetPrice - entryPrice) * 10000) / entryPrice;
+    } else {
+      priceDistance = ((entryPrice - targetPrice) * 10000) / entryPrice;
+    }
+
+    // Calculate time distance in seconds
+    const timeDistance = targetTime > entryTime ? targetTime - entryTime : 0;
+
+    // Combined distance factor: price (60%) + time (40%)
+    // Each 1% price distance adds 0.02x (2 points)
+    // Each 10 seconds adds 0.01x (1 point)
+    const priceComponent = (priceDistance * 60) / 10000; // 0.6% per 1% price distance
+    const timeComponent = (timeDistance * 40) / (10 * 100); // 0.4% per 10 seconds
+
+    // Multiplier = BASE_MULTIPLIER + combined distance
+    // Minimum 1.1x, scales up with distance
+    let multiplier = 110 + priceComponent + timeComponent;
+
+    // Cap maximum multiplier at 10x (1000 points)
+    if (multiplier > 1000) {
+      multiplier = 1000;
+    }
+
+    return multiplier;
+  }, []);
 
   // Update canvas dimensions
   useEffect(() => {
@@ -404,9 +445,29 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         }
       }
 
-      // Update hovered cell state
+      // Update hovered cell state and calculate multiplier
       if (currentHoveredCell !== hoveredCell) {
         setHoveredCell(currentHoveredCell);
+        
+        if (currentHoveredCell && priceHistory.length > 0) {
+          // Parse cell ID: "timestamp_priceLevel"
+          const [timestampStr, priceLevelStr] = currentHoveredCell.split('_');
+          const targetTime = parseInt(timestampStr);
+          const targetPrice = parseFloat(priceLevelStr);
+          const entryPrice = priceHistory[priceHistory.length - 1].price;
+          const entryTime = Math.floor(Date.now() / 1000);
+          
+          // Calculate multiplier
+          const multiplier = calculateMultiplier(entryPrice, targetPrice, entryTime, targetTime);
+          
+          setHoveredCellInfo({
+            targetPrice,
+            targetTime,
+            multiplier,
+          });
+        } else {
+          setHoveredCellInfo(null);
+        }
       }
 
       // Draw price line chart with gradient fill - orange/red color like reference image
@@ -549,29 +610,88 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     }
   }, [isDragging, dragStartX, dragStartY, dragStartScrollOffset, dragStartVerticalOffset]);
 
-  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseUp = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
     // If didn't move, treat as click
     if (isDragging && !hasMoved && hoveredCell) {
+      // Don't place bet if already placing one
+      if (isPlacingBet) {
+        toast.error('Please wait, placing bet...');
+        return;
+      }
+
+      // Parse cell ID: "timestamp_priceLevel" (priceLevel is bottom of grid)
+      const [timestampStr, priceLevelStr] = hoveredCell.split('_');
+      const gridStartTime = parseInt(timestampStr); // Start of grid cell (left edge)
+      const gridBottomPrice = parseFloat(priceLevelStr);
+      
+      // Use END time of grid cell as targetTime
+      // Grid cell spans GRID_X_SECONDS (10 seconds)
+      const targetTime = gridStartTime + GRID_X_SECONDS;
+      
+      // Use CENTER of grid cell as target price
+      // Grid cell spans from gridBottomPrice to (gridBottomPrice + GRID_Y_DOLLARS)
+      const targetPrice = gridBottomPrice + (GRID_Y_DOLLARS / 2);
+
+      // Get current price from latest price history
+      const entryPrice = priceHistory.length > 0 
+        ? priceHistory[priceHistory.length - 1].price 
+        : currentPrice;
+      
+      // Use grid START time as entry time (not current time)
+      // This ensures bet time range matches the grid cell time range
+      const entryTime = gridStartTime;
+
+      // Check if target is at least 10 seconds in the future
+      const now = Math.floor(Date.now() / 1000);
+      if (targetTime < now + 10) {
+        toast.error('Target must be at least 10 seconds in the future');
+        return;
+      }
+
+      // Toggle cell selection for visual feedback
       setSelectedCells(prev => {
         const newSet = new Set(prev);
         if (newSet.has(hoveredCell)) {
-          newSet.delete(hoveredCell); // Deselect if already selected
+          newSet.delete(hoveredCell);
         } else {
-          newSet.add(hoveredCell); // Select if not selected
+          newSet.add(hoveredCell);
         }
         return newSet;
       });
+
+      // Use bet amount from props (set by sidebar)
+      const betAmount = propBetAmount || '10';
+      
+      // Place bet directly (Privy will handle sign-in)
+      toast.loading('Placing bet...', { id: 'place-bet' });
+
+      try {
+        await placeBet({
+          symbol,
+          betAmount: betAmount,
+          targetPrice: targetPrice.toString(),
+          targetTime: targetTime,
+          entryPrice: entryPrice.toString(),
+          entryTime: entryTime,
+        });
+
+        toast.success('Bet placed successfully!', { id: 'place-bet' });
+      } catch (error: any) {
+        console.error('Failed to place bet:', error);
+        toast.error(error.message || 'Failed to place bet', { id: 'place-bet' });
+      }
     }
 
     setIsDragging(false);
     setHasMoved(false);
-  }, [isDragging, hasMoved, hoveredCell]);
+  }, [isDragging, hasMoved, hoveredCell, priceHistory, currentPrice, isPlacingBet, placeBet, symbol]);
 
   const handleMouseLeave = useCallback(() => {
     setIsDragging(false);
     setHasMoved(false);
     setHoveredCell(null);
     setMousePos(null);
+    setHoveredCellInfo(null);
   }, []);
 
   // Mouse wheel for both horizontal and vertical scroll
@@ -629,26 +749,6 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         </div>
       </div>
 
-      {/* Update interval indicator - top right like reference */}
-      <div style={{
-        position: 'absolute',
-        top: '15px',
-        right: '90px',
-        zIndex: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '8px',
-        padding: '8px 16px',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <div style={{
-          fontSize: '14px',
-          color: '#ffffff',
-          fontFamily: 'monospace',
-          fontWeight: '500'
-        }}>
-          1sec ↓
-        </div>
-      </div>
 
       {/* Instructions - bottom left */}
       <div style={{
@@ -670,6 +770,41 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           Click grid to select • Drag to pan • Press C to focus
         </div>
       </div>
+
+      {/* Multiplier tooltip on hover */}
+      {hoveredCellInfo && mousePos && !isDragging && (
+        <div style={{
+          position: 'absolute',
+          left: `${mousePos.x + 15}px`,
+          top: `${mousePos.y - 35}px`,
+          zIndex: 20,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          borderRadius: '8px',
+          padding: '8px 14px',
+          border: '1px solid rgba(59, 130, 246, 0.5)',
+          pointerEvents: 'none',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+        }}>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: '700',
+            color: '#3b82f6',
+            fontFamily: 'monospace',
+            textAlign: 'center',
+            marginBottom: '4px'
+          }}>
+            {(hoveredCellInfo.multiplier / 100).toFixed(2)}x
+          </div>
+          <div style={{
+            fontSize: '10px',
+            color: '#94a3b8',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap'
+          }}>
+            ${hoveredCellInfo.targetPrice.toFixed(symbol === 'SOL' ? 1 : 0)}
+          </div>
+        </div>
+      )}
 
       <canvas
         ref={canvasRef}
