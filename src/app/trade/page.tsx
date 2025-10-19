@@ -14,10 +14,10 @@ import { useSidebar } from '../contexts/SidebarContext';
 function TradePageContent() {
   const { isExpanded } = useSidebar();
   const { tradeMode, isEnabled } = useTapToTrade();
-  const [isBottomTradingOpen, setIsBottomTradingOpen] = useState(false);
+  const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
 
-  // Check if we're in Trade per s mode and enabled
-  const isTradePerSActive = tradeMode === 'trade-per-s' && isEnabled;
+  // Check if we're in Tap to Trade mode (any mode) and enabled
+  const isTapToTradeActive = isEnabled;
 
   return (
     <main className="bg-black text-white h-screen flex flex-col" style={{ padding: '0.5rem' }}>
@@ -40,8 +40,8 @@ function TradePageContent() {
           <div
             className="flex-1 transition-all duration-300"
             style={{
-              minHeight: isTradePerSActive ? '0' : '400px',
-              maxHeight: isTradePerSActive ? '100%' : '70vh',
+              minHeight: isTapToTradeActive ? '0' : '400px',
+              maxHeight: isTapToTradeActive ? '100%' : '70vh',
               display: 'flex',
               flexDirection: 'column'
             }}
@@ -49,12 +49,12 @@ function TradePageContent() {
             <TradingChart />
           </div>
 
-          {/* Bottom Trading - Different behavior for Trade per s mode */}
-          {isTradePerSActive ? (
-            /* Trade per s mode - Toggle button with overlay */
+          {/* Bottom Panel - Different behavior for Tap to Trade modes */}
+          {isTapToTradeActive ? (
+            /* Tap to Trade Active - Toggle button with overlay */
             <>
-              {/* Bottom Trading Panel - Overlays the chart when open */}
-              {isBottomTradingOpen && (
+              {/* Bottom Panel - Overlays the chart when open */}
+              {isBottomPanelOpen && (
                 <div
                   className="absolute bottom-0 left-0 right-0 z-10 transition-all duration-300 flex flex-col"
                   style={{
@@ -66,7 +66,7 @@ function TradePageContent() {
                   {/* Toggle Button at the top of the panel */}
                   <div className="flex justify-center">
                     <button
-                      onClick={() => setIsBottomTradingOpen(!isBottomTradingOpen)}
+                      onClick={() => setIsBottomPanelOpen(!isBottomPanelOpen)}
                       className="bg-[#0B1017] border border-gray-700/50 rounded-t-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-800/50 transition-colors"
                     >
                       <ChevronDown size={16} className="text-gray-400" />
@@ -75,7 +75,7 @@ function TradePageContent() {
                     </button>
                   </div>
 
-                  {/* Bottom Trading Content */}
+                  {/* Bottom Panel Content */}
                   <div className="flex-1 overflow-hidden">
                     <BottomTrading />
                   </div>
@@ -83,9 +83,9 @@ function TradePageContent() {
               )}
 
               {/* Toggle Button - Only shown when closed */}
-              {!isBottomTradingOpen && (
+              {!isBottomPanelOpen && (
                 <button
-                  onClick={() => setIsBottomTradingOpen(!isBottomTradingOpen)}
+                  onClick={() => setIsBottomPanelOpen(!isBottomPanelOpen)}
                   className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 bg-[#0B1017] border border-gray-700/50 rounded-t-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-800/50 transition-colors"
                 >
                   <ChevronUp size={16} className="text-gray-400" />
@@ -95,7 +95,7 @@ function TradePageContent() {
               )}
             </>
           ) : (
-            /* Normal mode - Regular layout */
+            /* Normal mode - Regular layout with BottomTrading */
             <div
               className="flex-1 transition-all duration-300"
               style={{

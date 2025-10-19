@@ -634,22 +634,97 @@ const TapToTrade: React.FC = () => {
               <Info size={12} className="text-gray-500" />
             </label>
 
-            <div className="bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center gap-2">
-              <input
-                type="number"
-                min="0.1"
-                max="100"
-                step="0.1"
-                value={tapToTrade.gridSizeY}
-                onChange={(e) => tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.5)}
-                disabled={tapToTrade.isEnabled}
-                className="bg-transparent text-white outline-none w-full [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100 disabled:cursor-not-allowed"
-                style={{
-                  colorScheme: 'dark'
-                }}
-              />
-              <span className="text-gray-400 text-sm">%</span>
-            </div>
+            {/* Show selection boxes for Solana with specific timeframes */}
+            {activeMarket?.symbol === 'SOL' && timeframe === '1' ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => tapToTrade.setGridSizeY(0.1)}
+                  disabled={tapToTrade.isEnabled}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
+                    tapToTrade.gridSizeY === 0.1
+                      ? 'bg-blue-300 text-white shadow-lg shadow-blue-300/30'
+                      : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                  }`}
+                >
+                  0.1%
+                </button>
+                <button
+                  onClick={() => tapToTrade.setGridSizeY(0.2)}
+                  disabled={tapToTrade.isEnabled}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
+                    tapToTrade.gridSizeY === 0.2
+                      ? 'bg-blue-300 text-white shadow-lg shadow-blue-300/30'
+                      : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                  }`}
+                >
+                  0.2%
+                </button>
+              </div>
+            ) : activeMarket?.symbol === 'SOL' && timeframe === '5' ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => tapToTrade.setGridSizeY(0.1)}
+                  disabled={tapToTrade.isEnabled}
+                  className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
+                    tapToTrade.gridSizeY === 0.1
+                      ? 'bg-blue-300 text-white shadow-lg shadow-blue-300/30'
+                      : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                  }`}
+                >
+                  0.1%
+                </button>
+                <button
+                  onClick={() => tapToTrade.setGridSizeY(0.2)}
+                  disabled={tapToTrade.isEnabled}
+                  className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
+                    tapToTrade.gridSizeY === 0.2
+                      ? 'bg-blue-300 text-white shadow-lg shadow-blue-300/30'
+                      : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                  }`}
+                >
+                  0.2%
+                </button>
+                <button
+                  onClick={() => tapToTrade.setGridSizeY(0.3)}
+                  disabled={tapToTrade.isEnabled}
+                  className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
+                    tapToTrade.gridSizeY === 0.3
+                      ? 'bg-blue-300 text-white shadow-lg shadow-blue-300/30'
+                      : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                  }`}
+                >
+                  0.3%
+                </button>
+                <button
+                  onClick={() => tapToTrade.setGridSizeY(0.4)}
+                  disabled={tapToTrade.isEnabled}
+                  className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
+                    tapToTrade.gridSizeY === 0.4
+                      ? 'bg-blue-300 text-white shadow-lg shadow-blue-300/30'
+                      : 'bg-[#1A2332] text-gray-400 hover:bg-[#2D3748]'
+                  }`}
+                >
+                  0.4%
+                </button>
+              </div>
+            ) : (
+              <div className="bg-[#1A2332] rounded-lg px-3 py-2.5 flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0.1"
+                  max="100"
+                  step="0.1"
+                  value={tapToTrade.gridSizeY}
+                  onChange={(e) => tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.5)}
+                  disabled={tapToTrade.isEnabled}
+                  className="bg-transparent text-white outline-none w-full [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100 disabled:cursor-not-allowed"
+                  style={{
+                    colorScheme: 'dark'
+                  }}
+                />
+                <span className="text-gray-400 text-sm">%</span>
+              </div>
+            )}
             <p className="text-xs text-gray-500 mt-1">
               Each grid row = {tapToTrade.gridSizeY.toFixed(1)}% price difference
             </p>

@@ -877,7 +877,7 @@ const TradingChart: React.FC = () => {
                 {activeMarket && (
                     <>
                         {tapToTrade.isEnabled ? (
-                            tapToTrade.tradeMode === 'trade-per-s' ? (
+                            tapToTrade.tradeMode === 'one-tap-profit' ? (
                                 <PerSecondChart
                                     key={`${activeMarket.binanceSymbol}-per-s`}
                                     symbol={activeMarket.symbol}

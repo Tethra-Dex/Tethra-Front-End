@@ -38,15 +38,22 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
-  const [visibleCandles, setVisibleCandles] = useState(50); // Number of visible candles
-  const [priceZoom, setPriceZoom] = useState(1); // Price zoom factor (affects Y-axis)
-  const [panOffset, setPanOffset] = useState(0); // Horizontal pan offset in number of candles
-  const [verticalPanOffset, setVerticalPanOffset] = useState(0); // Vertical pan offset in percentage (0 = center, positive = pan up, negative = pan down)
+  const [visibleCandles, setVisibleCandles] = useState(20); // Number of visible candles - reduced for larger grid cells
+  const [panOffset, setPanOffset] = useState(0); // Horizontal pan offset in pixels
+  const [verticalPanOffset, setVerticalPanOffset] = useState(0); // Vertical pan offset in pixels
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null); // Mouse position for crosshair
   const [basePrice, setBasePrice] = useState<number>(0); // Base price for grid calculation (fixed reference)
   const [currentTime, setCurrentTime] = useState<number>(Date.now()); // Real-time clock for grid time calculation
   const [chartType, setChartType] = useState<ChartType>('line'); // Chart type: 'line' or 'candle'
-  
+
+  // Drag states (like PerSecondChart)
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartPanOffset, setDragStartPanOffset] = useState(0);
+  const [dragStartVerticalOffset, setDragStartVerticalOffset] = useState(0);
+  const [hasMoved, setHasMoved] = useState(false); // Track if mouse has moved during drag
+
   // Quick Trade states
   const [quickTradeCollateral, setQuickTradeCollateral] = useState<string>('');
   const [quickTradeLeverage, setQuickTradeLeverage] = useState<string>('');
@@ -70,38 +77,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     }
   }, [currentPrice, basePrice]);
 
-  // Handle keyboard navigation (arrow keys for panning, Home/Center for reset)
+  // Handle keyboard reset (press C to center/reset)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const panStep = 5; // Number of candles to pan per key press
-      const verticalPanStep = 0.05; // Vertical pan step (5% of price range per key press)
-
-      switch(e.key) {
-        case 'ArrowLeft':
-          e.preventDefault();
-          setPanOffset(prev => prev - panStep); // Pan left (show older data)
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          setPanOffset(prev => prev + panStep); // Pan right (show newer/future data)
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setVerticalPanOffset(prev => prev + verticalPanStep); // Pan up (show lower prices)
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          setVerticalPanOffset(prev => prev - verticalPanStep); // Pan down (show higher prices)
-          break;
-        case 'Home':
-        case 'c': // 'c' for center
-        case 'C':
-          e.preventDefault();
-          setPanOffset(0); // Reset to original position
-          setVisibleCandles(50); // Reset zoom to default
-          setPriceZoom(1); // Reset price zoom to default
-          setVerticalPanOffset(0); // Reset vertical pan to default
-          break;
+      if (e.key === 'c' || e.key === 'C' || e.key === 'Home') {
+        e.preventDefault();
+        setPanOffset(0); // Reset to original position
+        setVerticalPanOffset(0); // Reset vertical pan to default
       }
     };
 
@@ -220,7 +202,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   // This ensures the blue line endpoint matches the green line and circle
   // Also handles creating new candles when timeframe window changes
   useEffect(() => {
-    if (currentPrice > 0 && chartData.length > 0) {
+    const latestPrice = currentPrice;
+
+    if (latestPrice > 0 && chartData.length > 0) {
       setChartData(prevData => {
         const newData = [...prevData];
         const lastIndex = newData.length - 1;
@@ -246,25 +230,25 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           console.log(`📊 New ${interval} candle: ${new Date(currentWindow).toLocaleTimeString()}`);
           newData.push({
             time: currentWindow,
-            open: currentPrice,
-            high: currentPrice,
-            low: currentPrice,
-            close: currentPrice
+            open: latestPrice,
+            high: latestPrice,
+            low: latestPrice,
+            close: latestPrice
           });
           // Keep only last 100 candles
           if (newData.length > 100) {
             newData.shift();
           }
         } else {
-          // Still in same window - update existing candle
+          // Still in same window - update existing candle with real-time price
           // Only update if price has actually changed to avoid infinite loops
-          if (Math.abs(newData[lastIndex].close - currentPrice) > 0.001) {
+          if (Math.abs(newData[lastIndex].close - latestPrice) > 0.001) {
             newData[lastIndex] = {
               time: currentWindow, // Use window start time
               open: newData[lastIndex].open, // Keep original open
-              high: Math.max(newData[lastIndex].high, currentPrice), // Update high
-              low: Math.min(newData[lastIndex].low, currentPrice), // Update low
-              close: currentPrice // Update close
+              high: Math.max(newData[lastIndex].high, latestPrice), // Update high
+              low: Math.min(newData[lastIndex].low, latestPrice), // Update low
+              close: latestPrice // Update close to real-time price
             };
           }
         }
@@ -315,17 +299,47 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const priceRange = maxPrice - minPrice;
       const padding = priceRange * 0.1;
 
-      // Apply zoom to price range (zoom in = smaller range, zoom out = larger range)
-      const baseRange = priceRange + (padding * 2);
-      const zoomedRange = baseRange / priceZoom;
-      const priceCenter = (minPrice + maxPrice) / 2;
+      // Calculate pixels per candle (needed for multiple calculations)
+      const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
 
-      // Apply vertical pan offset
-      const verticalShift = zoomedRange * verticalPanOffset;
+      // Calculate price range based on grid settings to make square cells
+      let chartMinPrice, chartMaxPrice, chartPriceRange;
 
-      const chartMinPrice = priceCenter - (zoomedRange / 2) + verticalShift;
-      const chartMaxPrice = priceCenter + (zoomedRange / 2) + verticalShift;
-      const chartPriceRange = chartMaxPrice - chartMinPrice;
+      if (tapToTradeEnabled && basePrice > 0) {
+        const gridSizeX = tapToTrade.gridSizeX || 1;
+
+        // User input grid step in dollars (Y axis)
+        const gridStepDollar = (gridSize / 100) * basePrice;
+
+        // Grid X width in pixels
+        const gridXWidthPixels = pixelsPerCandle * gridSizeX;
+
+        // For square cells: gridYHeightPixels should equal gridXWidthPixels
+        // gridYHeightPixels = (gridStepDollar / chartPriceRange) * chartHeight
+        // We want: gridYHeightPixels = gridXWidthPixels
+        // So: (gridStepDollar / chartPriceRange) * chartHeight = gridXWidthPixels
+        // Therefore: chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels
+        chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
+
+        // Center the price range around current price (or data range)
+        const priceCenter = (minPrice + maxPrice) / 2;
+
+        // Apply vertical pan offset (in pixels, converted to price)
+        const pixelsPerPrice = chartHeight / chartPriceRange;
+        const verticalShift = verticalPanOffset / pixelsPerPrice;
+
+        chartMinPrice = priceCenter - (chartPriceRange / 2) + verticalShift;
+        chartMaxPrice = priceCenter + (chartPriceRange / 2) + verticalShift;
+      } else {
+        // Normal mode - use data range
+        const baseRange = priceRange + (padding * 2);
+        const pixelsPerPrice = chartHeight / baseRange;
+        const verticalShift = verticalPanOffset / pixelsPerPrice;
+
+        chartMinPrice = minPrice - padding + verticalShift;
+        chartMaxPrice = maxPrice + padding + verticalShift;
+        chartPriceRange = chartMaxPrice - chartMinPrice;
+      }
 
       // Helper function to convert price to Y coordinate
       const priceToY = (price: number): number => {
@@ -337,77 +351,77 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const nowX = chartWidth * 0.5; // 50% - center of chart area (not including margin)
       const latestDataIndex = chartData.length - 1;
 
-      // Calculate pixels per candle based on visible candles and chart width
-      // Only use visibleCandles for the left side (past data)
-      const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles; // Left half for past data
-
       const timeToX = (index: number): number => {
-        const offset = index - latestDataIndex - panOffset; // Apply pan offset
-        return nowX + (offset * pixelsPerCandle);
+        // panOffset is now in pixels, so subtract it directly
+        const candleOffset = index - latestDataIndex;
+        return nowX + (candleOffset * pixelsPerCandle) - panOffset;
       };
 
       // Calculate how many future candles can fit on right side
       const rightSideWidth = chartWidth - nowX;
       const maxFutureCandles = Math.ceil(rightSideWidth / pixelsPerCandle) + 5; // +5 for safety margin
 
-      // Draw horizontal grid lines (price levels) - based on percentage
+      // Draw horizontal grid lines (price levels) - using user input percentage
       if (tapToTradeEnabled && basePrice > 0) {
-        // Calculate grid step in dollar amount (percentage of base price - FIXED)
+        // Use user input percentage for grid Y
         const gridStepDollar = (gridSize / 100) * basePrice;
-        
+
         // Find the lowest and highest grid levels based on current price
         const lowestLevel = Math.floor(chartMinPrice / gridStepDollar) * gridStepDollar;
         const highestLevel = Math.ceil(chartMaxPrice / gridStepDollar) * gridStepDollar;
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; // Increased opacity from 0.1 to 0.25
-        ctx.lineWidth = 1.5; // Increased from 1 to 1.5
-        ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
 
         for (let price = lowestLevel; price <= highestLevel; price += gridStepDollar) {
           const y = priceToY(price);
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(chartWidth, y); // Stop at chart boundary
-          ctx.stroke();
+          if (y >= -10 && y <= chartHeight + 10) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(chartWidth, y);
+            ctx.stroke();
 
-          // Draw price label with percentage difference in the right margin
-          const percentDiff = ((price - currentPrice) / currentPrice) * 100;
-          ctx.fillStyle = '#94a3b8';
-          ctx.font = '10px monospace';
-          ctx.fillText(`$${price.toFixed(2)} (${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%)`, chartWidth + 5, y - 2);
+            // Draw price label with percentage difference in the right margin
+            const percentDiff = ((price - currentPrice) / currentPrice) * 100;
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px monospace';
+            ctx.fillText(`$${price.toFixed(2)} (${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%)`, chartWidth + 5, y - 2);
+          }
         }
         ctx.setLineDash([]);
       }
 
       // Draw vertical grid lines (time) - including future area
       if (tapToTradeEnabled) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Increased opacity from 0.05 to 0.2
-        ctx.lineWidth = 1.5; // Increased from 1 to 1.5
-        ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
 
-        // Draw for past candles
-        for (let i = 0; i < chartData.length; i++) {
-          const x = timeToX(i);
-          if (x >= 0 && x <= chartWidth) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, chartHeight); // Stop at chart boundary
-            ctx.stroke();
-          }
-        }
+        const gridSizeX = tapToTrade.gridSizeX || 1; // Grid interval in candles
 
-        // Draw for future candles (solid lines, same as past) - until end of chart
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Increased opacity from 0.05 to 0.2
-        for (let i = 0; i < maxFutureCandles; i++) {
-          const futureIndex = chartData.length + i;
-          const x = timeToX(futureIndex);
-          if (x >= nowX && x <= chartWidth) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, chartHeight); // Stop at chart boundary
-            ctx.stroke();
+        // Calculate visible range considering pan offset
+        // We need to draw enough lines to cover the visible area
+        const totalVisibleCandles = Math.ceil(chartWidth / pixelsPerCandle);
+        const panOffsetInCandles = panOffset / pixelsPerCandle;
+
+        // Start from further left to account for pan
+        const startIndex = Math.floor(-totalVisibleCandles - panOffsetInCandles);
+        const endIndex = Math.ceil(chartData.length + maxFutureCandles);
+
+        // Draw grid lines at gridSizeX intervals
+        for (let i = startIndex; i < endIndex; i++) {
+          // Only draw lines at grid intervals
+          if (i % gridSizeX === 0) {
+            const x = timeToX(i);
+            // Only draw if within visible area
+            if (x >= -10 && x <= chartWidth + 10) {
+              ctx.beginPath();
+              ctx.moveTo(x, 0);
+              ctx.lineTo(x, chartHeight);
+              ctx.stroke();
+            }
           }
-          if (x > chartWidth) break; // Stop if beyond chart
         }
 
         // Reset line dash to solid for other drawings
@@ -416,16 +430,20 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
       // Draw grid cells (tap areas) - including future area
       if (tapToTradeEnabled && basePrice > 0) {
-        // Calculate grid step in dollar amount (percentage of base price - FIXED)
+        const gridSizeX = tapToTrade.gridSizeX || 1;
+
+        // Use user input percentage for grid Y (same as horizontal lines)
         const gridStepDollar = (gridSize / 100) * basePrice;
-        
+
         const lowestLevel = Math.floor(chartMinPrice / gridStepDollar) * gridStepDollar;
         const highestLevel = Math.ceil(chartMaxPrice / gridStepDollar) * gridStepDollar;
-        const gridSizeX = tapToTrade.gridSizeX; // Number of candles per grid column
 
         // Calculate starting grid level index (relative to price 0)
         const startGridLevel = Math.floor(lowestLevel / gridStepDollar);
         const endGridLevel = Math.ceil(highestLevel / gridStepDollar);
+
+        // Track hovered cell during drawing
+        let currentHoveredCell: string | null = null;
 
         for (let priceLevel = startGridLevel; priceLevel <= endGridLevel; priceLevel++) {
           const price = priceLevel * gridStepDollar;
@@ -493,6 +511,14 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             // Use same cellId format as TapToTradeContext: "cellX,cellY"
             const cellId = `${cellX},${cellY}`;
 
+            // Check if mouse is hovering over this cell
+            if (mousePosition &&
+                mousePosition.x >= xLeft && mousePosition.x <= xRight &&
+                mousePosition.y >= yTop && mousePosition.y <= yBottom &&
+                mousePosition.x <= chartWidth && mousePosition.y <= chartHeight) {
+              currentHoveredCell = cellId;
+            }
+
             // Check if this cell has orders from TapToTradeContext
             const cellOrderInfo = tapToTrade.cellOrders.get(cellId);
             const hasOrders = cellOrderInfo && cellOrderInfo.orderCount > 0;
@@ -545,6 +571,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
             }
           }
+        }
+
+        // Update hovered cell state if changed
+        if (currentHoveredCell !== hoveredCell) {
+          setHoveredCell(currentHoveredCell);
         }
       }
 
@@ -911,39 +942,88 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.gridSession, tapToTrade.cellOrders, interval, priceZoom, panOffset, verticalPanOffset, mousePosition, basePrice, currentTime, chartType]);
+  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.gridSession, tapToTrade.cellOrders, interval, panOffset, verticalPanOffset, mousePosition, basePrice, currentTime, chartType, isDragging, hasMoved]);
 
-  // Handle canvas click
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    console.log('🖱️ Canvas clicked');
-    if (!tapToTradeEnabled || !canvasRef.current || chartData.length === 0) {
-      console.log('⚠️ Click blocked:', { tapToTradeEnabled, hasCanvas: !!canvasRef.current, dataLength: chartData.length });
-      return;
-    }
+  // Mouse drag handlers (like PerSecondChart)
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent text selection
+    setIsDragging(true);
+    setHasMoved(false); // Reset movement flag
+    setDragStartX(e.clientX);
+    setDragStartY(e.clientY);
+    setDragStartPanOffset(panOffset);
+    setDragStartVerticalOffset(verticalPanOffset);
+  }, [panOffset, verticalPanOffset]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-
-    // Account for canvas scaling
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
 
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
+    setMousePosition({ x: mouseX, y: mouseY });
 
-    // Define margins (same as in draw function)
-    const rightMargin = 120;
-    const bottomMargin = 25;
-    const chartWidth = canvas.width - rightMargin;
-    const chartHeight = canvas.height - bottomMargin;
+    if (isDragging) {
+      e.preventDefault();
 
-    // Ignore clicks in margin areas
-    if (clickX > chartWidth || clickY > chartHeight) {
-      console.log('⚠️ Click in margin area - ignored');
+      // Both horizontal and vertical movement
+      const deltaX = dragStartX - e.clientX;
+      const deltaY = dragStartY - e.clientY;
+
+      // Check if moved significantly (more than 5 pixels)
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        setHasMoved(true);
+        setPanOffset(dragStartPanOffset + deltaX);
+        // Invert vertical: drag up = chart goes down (see lower prices)
+        setVerticalPanOffset(dragStartVerticalOffset - deltaY);
+      }
+    }
+  }, [isDragging, dragStartX, dragStartY, dragStartPanOffset, dragStartVerticalOffset]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    // If didn't move, treat as tap/click
+    if (isDragging && !hasMoved && tapToTradeEnabled) {
+      // This is a tap, handle order placement
+      // We need to calculate the cell here instead of relying on hoveredCell
+      if (!canvasRef.current || chartData.length === 0) return;
+
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+
+      // Define margins (same as in draw function)
+      const rightMargin = 120;
+      const bottomMargin = 25;
+      const chartWidth = canvas.width - rightMargin;
+      const chartHeight = canvas.height - bottomMargin;
+
+      // Ignore clicks in margin areas
+      if (clickX <= chartWidth && clickY <= chartHeight) {
+        // Call the actual cell tap handler
+        handleCellTapLogic(clickX, clickY, chartWidth, chartHeight);
+      }
+    }
+
+    setIsDragging(false);
+    setHasMoved(false);
+  }, [isDragging, hasMoved, tapToTradeEnabled, chartData.length]);
+
+  // Handle cell tap logic (extracted from original handleCanvasClick)
+  const handleCellTapLogic = useCallback((clickX: number, clickY: number, chartWidth: number, chartHeight: number) => {
+    console.log('🖱️ Cell tapped at:', { clickX, clickY });
+    if (!tapToTradeEnabled || !canvasRef.current || chartData.length === 0) {
+      console.log('⚠️ Tap blocked:', { tapToTradeEnabled, hasCanvas: !!canvasRef.current, dataLength: chartData.length });
       return;
     }
 
-    // Calculate what was clicked (with zoom factor)
+    // Calculate what was clicked (same as drawing logic)
     const prices = chartType === 'candle'
       ? chartData.flatMap(d => [d.high, d.low])
       : chartData.map(d => d.close);
@@ -952,23 +1032,28 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const priceRange = maxPrice - minPrice;
     const padding = priceRange * 0.1;
 
-    // Apply zoom to price range (same as drawing logic)
-    const baseRange = priceRange + (padding * 2);
-    const zoomedRange = baseRange / priceZoom;
-    const priceCenter = (minPrice + maxPrice) / 2;
+    const gridSizeX = tapToTrade.gridSizeX || 1;
+    const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
 
-    // Apply vertical pan offset (same as drawing logic)
-    const verticalShift = zoomedRange * verticalPanOffset;
-
-    const chartMinPrice = priceCenter - (zoomedRange / 2) + verticalShift;
-    const chartMaxPrice = priceCenter + (zoomedRange / 2) + verticalShift;
-    const chartPriceRange = chartMaxPrice - chartMinPrice;
-
-    // Convert click position to price and snap to grid (percentage-based)
-    const clickedPrice = chartMaxPrice - (clickY / chartHeight) * chartPriceRange;
-
-    // Calculate grid step in dollar amount (percentage of base price - FIXED)
+    // User input grid step in dollars (Y axis)
     const gridStepDollar = (gridSize / 100) * basePrice;
+
+    // Calculate price range based on grid settings to make square cells (same as drawing logic)
+    // gridYHeightPixels = (gridStepDollar / chartPriceRange) * chartHeight
+    // We want: gridYHeightPixels = gridXWidthPixels
+    const gridXWidthPixels = pixelsPerCandle * gridSizeX;
+    const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
+
+    // Center the price range around data (same as drawing logic)
+    const priceCenter = (minPrice + maxPrice) / 2;
+    const pixelsPerPrice = chartHeight / chartPriceRange;
+    const verticalShift = verticalPanOffset / pixelsPerPrice;
+
+    const chartMinPrice = priceCenter - (chartPriceRange / 2) + verticalShift;
+    const chartMaxPrice = priceCenter + (chartPriceRange / 2) + verticalShift;
+
+    // Convert click position to price and snap to grid
+    const clickedPrice = chartMaxPrice - (clickY / chartHeight) * chartPriceRange;
 
     // Calculate price level INDEX (stable integer, not absolute price)
     const priceLevelIndex = Math.floor(clickedPrice / gridStepDollar);
@@ -977,14 +1062,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     // Convert click position to time index with better precision
     const nowX = chartWidth * 0.5; // Center position
     const latestDataIndex = chartData.length - 1;
-    const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles; // Same as drawing logic
-
-    const gridSizeX = tapToTrade.gridSizeX;
 
     // Reverse engineer which index the click corresponds to
-    // timeToX formula: x = nowX + (index - latestDataIndex - panOffset) * pixelsPerCandle
-    // Solving for index: index = (x - nowX) / pixelsPerCandle + latestDataIndex + panOffset
-    const clickIndexFloat = (clickX - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
+    // timeToX formula: x = nowX + (index - latestDataIndex) * pixelsPerCandle - panOffset
+    // Solving for index: index = (x - nowX + panOffset) / pixelsPerCandle + latestDataIndex
+    const clickIndexFloat = (clickX - nowX + panOffset) / pixelsPerCandle + latestDataIndex;
 
     // Snap to grid boundaries
     // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
@@ -1074,7 +1156,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     } else {
       console.log('⚠️ Click rejected: snappedCandleIndex:', snappedCandleIndex);
     }
-  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, interval, priceZoom, panOffset, verticalPanOffset, basePrice, currentTime]);
+  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, interval, panOffset, verticalPanOffset, basePrice, currentTime, chartType]);
 
   // Handle canvas hover
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1113,7 +1195,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       return;
     }
 
-    // Calculate hovered cell (with zoom factor)
+    // Calculate hovered cell (same as drawing logic)
     const prices = chartType === 'candle'
       ? chartData.flatMap(d => [d.high, d.low])
       : chartData.map(d => d.close);
@@ -1122,36 +1204,35 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const priceRange = maxPrice - minPrice;
     const padding = priceRange * 0.1;
 
-    // Apply zoom to price range (same as drawing logic)
-    const baseRange = priceRange + (padding * 2);
-    const zoomedRange = baseRange / priceZoom;
+    const nowX = chartWidth * 0.5; // Center position
+    const latestDataIndex = chartData.length - 1;
+    const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
+    const gridSizeX = tapToTrade.gridSizeX || 1;
+
+    // User input grid step in dollars (Y axis)
+    const gridStepDollar = (gridSize / 100) * basePrice;
+
+    // Calculate price range based on grid settings to make square cells (same as drawing logic)
+    const gridXWidthPixels = pixelsPerCandle * gridSizeX;
+    const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
+
+    // Center the price range around data
     const priceCenter = (minPrice + maxPrice) / 2;
+    const pixelsPerPrice = chartHeight / chartPriceRange;
+    const verticalShift = verticalPanOffset / pixelsPerPrice;
 
-    // Apply vertical pan offset (same as drawing logic)
-    const verticalShift = zoomedRange * verticalPanOffset;
-
-    const chartMinPrice = priceCenter - (zoomedRange / 2) + verticalShift;
-    const chartMaxPrice = priceCenter + (zoomedRange / 2) + verticalShift;
-    const chartPriceRange = chartMaxPrice - chartMinPrice;
+    const chartMinPrice = priceCenter - (chartPriceRange / 2) + verticalShift;
+    const chartMaxPrice = priceCenter + (chartPriceRange / 2) + verticalShift;
 
     const hoveredPrice = chartMaxPrice - (mouseY / chartHeight) * chartPriceRange;
-
-    // Calculate grid step in dollar amount (percentage of base price - FIXED)
-    const gridStepDollar = (gridSize / 100) * basePrice;
 
     // Calculate price level INDEX (stable integer, not absolute price)
     const priceLevelIndex = Math.floor(hoveredPrice / gridStepDollar);
 
-    const nowX = chartWidth * 0.5; // Center position
-    const latestDataIndex = chartData.length - 1;
-    const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles; // Same as drawing logic
-
-    const gridSizeX = tapToTrade.gridSizeX;
-
     // Reverse engineer which index the mouse corresponds to
-    // timeToX formula: x = nowX + (index - latestDataIndex - panOffset) * pixelsPerCandle
-    // Solving for index: index = (x - nowX) / pixelsPerCandle + latestDataIndex + panOffset
-    const mouseIndexFloat = (mouseX - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
+    // timeToX formula: x = nowX + (index - latestDataIndex) * pixelsPerCandle - panOffset
+    // Solving for index: index = (x - nowX + panOffset) / pixelsPerCandle + latestDataIndex
+    const mouseIndexFloat = (mouseX - nowX + panOffset) / pixelsPerCandle + latestDataIndex;
 
     // Snap to grid boundaries
     // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
@@ -1211,35 +1292,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     } else {
       setHoveredCell(null);
     }
-  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, priceZoom, currentPrice, interval, panOffset, verticalPanOffset, basePrice, currentTime]);
+  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, currentPrice, interval, panOffset, verticalPanOffset, basePrice, currentTime, chartType]);
 
-  const handleCanvasLeave = useCallback(() => {
+  const handleMouseLeave = useCallback(() => {
     setHoveredCell(null);
     setMousePosition(null); // Hide crosshair when mouse leaves
-  }, []);
-
-  // Handle mouse wheel zoom (like TradingView - both X and Y axis)
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-
-    // Scroll down (deltaY > 0) = zoom out (show more candles)
-    // Scroll up (deltaY < 0) = zoom in (show fewer candles)
-    const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9; // Zoom out / Zoom in
-    
-    // Zoom X-axis (time)
-    setVisibleCandles(prev => {
-      const newValue = Math.round(prev * zoomFactor);
-      // Minimum 15 candles to ensure grid cells are clickable
-      // Maximum 150 candles to prevent too small cells
-      return Math.max(15, Math.min(150, newValue));
-    });
-    
-    // Zoom Y-axis (price) - synchronized with X-axis
-    setPriceZoom(prev => {
-      const newZoom = prev * zoomFactor;
-      // Limit zoom range to prevent extreme values
-      return Math.max(0.5, Math.min(3, newZoom));
-    });
+    setIsDragging(false); // Stop dragging if mouse leaves
+    setHasMoved(false);
   }, []);
 
   // Quick Trade handlers
@@ -1515,16 +1574,20 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
       <canvas
         ref={canvasRef}
-        onClick={handleCanvasClick}
-        onMouseMove={handleCanvasMove}
-        onMouseLeave={handleCanvasLeave}
-        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         style={{
           width: '100%',
           height: '100%',
-          cursor: tapToTradeEnabled
-            ? (hoveredCell ? 'pointer' : 'default')
-            : 'default',
+          cursor: isDragging && hasMoved
+            ? 'grabbing'
+            : hoveredCell && tapToTradeEnabled && !isDragging
+              ? 'pointer'
+              : 'grab',
+          touchAction: 'none', // Allow both horizontal and vertical panning
+          userSelect: 'none', // Prevent text selection during drag
         }}
       />
     </div>
