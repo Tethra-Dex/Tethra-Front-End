@@ -9,6 +9,7 @@ import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 import PendingOrdersTable from './PendingOrdersTable';
 import TapToTradeOrders from './TapToTradeOrders';
+import BinaryOrders from './BinaryOrders';
 import { useMarket } from '../contexts/MarketContext';
 import TPSLModal from './TPSLModal';
 import { useTPSLContext } from '@/contexts/TPSLContext';
@@ -393,7 +394,7 @@ const BottomTrading = () => {
   // No need for extra state or useEffect - just use positionIds directly
   const isLoading = isLoadingIds;
 
-  const tabs = ['Positions', 'Orders', 'Tap to Trade Orders', 'Trades', 'Claims'];
+  const tabs = ['Positions', 'Orders', 'Tap to Trade Orders', 'Binary Orders', 'Trades', 'Claims'];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -467,6 +468,8 @@ const BottomTrading = () => {
         return <PendingOrdersTable />;
       case 'Tap to Trade Orders':
         return <TapToTradeOrders />;
+      case 'Binary Orders':
+        return <BinaryOrders />;
       case 'Trades':
         return <div className="text-center py-16 text-gray-500">No trades found</div>;
       case 'Claims':
