@@ -340,7 +340,7 @@ const TapToTrade: React.FC = () => {
               <div className="text-xs text-blue-300 space-y-0.5">
                 <div>• Chart updates in real-time per second</div>
                 <div>• Fixed grid: 10 seconds per X-axis</div>
-                <div>• Price grid: $10 per Y-axis increment</div>
+                <div>• Price grid: ${activeMarket?.symbol === 'SOL' ? '0.1' : '10'} per Y-axis increment</div>
                 <div>• Grid is fixed (no zoom in/out)</div>
               </div>
             </div>

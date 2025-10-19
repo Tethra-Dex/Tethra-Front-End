@@ -55,7 +55,8 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
   // Fixed grid configuration (tidak bisa di-zoom)
   const GRID_X_SECONDS = 10; // 1 grid = 10 detik
-  const GRID_Y_DOLLARS = 10; // 1 grid = $10
+  // For Solana in one-tap-profit mode, use 0.1 price difference
+  const GRID_Y_DOLLARS = symbol === 'SOL' ? 0.1 : 10; // 1 grid = $0.1 for SOL, $10 for others
 
   // Update canvas dimensions
   useEffect(() => {
@@ -297,10 +298,11 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         ctx.lineTo(chartWidth, y);
         ctx.stroke();
 
-        // Price label
+        // Price label - show 1 decimal for SOL, 0 decimals for others
         ctx.fillStyle = '#94a3b8';
         ctx.font = '11px monospace';
-        ctx.fillText(`$${price.toFixed(0)}`, chartWidth + 5, y + 4);
+        const decimals = symbol === 'SOL' ? 1 : 0;
+        ctx.fillText(`$${price.toFixed(decimals)}`, chartWidth + 5, y + 4);
       }
       ctx.setLineDash([]);
 

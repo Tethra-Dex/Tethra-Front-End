@@ -306,13 +306,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       let chartMinPrice, chartMaxPrice, chartPriceRange;
 
       if (tapToTradeEnabled && basePrice > 0) {
-        const gridSizeX = tapToTrade.gridSizeX || 1;
-
         // User input grid step in dollars (Y axis)
         const gridStepDollar = (gridSize / 100) * basePrice;
 
-        // Grid X width in pixels
-        const gridXWidthPixels = pixelsPerCandle * gridSizeX;
+        // Grid X width in pixels - ALWAYS based on 1 candle for perfect square
+        // gridSizeX only affects click/hover area, not individual cell size
+        const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
 
         // For square cells: gridYHeightPixels should equal gridXWidthPixels
         // gridYHeightPixels = (gridStepDollar / chartPriceRange) * chartHeight
@@ -393,15 +392,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       }
 
       // Draw vertical grid lines (time) - including future area
+      // Grid lines should be drawn EVERY candle, not every gridSizeX
       if (tapToTradeEnabled) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([5, 5]);
 
-        const gridSizeX = tapToTrade.gridSizeX || 1; // Grid interval in candles
-
         // Calculate visible range considering pan offset
-        // We need to draw enough lines to cover the visible area
         const totalVisibleCandles = Math.ceil(chartWidth / pixelsPerCandle);
         const panOffsetInCandles = panOffset / pixelsPerCandle;
 
@@ -409,18 +406,15 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         const startIndex = Math.floor(-totalVisibleCandles - panOffsetInCandles);
         const endIndex = Math.ceil(chartData.length + maxFutureCandles);
 
-        // Draw grid lines at gridSizeX intervals
+        // Draw grid lines EVERY candle (not every gridSizeX)
         for (let i = startIndex; i < endIndex; i++) {
-          // Only draw lines at grid intervals
-          if (i % gridSizeX === 0) {
-            const x = timeToX(i);
-            // Only draw if within visible area
-            if (x >= -10 && x <= chartWidth + 10) {
-              ctx.beginPath();
-              ctx.moveTo(x, 0);
-              ctx.lineTo(x, chartHeight);
-              ctx.stroke();
-            }
+          const x = timeToX(i);
+          // Only draw if within visible area
+          if (x >= -10 && x <= chartWidth + 10) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, chartHeight);
+            ctx.stroke();
           }
         }
 
@@ -454,10 +448,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           // Calculate total range including future - extend to canvas edge
           const totalRange = chartData.length + maxFutureCandles;
 
-          // Draw boxes based on gridSizeX (including future area until canvas edge)
-          for (let i = 0; i < totalRange; i += gridSizeX) {
+          // Draw boxes EVERY candle (not every gridSizeX) for perfect squares
+          for (let i = 0; i < totalRange; i++) {
             const xLeft = timeToX(i);
-            const xRight = timeToX(Math.min(i + gridSizeX, totalRange));
+            const xRight = timeToX(i + 1); // Each cell is exactly 1 candle wide
             const boxWidth = xRight - xLeft;
 
             if (xLeft > chartWidth) break; // Stop if beyond chart area
@@ -485,7 +479,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             }
             
             // Convert to cellX, cellY coordinates (same format as TapToTradeContext)
-            const gridTimeRounded = Math.floor(gridTime / (gridSizeX * 60000)) * (gridSizeX * 60000); // Round to gridSizeX minutes
+            // Round to base interval (NOT gridSizeX interval) - each candle stays its base timeframe
+            const gridTimeRounded = Math.floor(gridTime / intervalMs) * intervalMs;
 
             // Calculate cellX (time column index)
             const gridSession = tapToTrade.gridSession;
@@ -1039,9 +1034,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const gridStepDollar = (gridSize / 100) * basePrice;
 
     // Calculate price range based on grid settings to make square cells (same as drawing logic)
+    // Each cell is ALWAYS 1 candle wide for perfect square
     // gridYHeightPixels = (gridStepDollar / chartPriceRange) * chartHeight
-    // We want: gridYHeightPixels = gridXWidthPixels
-    const gridXWidthPixels = pixelsPerCandle * gridSizeX;
+    // We want: gridYHeightPixels = pixelsPerCandle (1 candle width)
+    const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
     const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
 
     // Center the price range around data (same as drawing logic)
@@ -1094,8 +1090,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       clickedTime = currentTime - pastOffset;
     }
 
-    // Round time to grid interval
-    const gridTimeRounded = Math.floor(clickedTime / (gridSizeX * 60000)) * (gridSizeX * 60000);
+    // Round time to base interval (NOT gridSizeX interval)
+    // Each candle should remain its base timeframe (1m stays 1m, not 3m when gridSizeX=3)
+    const gridTimeRounded = Math.floor(clickedTime / intervalMs) * intervalMs;
 
     // Calculate cellX (time column index) - same logic as drawing
     const gridSession = tapToTrade.gridSession;
@@ -1213,7 +1210,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const gridStepDollar = (gridSize / 100) * basePrice;
 
     // Calculate price range based on grid settings to make square cells (same as drawing logic)
-    const gridXWidthPixels = pixelsPerCandle * gridSizeX;
+    // Each cell is ALWAYS 1 candle wide for perfect square
+    const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
     const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
 
     // Center the price range around data
@@ -1260,8 +1258,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       hoveredTime = currentTime - pastOffset;
     }
 
-    // Round time to grid interval
-    const gridTimeRounded = Math.floor(hoveredTime / (gridSizeX * 60000)) * (gridSizeX * 60000);
+    // Round time to base interval (NOT gridSizeX interval)
+    // Each candle should remain its base timeframe (1m stays 1m, not 3m when gridSizeX=3)
+    const gridTimeRounded = Math.floor(hoveredTime / intervalMs) * intervalMs;
 
     // Calculate cellX (time column index) - same logic as drawing
     const gridSession = tapToTrade.gridSession;
