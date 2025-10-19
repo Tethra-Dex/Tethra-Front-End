@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { keccak256, encodePacked, encodeFunctionData } from 'viem';
+import { useSessionKey } from '@/hooks/useSessionKey';
 
 interface GridSession {
   id: string;
@@ -54,6 +55,10 @@ interface TapToTradeContextType {
   handleCellClick: (cellX: number, cellY: number) => Promise<void>;
   cellOrders: Map<string, CellOrderInfo>; // Track orders per cell
 
+  // Session key state
+  sessionKey: any | null; // Session key for signature-less trading
+  sessionTimeRemaining: number; // Time remaining in milliseconds
+
   // Backend integration
   gridSession: GridSession | null;
   isLoading: boolean;
@@ -63,6 +68,7 @@ interface TapToTradeContextType {
 const TapToTradeContext = createContext<TapToTradeContextType | undefined>(undefined);
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
+const TAP_TO_TRADE_EXECUTOR_ADDRESS = process.env.NEXT_PUBLIC_TAP_TO_TRADE_EXECUTOR_ADDRESS || '0x841f70066ba831650c4D97BD59cc001c890cf6b6';
 const MARKET_EXECUTOR_ADDRESS = process.env.NEXT_PUBLIC_MARKET_EXECUTOR_ADDRESS || '0xA1badd2cea74931d668B7aB99015ede28735B3EF';
 const EXPECTED_CHAIN_ID = BigInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532');
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
@@ -86,6 +92,16 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const resignIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedResignOrders = useRef<Set<string>>(new Set()); // Track orders we've already attempted to re-sign
+
+  // Session key for signature-less tap-to-trade
+  const {
+    sessionKey,
+    isSessionValid,
+    createSession,
+    signWithSession,
+    clearSession,
+    getTimeRemaining,
+  } = useSessionKey();
 
   /**
    * Initialize nonce from contract
@@ -124,18 +140,26 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       const nonceResult = await walletClient.request({
         method: 'eth_call',
         params: [{
-          to: MARKET_EXECUTOR_ADDRESS,
+          to: TAP_TO_TRADE_EXECUTOR_ADDRESS,
           data: nonceData,
         }, 'latest'],
       });
 
-      const currentNonce = BigInt(nonceResult as string);
+      // Handle empty result (0x means 0)
+      const currentNonce = nonceResult === '0x' || !nonceResult
+        ? BigInt(0)
+        : BigInt(nonceResult as string);
+
       setLocalNonce(currentNonce);
       console.log('✅ Initialized local nonce:', currentNonce.toString());
     } catch (err) {
       console.error('Failed to initialize nonce:', err);
     }
   };
+
+  // NOTE: authorizeSessionKeyOnChain() removed for 100% gasless experience
+  // Session keys are validated off-chain by backend only
+  // Contract execution happens via keeper role (backend pays gas)
 
   /**
    * Auto re-sign orders that need re-signing (nonce mismatch)
@@ -204,12 +228,16 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
           const nonceResult = await walletClient.request({
             method: 'eth_call',
             params: [{
-              to: MARKET_EXECUTOR_ADDRESS,
+              to: TAP_TO_TRADE_EXECUTOR_ADDRESS,
               data: nonceData,
             }, 'latest'],
           });
 
-          const freshNonce = BigInt(nonceResult as string);
+          // Handle empty result (0x means 0)
+          const freshNonce = nonceResult === '0x' || !nonceResult
+            ? BigInt(0)
+            : BigInt(nonceResult as string);
+
           console.log(`\u2705 Fresh nonce: ${freshNonce.toString()}`);
 
           // Create new signature with fresh nonce
@@ -223,7 +251,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
                 BigInt(order.collateral),
                 BigInt(order.leverage),
                 freshNonce,
-                MARKET_EXECUTOR_ADDRESS as `0x${string}`
+                TAP_TO_TRADE_EXECUTOR_ADDRESS as `0x${string}`
               ]
             )
           );
@@ -298,6 +326,24 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [isEnabled, gridSession, user?.wallet?.address, wallets]);
 
+  // Auto-disable tap-to-trade when session expires
+  useEffect(() => {
+    if (!isEnabled || !sessionKey) return;
+
+    const checkSessionExpiry = () => {
+      if (!isSessionValid()) {
+        console.log('⏰ Session expired, disabling tap-to-trade...');
+        // Auto-disable tap-to-trade mode
+        toggleMode();
+      }
+    };
+
+    // Check every 10 seconds
+    const interval = setInterval(checkSessionExpiry, 10000);
+
+    return () => clearInterval(interval);
+  }, [isEnabled, sessionKey, isSessionValid]);
+
   const toggleMode = async (params?: {
     symbol: string;
     margin: string;
@@ -338,6 +384,13 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       setError(null);
       setLocalNonce(BigInt(0)); // Reset nonce
       attemptedResignOrders.current.clear(); // Clear attempted re-sign tracking
+
+      // Clear session key
+      if (sessionKey) {
+        clearSession();
+        console.log('Session key cleared');
+      }
+
       console.log(`\ud83c\udfaf Tap to Trade mode: DISABLED`);
 
     } else {
@@ -431,6 +484,38 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         await initializeNonce();
 
         console.log('✅ Grid session created:', session.id);
+
+        // Create session key for signature-less trading (100% GASLESS!)
+        try {
+          const walletClient = await embeddedWallet.getEthereumProvider();
+          if (!walletClient) {
+            throw new Error('Could not get wallet client');
+          }
+
+          console.log('🔑 Creating session key for 30 minutes (100% GASLESS)...');
+          const newSession = await createSession(
+            traderAddress,
+            walletClient,
+            30 * 60 * 1000 // 30 minutes
+          );
+
+          if (!newSession) {
+            throw new Error('Failed to create session key');
+          }
+
+          console.log('✅ Session key created! No more signatures needed for 30 minutes.');
+          console.log('⚡ 100% GASLESS - No on-chain transaction needed!');
+          console.log('🔐 Session validated by backend only (off-chain)');
+
+          // NOTE: We DON'T call authorizeSessionKeyOnChain() for gasless experience
+          // Backend will validate the session using authSignature only
+          // Contract execution happens via keeper role (backend pays gas)
+        } catch (sessionErr: any) {
+          console.error('❌ Failed to setup session key:', sessionErr);
+          // Don't fail the entire enable if session creation fails
+          // User can still use with regular signatures
+        }
+
         console.log(`🎯 Tap to Trade mode: ENABLED`);
 
       } catch (err: any) {
@@ -534,15 +619,19 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       const nonceResult = await walletClient.request({
         method: 'eth_call',
         params: [{
-          to: MARKET_EXECUTOR_ADDRESS,
+          to: TAP_TO_TRADE_EXECUTOR_ADDRESS,
           data: nonceData,
         }, 'latest'],
       });
 
-      const currentNonce = BigInt(nonceResult as string);
+      // Handle empty result (0x means 0)
+      const currentNonce = nonceResult === '0x' || !nonceResult
+        ? BigInt(0)
+        : BigInt(nonceResult as string);
+
       console.log('✅ Fetched fresh nonce from contract:', currentNonce.toString());
 
-      // Sign order message with user wallet
+      // Sign order message
       const messageHash = keccak256(
         encodePacked(
           ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
@@ -553,46 +642,92 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
             BigInt(collateralPerOrder),
             BigInt(gridSession.leverage),
             currentNonce,
-            MARKET_EXECUTOR_ADDRESS as `0x${string}`
+            TAP_TO_TRADE_EXECUTOR_ADDRESS as `0x${string}`
           ]
         )
       );
 
-      console.log('✍️ Requesting signature from user...');
+      let signature: string;
+      let usedSessionKey = false; // Track if we actually used session key
 
-      // Sign message with user's wallet (will show popup)
-      const signature = await walletClient.request({
-        method: 'personal_sign',
-        params: [messageHash, traderAddress],
+      // Check if we have a valid session key
+      console.log('🔍 Session key status:', {
+        hasSessionKey: !!sessionKey,
+        isValid: isSessionValid(),
+        sessionAddress: sessionKey?.address,
+        expiresAt: sessionKey?.expiresAt,
+        now: Date.now(),
       });
 
-      if (!signature) {
-        throw new Error('Failed to obtain signature');
-      }
+      if (isSessionValid()) {
+        console.log('✍️ Signing with session key (NO USER PROMPT!)...');
+        console.log('📝 Message hash to sign:', messageHash);
+        const sessionSignature = await signWithSession(messageHash);
 
-      console.log('✅ Signature obtained from user!');
+        if (!sessionSignature) {
+          throw new Error('Session key expired or invalid. Please re-enable tap-to-trade.');
+        }
+
+        signature = sessionSignature;
+        usedSessionKey = true; // Mark that we used session key
+        console.log('✅ Signature obtained (automatically with session key!)');
+        console.log('🔑 Session signature:', sessionSignature);
+        console.log('⚡ No popup, no waiting - instant signing!');
+      } else {
+        // Fallback: request signature from user (with popup)
+        console.log('⚠️ No valid session key, requesting signature from user...');
+        console.log('📝 Message hash to sign:', messageHash);
+        const userSignature = await walletClient.request({
+          method: 'personal_sign',
+          params: [messageHash, traderAddress],
+        });
+
+        if (!userSignature) {
+          throw new Error('Failed to obtain signature');
+        }
+
+        signature = userSignature as string;
+        console.log('✅ Signature obtained from user (with popup)');
+        console.log('🔑 User signature:', userSignature);
+      }
 
       // Create order in backend
       const cellId = `${cellX},${cellY}`;
+
+      // Prepare order data with optional session key info
+      const orderData: any = {
+        gridSessionId: gridSession.id,
+        cellId,
+        trader: traderAddress,
+        symbol: gridSession.symbol,
+        isLong,
+        collateral: collateralPerOrder,
+        leverage: gridSession.leverage,
+        triggerPrice: triggerPriceWith8Decimals,
+        startTime,
+        endTime,
+        nonce: currentNonce.toString(),
+        signature,
+      };
+
+      // ONLY add session key info if we actually used session key for signing
+      if (usedSessionKey && sessionKey) {
+        orderData.sessionKey = {
+          address: sessionKey.address,
+          expiresAt: sessionKey.expiresAt,
+          authorizedBy: sessionKey.authorizedBy,
+          authSignature: sessionKey.authSignature,
+        };
+      }
+
+      console.log('📤 Sending order to backend:', JSON.stringify(orderData, null, 2));
+
       const response = await fetch(`${BACKEND_API_URL}/api/tap-to-trade/batch-create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gridSessionId: gridSession.id,
-          orders: [{
-            gridSessionId: gridSession.id,
-            cellId,
-            trader: traderAddress,
-            symbol: gridSession.symbol,
-            isLong,
-            collateral: collateralPerOrder,
-            leverage: gridSession.leverage,
-            triggerPrice: triggerPriceWith8Decimals,
-            startTime,
-            endTime,
-            nonce: currentNonce.toString(),
-            signature,
-          }]
+          orders: [orderData]
         }),
       });
 
@@ -649,6 +784,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         setGridSizeY,
         handleCellClick,
         cellOrders,
+        sessionKey,
+        sessionTimeRemaining: getTimeRemaining(),
         gridSession,
         isLoading,
         error,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { keccak256, encodePacked, toHex } from 'viem';
+import { keccak256, toHex, hashMessage, recoverMessageAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 export interface SessionKey {
@@ -117,6 +117,7 @@ export function useSessionKey() {
 
   /**
    * Sign a message using the session key (no user prompt!)
+   * IMPORTANT: Uses hashMessage to match ethers.verifyMessage behavior
    */
   const signWithSession = async (messageHash: `0x${string}`): Promise<string | null> => {
     if (!isSessionValid()) {
@@ -127,12 +128,27 @@ export function useSessionKey() {
     try {
       const sessionAccount = privateKeyToAccount(sessionKey!.privateKey);
 
-      // Sign the message with session private key
-      const signature = await sessionAccount.signMessage({
-        message: { raw: messageHash },
-      });
+      // Hash the message with Ethereum signed message prefix
+      // This creates the same hash that ethers.verifyMessage expects
+      const digest = hashMessage({ raw: messageHash });
+
+      // Sign the digest using raw ECDSA (no additional hashing)
+      const signature = await sessionAccount.sign({ hash: digest });
 
       console.log('✅ Signed with session key (no user prompt!)');
+      console.log('🔑 Session account address:', sessionAccount.address);
+      console.log('📝 Original message hash:', messageHash);
+      console.log('📝 Digest (with prefix):', digest);
+      console.log('✍️ Signature produced:', signature);
+
+      // Verify locally that signature is correct
+      const recovered = await recoverMessageAddress({
+        message: { raw: messageHash },
+        signature,
+      });
+      console.log('🔍 Recovered address (verification):', recovered);
+      console.log('✅ Match?', recovered.toLowerCase() === sessionAccount.address.toLowerCase());
+
       return signature;
     } catch (err) {
       console.error('Failed to sign with session:', err);
