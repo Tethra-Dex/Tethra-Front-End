@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import WalletConnectButton from './WalletConnectButton';
 import TradingVueChart from './TradingVueChart';
 import SimpleLineChart from './SimpleLineChart';
 import PerSecondChart from './PerSecondChart';
@@ -449,7 +448,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
         <div
             className="flex flex-wrap items-center justify-between"
             style={{
-                padding: '0.5rem 1rem',
+                padding: '0.25rem 1rem',
                 gap: '0.75rem',
                 flexShrink: 0
             }}
@@ -518,7 +517,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                     </svg>
                 </div>
 
-                <div className="flex flex-col">
+                <div className="flex flex-col min-w-[130px]">
                     <span className="font-semibold font-mono text-lg text-white">
                         {displayPrice ? formatPrice(displayPrice) : '$--'}
                     </span>
@@ -528,42 +527,48 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                 </div>
 
                 <div className="flex flex-col">
-                    <span className="text-xs text-slate-400">24h High</span>
-                    <span className="font-semibold font-mono text-sm text-slate-200">
-                        {props.marketData?.high24h ? formatPrice(parseFloat(props.marketData.high24h)) : '$--'}
-                    </span>
+                    <span className="text-m text-slate-400">24H HIGH</span>
+                    <div className="flex items-center gap-1">
+                        <span className="text-green-400 text-xs">▲</span>
+                        <span className="font-semibold font-mono text-sm text-slate-200">
+                            {props.marketData?.high24h ? formatPrice(parseFloat(props.marketData.high24h)) : '$--'}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex flex-col">
-                    <span className="text-xs text-slate-400">24h Low</span>
-                    <span className="font-semibold font-mono text-sm text-slate-200">
-                        {props.marketData?.low24h ? formatPrice(parseFloat(props.marketData.low24h)) : '$--'}
-                    </span>
+                    <span className="text-m text-slate-400">24H LOW</span>
+                    <div className="flex items-center gap-1">
+                        <span className="text-red-400 text-xs">▼</span>
+                        <span className="font-semibold font-mono text-sm text-slate-200">
+                            {props.marketData?.low24h ? formatPrice(parseFloat(props.marketData.low24h)) : '$--'}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex flex-col">
-                    <span className="text-xs text-slate-400">24h Volume</span>
+                    <span className="text-m text-slate-400">24H VOLUME</span>
                     <span className="font-semibold font-mono text-sm text-slate-200">
                         {props.marketData?.volume24h ? formatVolume(parseFloat(props.marketData.volume24h)) : '--'}
                     </span>
                 </div>
-                
+
                 {/* Futures Data */}
                 {props.futuresData && (
                     <>
                         <div className="flex flex-col">
-                            <span className="text-xs text-slate-400">Funding Rate</span>
+                            <span className="text-m text-slate-400">FUNDING RATE</span>
                             <div className="flex items-center gap-1">
                                 <span className={`font-semibold font-mono text-sm ${isFundingPositive ? 'text-green-400' : 'text-red-400'}`}>
                                     {formatFundingRate(fundingRate)}
                                 </span>
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-slate-500 font-mono">
                                     / {formatTimeUntil(props.futuresData.nextFundingTime)}
                                 </span>
                             </div>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xs text-slate-400">Open Interest</span>
+                            <span className="text-m text-slate-400">OPEN INTEREST</span>
                             <span className="font-semibold font-mono text-sm text-slate-200">
                                 {formatVolume(parseFloat(props.futuresData.openInterestValue))}
                             </span>
@@ -571,11 +576,6 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         <RealTimeClock />
                     </>
                 )}
-            </div>
-            <div className="flex items-center gap-x-2">
-                <div className="flex-shrink-0">
-                    <WalletConnectButton />
-                </div>
             </div>
         </div>
     );
@@ -842,9 +842,9 @@ const TradingChart: React.FC = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col bg-black text-slate-100 rounded-lg overflow-hidden">
+        <div className="w-full h-full flex flex-col bg-black text-slate-100 overflow-hidden" style={{ borderRadius: '0.5rem' }}>
             {/* Header with flexible height - can be 1 or 2 rows */}
-            <div style={{ flexShrink: 0, flexGrow: 0 }}>
+            <div style={{ flexShrink: 0, flexGrow: 0, borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', overflow: 'hidden' }}>
                 <ChartHeader
                     activeMarket={activeMarket}
                     marketData={currentMarketData}
@@ -871,7 +871,8 @@ const TradingChart: React.FC = () => {
                     flex: '1 1 auto',
                     minHeight: 0,
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    paddingTop: '0.5rem'
                 }}
             >
                 {activeMarket && (
