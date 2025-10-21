@@ -112,9 +112,9 @@ function TradePageContent() {
         <div
           className="shrink-0 flex flex-col"
           style={{
-            width: '26vw',
-            minWidth: '280px',
-            maxWidth: '450px',
+            width: '30vw',
+            minWidth: '300px',
+            maxWidth: '520px',
           }}
         >
           <OrderPanel />

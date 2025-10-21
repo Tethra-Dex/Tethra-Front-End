@@ -229,7 +229,8 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, market
     return (
         <div
             ref={panelRef}
-            className="absolute top-full mt-2 left-0 w-[900px] max-h-[60vh] bg-[#171B26] border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden"
+            className="absolute top-full mt-2 left-0 w-[900px] max-h-[60vh] bg-[#171B26] border border-slate-700 rounded-lg shadow-xl flex flex-col overflow-hidden"
+            style={{ zIndex: 9999 }}
         >
             <div className="p-4 border-b border-slate-800">
                 <input
@@ -450,11 +451,13 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
             style={{
                 padding: '0.25rem 1rem',
                 gap: '0.75rem',
-                flexShrink: 0
+                flexShrink: 0,
+                position: 'relative',
+                zIndex: 100
             }}
         >
             <div className="flex items-center gap-x-6">
-                <div className="relative">
+                <div className="relative" style={{ zIndex: 101 }}>
                     <button
                         ref={props.triggerRef}
                         onClick={props.onSymbolChangeClick}
@@ -842,9 +845,9 @@ const TradingChart: React.FC = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col bg-black text-slate-100 overflow-hidden" style={{ borderRadius: '0.5rem' }}>
+        <div className="w-full h-full flex flex-col bg-black text-slate-100" style={{ borderRadius: '0.5rem' }}>
             {/* Header with flexible height - can be 1 or 2 rows */}
-            <div style={{ flexShrink: 0, flexGrow: 0, borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', overflow: 'hidden' }}>
+            <div style={{ flexShrink: 0, flexGrow: 0, borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', position: 'relative', zIndex: 100 }}>
                 <ChartHeader
                     activeMarket={activeMarket}
                     marketData={currentMarketData}
