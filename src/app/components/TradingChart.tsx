@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import TradingVueChart from './TradingVueChart';
+import TradingViewWidget from './TradingViewWidget';
 import SimpleLineChart from './SimpleLineChart';
 import PerSecondChart from './PerSecondChart';
 
@@ -421,8 +421,6 @@ interface ChartHeaderProps {
     markets: Market[];
     onSelect: (symbol: string) => void;
     triggerRef: React.RefObject<HTMLButtonElement | null>;
-    currentTimeframe: string;
-    onTimeframeChange: (timeframe: string) => void;
 }
 
 const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
@@ -433,31 +431,19 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
     const fundingRate = props.futuresData ? parseFloat(props.futuresData.fundingRate) : 0;
     const isFundingPositive = fundingRate >= 0;
 
-    // Timeframe options
-    const timeframes = [
-        { label: '1m', value: '1' },
-        { label: '5m', value: '5' },
-        { label: '15m', value: '15' },
-        { label: '1h', value: '60' },
-        { label: '4h', value: '240' },
-        { label: '1D', value: 'D' }
-    ];
-
-    const currentTimeframeLabel = timeframes.find(tf => tf.value === props.currentTimeframe)?.label || '1h';
-
     return (
         <div
             className="flex flex-wrap items-center justify-between"
             style={{
-                padding: '0.25rem 1rem',
+                padding: '0.49rem 1rem',
                 gap: '0.75rem',
                 flexShrink: 0,
                 position: 'relative',
-                zIndex: 100
+                zIndex: 10
             }}
         >
             <div className="flex items-center gap-x-6">
-                <div className="relative" style={{ zIndex: 101 }}>
+                <div className="relative" style={{ zIndex: 11 }}>
                     <button
                         ref={props.triggerRef}
                         onClick={props.onSymbolChangeClick}
@@ -495,29 +481,6 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                         futuresDataMap={props.futuresDataMap}
                         triggerRef={props.triggerRef}
                     />
-                </div>
-
-                {/* Timeframe Dropdown */}
-                <div className="relative">
-                    <select
-                        value={props.currentTimeframe}
-                        onChange={(e) => props.onTimeframeChange(e.target.value)}
-                        className="appearance-none bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 pr-10 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    >
-                        {timeframes.map((tf) => (
-                            <option key={tf.value} value={tf.value} className="bg-slate-800 text-slate-100">
-                                {tf.label}
-                            </option>
-                        ))}
-                    </select>
-                    <svg
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
                 </div>
 
                 <div className="flex flex-col min-w-[130px]">
@@ -591,7 +554,7 @@ import { useMarket } from '../contexts/MarketContext';
 import { useTapToTrade } from '../contexts/TapToTradeContext';
 
 const TradingChart: React.FC = () => {
-    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice, timeframe, setTimeframe } = useMarket();
+    const { activeMarket: contextActiveMarket, setActiveMarket, setCurrentPrice, timeframe } = useMarket();
     const [markets] = useState<Market[]>(ALL_MARKETS);
     const [activeSymbol, setActiveSymbol] = useState<string>(contextActiveMarket?.symbol || ALL_MARKETS[0].symbol);
     const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
@@ -847,7 +810,7 @@ const TradingChart: React.FC = () => {
     return (
         <div className="w-full h-full flex flex-col bg-black text-slate-100" style={{ borderRadius: '0.5rem' }}>
             {/* Header with flexible height - can be 1 or 2 rows */}
-            <div style={{ flexShrink: 0, flexGrow: 0, borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', position: 'relative', zIndex: 100 }}>
+            <div style={{ flexShrink: 0, flexGrow: 0, borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', position: 'relative', zIndex: 10 }}>
                 <ChartHeader
                     activeMarket={activeMarket}
                     marketData={currentMarketData}
@@ -862,8 +825,6 @@ const TradingChart: React.FC = () => {
                     markets={markets}
                     onSelect={handleMarketSelect}
                     triggerRef={triggerButtonRef}
-                    currentTimeframe={timeframe}
-                    onTimeframeChange={setTimeframe}
                 />
             </div>
 
@@ -874,8 +835,7 @@ const TradingChart: React.FC = () => {
                     flex: '1 1 auto',
                     minHeight: 0,
                     position: 'relative',
-                    overflow: 'hidden',
-                    paddingTop: '0.5rem'
+                    zIndex: 1,
                 }}
             >
                 {activeMarket && (
@@ -890,7 +850,7 @@ const TradingChart: React.FC = () => {
                                 />
                             ) : (
                                 <SimpleLineChart
-                                    key={`${activeMarket.binanceSymbol}-${timeframe}-tap`}
+                                    key={`${activeMarket.binanceSymbol}-tap`}
                                     symbol={activeMarket.binanceSymbol}
                                     interval={timeframe}
                                     currentPrice={parseFloat(currentOraclePrice?.price?.toString() || currentMarketData?.price || '0')}
@@ -900,10 +860,9 @@ const TradingChart: React.FC = () => {
                                 />
                             )
                         ) : (
-                            <TradingVueChart
-                                key={`${activeMarket.binanceSymbol}-${timeframe}`}
+                            <TradingViewWidget
+                                key={`${activeMarket.binanceSymbol}`}
                                 symbol={activeMarket.binanceSymbol}
-                                interval={timeframe}
                             />
                         )}
                     </>
