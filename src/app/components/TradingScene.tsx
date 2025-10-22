@@ -4,217 +4,156 @@ import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Wireframe Grid Planes (inspired by logo)
-const WireframePlanes = ({ scrollProgress = 0 }: { scrollProgress?: number }) => {
+// Tethra Logo 3D - Center piece
+const TethraLogo3D = () => {
   const groupRef = useRef<THREE.Group>(null);
-  const leftPlaneRef = useRef<THREE.Mesh>(null);
-  const rightPlaneRef = useRef<THREE.Mesh>(null);
+
+  const createGridPlane = (width: number, height: number, divisions: number) => {
+    return new THREE.PlaneGeometry(width, height, divisions, divisions);
+  };
 
   useFrame(({ clock }) => {
     if (groupRef.current) {
       const time = clock.getElapsedTime();
-      groupRef.current.rotation.y = Math.sin(time * 0.3) * 0.2 * (1 - scrollProgress);
-    }
-
-    // Move planes apart as we zoom through
-    if (leftPlaneRef.current) {
-      const targetX = -3 - scrollProgress * 8;
-      leftPlaneRef.current.position.x += (targetX - leftPlaneRef.current.position.x) * 0.1;
-    }
-    if (rightPlaneRef.current) {
-      const targetX = 3 + scrollProgress * 8;
-      rightPlaneRef.current.position.x += (targetX - rightPlaneRef.current.position.x) * 0.1;
+      groupRef.current.position.y = Math.sin(time * 0.6) * 0.4;
+      groupRef.current.rotation.y = time * 0.3;
+      groupRef.current.rotation.x = Math.sin(time * 0.4) * 0.2;
     }
   });
 
-  const createGridPlane = (width: number, height: number, divisions: number) => {
-    const geometry = new THREE.PlaneGeometry(width, height, divisions, divisions);
-    return geometry;
-  };
-
   return (
-    <group ref={groupRef}>
-      {/* Left plane (blue side) */}
-      <mesh ref={leftPlaneRef} position={[-3, 0, 0]} rotation={[0, Math.PI / 6, 0]}>
-        <primitive object={createGridPlane(6, 8, 20)} />
-        <meshBasicMaterial
-          color="#0ea5e9"
+    <group ref={groupRef} position={[0, 0, -3]} scale={1.8}>
+      {/* LEFT SIDE - CYAN */}
+      <mesh position={[-1.5, 0, 0]} rotation={[0, Math.PI / 6, 0]}>
+        <primitive object={createGridPlane(2, 3.5, 12)} />
+        <meshStandardMaterial
+          color="#06b6d4"
           wireframe
           transparent
-          opacity={0.6 * (1 - scrollProgress * 0.5)}
+          opacity={0.9}
+          emissive="#06b6d4"
+          emissiveIntensity={0.3}
         />
       </mesh>
 
-      {/* Right plane (green side) */}
-      <mesh ref={rightPlaneRef} position={[3, 0, 0]} rotation={[0, -Math.PI / 6, 0]}>
-        <primitive object={createGridPlane(6, 8, 20)} />
-        <meshBasicMaterial
+      <mesh position={[-1.3, 2.2, 0.5]} rotation={[Math.PI / 3, Math.PI / 8, 0]}>
+        <primitive object={createGridPlane(2.5, 1.8, 12)} />
+        <meshStandardMaterial
+          color="#06b6d4"
+          wireframe
+          transparent
+          opacity={0.9}
+          emissive="#06b6d4"
+          emissiveIntensity={0.3}
+        />
+      </mesh>
+
+      {/* RIGHT SIDE - EMERALD */}
+      <mesh position={[1.5, 0, 0]} rotation={[0, -Math.PI / 6, 0]}>
+        <primitive object={createGridPlane(2, 3.5, 12)} />
+        <meshStandardMaterial
           color="#10b981"
           wireframe
           transparent
-          opacity={0.6 * (1 - scrollProgress * 0.5)}
+          opacity={0.9}
+          emissive="#10b981"
+          emissiveIntensity={0.3}
         />
       </mesh>
 
-      {/* Top left wing */}
-      <mesh position={[-4, 4, -1]} rotation={[Math.PI / 3, Math.PI / 4, 0]}>
-        <primitive object={createGridPlane(4, 3, 15)} />
-        <meshBasicMaterial
-          color="#0ea5e9"
-          wireframe
-          transparent
-          opacity={0.4 * (1 - scrollProgress * 0.7)}
-        />
-      </mesh>
-
-      {/* Top right wing */}
-      <mesh position={[4, 4, -1]} rotation={[Math.PI / 3, -Math.PI / 4, 0]}>
-        <primitive object={createGridPlane(4, 3, 15)} />
-        <meshBasicMaterial
+      <mesh position={[1.3, 2.2, 0.5]} rotation={[Math.PI / 3, -Math.PI / 8, 0]}>
+        <primitive object={createGridPlane(2.5, 1.8, 12)} />
+        <meshStandardMaterial
           color="#10b981"
           wireframe
           transparent
-          opacity={0.4 * (1 - scrollProgress * 0.7)}
+          opacity={0.9}
+          emissive="#10b981"
+          emissiveIntensity={0.3}
         />
       </mesh>
     </group>
   );
 };
 
-// Animated Grid Floor
-const GridFloor = () => {
-  const gridRef = useRef<THREE.Mesh>(null);
+// 3D Text Component
+const Text3D = ({ text, position, color, scale = 1 }: { text: string; position: [number, number, number]; color: string; scale?: number }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  const font = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 512;
+    canvas.height = 256;
+
+    if (context) {
+      context.fillStyle = color;
+      context.font = 'bold 120px Arial';
+      context.fillText(text, 20, 150);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }, [text, color]);
 
   useFrame(({ clock }) => {
-    if (gridRef.current) {
-      const material = gridRef.current.material as THREE.ShaderMaterial;
-      material.uniforms.time.value = clock.getElapsedTime();
+    if (meshRef.current) {
+      meshRef.current.position.z = Math.sin(clock.getElapsedTime() * 0.5) * 0.5;
     }
   });
 
-  const geometry = useMemo(() => new THREE.PlaneGeometry(40, 40, 40, 40), []);
-
-  const material = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        color1: { value: new THREE.Color('#0ea5e9') },
-        color2: { value: new THREE.Color('#10b981') },
-      },
-      vertexShader: `
-        uniform float time;
-        varying vec2 vUv;
-        varying float vElevation;
-        
-        void main() {
-          vUv = uv;
-          vec3 pos = position;
-          
-          float wave1 = sin(pos.x * 0.5 + time) * 0.3;
-          float wave2 = sin(pos.y * 0.5 + time * 0.8) * 0.3;
-          pos.z = wave1 + wave2;
-          
-          vElevation = pos.z;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 color1;
-        uniform vec3 color2;
-        varying vec2 vUv;
-        varying float vElevation;
-        
-        void main() {
-          vec3 color = mix(color1, color2, vUv.x);
-          float alpha = 0.15 + vElevation * 0.2;
-          gl_FragColor = vec4(color, alpha);
-        }
-      `,
-      transparent: true,
-      wireframe: true,
-    });
-  }, []);
-
   return (
-    <mesh
-      ref={gridRef}
-      geometry={geometry}
-      material={material}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, -4, 0]}
-    />
+    <mesh ref={meshRef} position={position} scale={scale}>
+      <planeGeometry args={[4, 2]} />
+      <meshBasicMaterial map={font} transparent opacity={0.9} />
+    </mesh>
   );
 };
 
-// Glowing Particles with gradient
-const GradientParticles = () => {
+// Floating Particles
+const ParticleField = () => {
   const particlesRef = useRef<THREE.Points>(null);
   const particleCount = 200;
 
-  const { positions, colors, sizes } = useMemo(() => {
+  const { positions, colors } = useMemo(() => {
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
-    const sizes = new Float32Array(particleCount);
-
-    const color1 = new THREE.Color('#0ea5e9');
-    const color2 = new THREE.Color('#10b981');
 
     for (let i = 0; i < particleCount; i++) {
-      const x = (Math.random() - 0.5) * 30;
-      const y = Math.random() * 15 - 2;
-      const z = (Math.random() - 0.5) * 30;
+      positions[i * 3] = (Math.random() - 0.5) * 40;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
 
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
-
-      // Gradient from blue to green based on x position
-      const mixRatio = (x + 15) / 30;
-      const color = color1.clone().lerp(color2, mixRatio);
+      const color = i % 2 === 0 ? new THREE.Color('#06b6d4') : new THREE.Color('#3b82f6');
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
-
-      sizes[i] = Math.random() * 0.1 + 0.05;
     }
 
-    return { positions, colors, sizes };
+    return { positions, colors };
   }, []);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     if (particlesRef.current) {
       const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
 
       for (let i = 0; i < particleCount; i++) {
-        positions[i * 3 + 1] += 0.01;
-
-        if (positions[i * 3 + 1] > 13) {
-          positions[i * 3 + 1] = -2;
-        }
+        positions[i * 3 + 1] += Math.sin(clock.getElapsedTime() + i) * 0.01;
       }
 
       particlesRef.current.geometry.attributes.position.needsUpdate = true;
+      particlesRef.current.rotation.y = clock.getElapsedTime() * 0.05;
     }
   });
 
   return (
     <points ref={particlesRef}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          args={[colors, 3]}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          args={[sizes, 1]}
-        />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        size={0.1}
+        size={0.08}
         vertexColors
         transparent
         opacity={0.6}
@@ -225,58 +164,42 @@ const GradientParticles = () => {
   );
 };
 
-// Orbiting Rings
-const OrbitingRings = () => {
+// Animated Rings
+const AnimatedRings = () => {
   const ringsRef = useRef<THREE.Group>(null);
 
   useFrame(({ clock }) => {
     if (ringsRef.current) {
+      ringsRef.current.rotation.x = clock.getElapsedTime() * 0.2;
       ringsRef.current.rotation.y = clock.getElapsedTime() * 0.15;
-      ringsRef.current.rotation.x = Math.sin(clock.getElapsedTime() * 0.3) * 0.1;
     }
   });
 
   return (
-    <group ref={ringsRef}>
+    <group ref={ringsRef} position={[0, 0, -5]}>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[5, 0.02, 16, 100]} />
-        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.4} />
+        <torusGeometry args={[6, 0.08, 16, 100]} />
+        <meshStandardMaterial
+          color="#06b6d4"
+          transparent
+          opacity={0.3}
+          emissive="#06b6d4"
+          emissiveIntensity={0.2}
+        />
       </mesh>
 
-      <mesh rotation={[Math.PI / 3, 0, 0]}>
-        <torusGeometry args={[6, 0.02, 16, 100]} />
-        <meshBasicMaterial color="#10b981" transparent opacity={0.3} />
-      </mesh>
-
-      <mesh rotation={[0, Math.PI / 4, 0]}>
-        <torusGeometry args={[7, 0.02, 16, 100]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.2} />
+      <mesh rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[7, 0.08, 16, 100]} />
+        <meshStandardMaterial
+          color="#3b82f6"
+          transparent
+          opacity={0.2}
+          emissive="#3b82f6"
+          emissiveIntensity={0.2}
+        />
       </mesh>
     </group>
   );
-};
-
-// Camera Controller with Zoom Animation
-const CameraController = ({ scrollProgress }: { scrollProgress: number }) => {
-  useFrame((state) => {
-    const { camera } = state;
-
-    // Smooth zoom in through the gap between planes
-    const targetZ = 15 - scrollProgress * 20; // Move from 15 to -5 (zoom through)
-    const targetY = 2 - scrollProgress * 2; // Lower camera slightly
-    const targetFov = 50 + scrollProgress * 30; // Widen FOV for tunnel effect
-
-    // Smooth interpolation
-    camera.position.z += (targetZ - camera.position.z) * 0.1;
-    camera.position.y += (targetY - camera.position.y) * 0.1;
-
-    if ('fov' in camera) {
-      (camera as THREE.PerspectiveCamera).fov += (targetFov - (camera as THREE.PerspectiveCamera).fov) * 0.1;
-      (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
-    }
-  });
-
-  return null;
 };
 
 // Main Scene
@@ -287,28 +210,27 @@ interface TethraTradingSceneProps {
 const TethraTradingScene = ({ scrollProgress = 0 }: TethraTradingSceneProps) => {
   return (
     <Canvas
-      camera={{ position: [0, 2, 15], fov: 50 }}
+      camera={{ position: [0, 0, 15], fov: 60 }}
       style={{ background: 'transparent' }}
     >
-      <color attach="background" args={['#0a0a0a']} />
-
-      {/* Camera Animation Controller */}
-      <CameraController scrollProgress={scrollProgress} />
+      <color attach="background" args={['#050a1e']} />
 
       {/* Lighting */}
       <ambientLight intensity={0.3} />
-      <pointLight position={[-10, 5, 5]} intensity={1} color="#0ea5e9" />
-      <pointLight position={[10, 5, 5]} intensity={1} color="#10b981" />
-      <pointLight position={[0, 10, -5]} intensity={0.5} color="#06b6d4" />
+      <pointLight position={[-8, 8, 8]} intensity={1.2} color="#06b6d4" />
+      <pointLight position={[8, -4, 6]} intensity={1.0} color="#3b82f6" />
+      <pointLight position={[0, 0, 10]} intensity={0.8} color="#10b981" />
 
       {/* Scene Elements */}
-      <GridFloor />
-      <WireframePlanes scrollProgress={scrollProgress} />
-      <OrbitingRings />
-      <GradientParticles />
+      <Text3D text="TAP" position={[-8, 6, 2]} color="#06b6d4" scale={1.5} />
+      <Text3D text="TRADE" position={[5, -5, 1]} color="#3b82f6" scale={1.5} />
+
+      <TethraLogo3D />
+      <AnimatedRings />
+      <ParticleField />
 
       {/* Fog */}
-      <fog attach="fog" args={['#0a0a0a', 15, 35]} />
+      <fog attach="fog" args={['#050a1e', 10, 35]} />
     </Canvas>
   );
 };
