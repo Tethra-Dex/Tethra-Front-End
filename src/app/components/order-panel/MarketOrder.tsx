@@ -864,7 +864,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               <button
                 onClick={handlePreApprove}
                 disabled={isApprovalPending}
-                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors"
+                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors cursor-pointer"
               >
                 {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
               </button>

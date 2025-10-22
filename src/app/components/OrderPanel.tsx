@@ -133,7 +133,7 @@ const OrderPanel: React.FC = () => {
                       setTradeMode('open-position');
                       setIsTapToTradeDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors ${
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
                       tradeMode === 'open-position' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                     }`}
                   >
@@ -145,7 +145,7 @@ const OrderPanel: React.FC = () => {
                       setTradeMode('one-tap-profit');
                       setIsTapToTradeDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors ${
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
                       tradeMode === 'one-tap-profit' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                     }`}
                   >
