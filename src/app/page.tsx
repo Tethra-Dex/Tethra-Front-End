@@ -10,11 +10,15 @@ export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   // Carousel state
   const [currentSlide, setCurrentSlide] = useState(0);
   const [carouselProgress, setCarouselProgress] = useState(0);
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+
+  // Header visibility state
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const slides = [
     {
@@ -42,6 +46,49 @@ export default function LandingPage() {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Handle header visibility based on user activity
+  useEffect(() => {
+    const resetInactivityTimer = () => {
+      // Show header
+      setIsHeaderVisible(true);
+
+      // Clear existing timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+
+      // Only hide header if user has scrolled past hero section (more than 100px)
+      if (window.scrollY > 100) {
+        // Set new timer to hide header after 2 seconds of inactivity
+        inactivityTimerRef.current = setTimeout(() => {
+          setIsHeaderVisible(false);
+        }, 2000);
+      }
+    };
+
+    // Add event listeners for user activity
+    window.addEventListener('mousemove', resetInactivityTimer);
+    window.addEventListener('mousedown', resetInactivityTimer);
+    window.addEventListener('keydown', resetInactivityTimer);
+    window.addEventListener('scroll', resetInactivityTimer);
+    window.addEventListener('touchstart', resetInactivityTimer);
+
+    // Initialize timer
+    resetInactivityTimer();
+
+    return () => {
+      // Cleanup
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      window.removeEventListener('mousemove', resetInactivityTimer);
+      window.removeEventListener('mousedown', resetInactivityTimer);
+      window.removeEventListener('keydown', resetInactivityTimer);
+      window.removeEventListener('scroll', resetInactivityTimer);
+      window.removeEventListener('touchstart', resetInactivityTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -168,7 +215,9 @@ export default function LandingPage() {
   return (
     <div className="w-full bg-black text-white overflow-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 w-full z-30 flex justify-center transition-all duration-700 p-8 md:px-12">
+      <header className={`fixed top-0 left-0 w-full z-30 flex justify-center transition-all duration-700 p-8 md:px-12 ${
+        isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+      }`}>
         <nav
           className={`flex items-center justify-between transition-all duration-700 ${
             scrollY > 50
