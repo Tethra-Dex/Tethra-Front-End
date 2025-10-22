@@ -10,6 +10,29 @@ export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Carousel state
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [carouselProgress, setCarouselProgress] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  
+  const slides = [
+    {
+      title: 'Real-Time Charts',
+      description: 'Live market data with advanced technical indicators and trading tools',
+      image: '/images/DEX.png'
+    },
+    {
+      title: 'Tap to Position',
+      description: 'Tap to trade to open position when the line crosses it',
+      image: '/images/TapPosition.png'
+    },
+    {
+      title: 'One Tap to Profit',
+      description: 'Instantly profit with a single tap when the price line crosses your position',
+      image: '/images/TapProfit.png'
+    }
+  ];
 
   useEffect(() => {
     setIsLoaded(true);
@@ -111,6 +134,36 @@ export default function LandingPage() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Carousel auto-transition with progress
+  useEffect(() => {
+    if (isCarouselPaused) return;
+    
+    setCarouselProgress(0);
+    
+    // Progress bar animation (100 steps in 3 seconds)
+    const progressInterval = setInterval(() => {
+      setCarouselProgress((prev) => {
+        if (prev >= 100) return 100;
+        return prev + 1;
+      });
+    }, 30);
+
+    // Change slide after 3 seconds
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prevIndex) => (prevIndex + 1) % slides.length);
+    }, 3000);
+
+    return () => {
+      clearInterval(progressInterval);
+      clearInterval(slideInterval);
+    };
+  }, [currentSlide, slides.length, isCarouselPaused]);
+
+  const handleSlideChange = (index: number) => {
+    setCurrentSlide(index);
+    setCarouselProgress(0);
+  };
 
   return (
     <div className="w-full bg-black text-white overflow-hidden">
@@ -555,7 +608,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Platform Preview Section */}
+      {/* Platform Preview Section with Carousel */}
       <section id="platform" className="relative z-20 bg-black py-20 px-4">
         <div className="container mx-auto max-w-7xl">
           {/* Section Title */}
@@ -568,58 +621,94 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="relative group">
-            {/* Animated glow effect */}
-            <div 
-              className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-emerald-500/20 to-cyan-500/20 blur-3xl"
-              style={{
-                animation: 'pulse 3s ease-in-out infinite',
-              }}
-            ></div>
+          {/* Carousel Container */}
+          <div 
+            className="relative"
+            onMouseEnter={() => setIsCarouselPaused(true)}
+            onMouseLeave={() => setIsCarouselPaused(false)}
+          >
+            {/* Slides */}
+            <div className="relative min-h-[600px] overflow-hidden">
+              {slides.map((slide, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+                    index === currentSlide
+                      ? 'opacity-100 translate-x-0 scale-100'
+                      : 'opacity-0 translate-x-20 scale-95 pointer-events-none'
+                  }`}
+                >
+                  <div className="relative group">
+                    {/* Animated glow effect */}
+                    <div 
+                      className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-emerald-500/20 to-cyan-500/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    ></div>
 
-            {/* Shimmer effect on hover */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div 
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                style={{
-                  animation: 'shimmer 3s ease-in-out infinite',
-                }}
-              />
+                    {/* Screenshot */}
+                    <div className="relative rounded-xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/20 group-hover:border-cyan-500/60 group-hover:shadow-cyan-500/40 transition-all duration-500 group-hover:scale-[1.02]">
+                      <Image
+                        src={slide.image}
+                        alt={slide.title}
+                        width={1920}
+                        height={1080}
+                        className="w-full h-auto"
+                        priority={index === 0}
+                      />
+
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+
+                      {/* Interactive corner highlights */}
+                      <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-cyan-500/0 group-hover:border-cyan-500/50 transition-all duration-500"></div>
+                      <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-emerald-500/0 group-hover:border-emerald-500/50 transition-all duration-500"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Screenshot */}
-            <div className="relative rounded-xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/20 group-hover:border-cyan-500/60 group-hover:shadow-cyan-500/40 transition-all duration-500 group-hover:scale-[1.02]">
-              <Image
-                src="/images/DEX.png"
-                alt="Tethra Finance Trading Platform"
-                width={1920}
-                height={1080}
-                className="w-full h-auto transition-transform duration-500 group-hover:scale-105"
-                priority
-              />
-
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
-
-              {/* Feature badges on screenshot */}
-              <div className="absolute top-6 left-6 flex flex-col gap-3">
-                <div className="bg-cyan-500/20 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/50 flex items-center gap-2 hover:bg-cyan-500/30 hover:border-cyan-500/70 transition-all duration-300 cursor-pointer">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-white">Live Trading</span>
-                </div>
-                <div className="bg-emerald-500/20 backdrop-blur-md px-4 py-2 rounded-full border border-emerald-500/50 flex items-center gap-2 hover:bg-emerald-500/30 hover:border-emerald-500/70 transition-all duration-300 cursor-pointer opacity-0 group-hover:opacity-100">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-white">Real-time Oracle Data</span>
-                </div>
-              </div>
-
-              {/* Interactive corner highlights */}
-              <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-cyan-500/0 group-hover:border-cyan-500/50 transition-all duration-500"></div>
-              <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-emerald-500/0 group-hover:border-emerald-500/50 transition-all duration-500"></div>
+            {/* Text Content Below Image */}
+            <div className="text-center max-w-3xl mx-auto mt-8 min-h-[100px]">
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 transition-all duration-500">
+                {slides[currentSlide].title}
+              </h3>
+              <p className="text-base md:text-lg text-gray-400 transition-all duration-500">
+                {slides[currentSlide].description}
+              </p>
             </div>
 
-            {/* Feature highlights below screenshot */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+            {/* Carousel Indicators - Dots */}
+            <div className="flex justify-center gap-2 mt-8">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSlideChange(index)}
+                  className={`relative overflow-hidden transition-all duration-500 ease-in-out rounded-full ${
+                    index === currentSlide
+                      ? 'w-12 h-3'
+                      : 'w-3 h-3 bg-gray-600 hover:bg-gray-400 hover:scale-110'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                >
+                  {index === currentSlide ? (
+                    <>
+                      {/* Background */}
+                      <div className="absolute inset-0 bg-gray-700 rounded-full"></div>
+                      {/* Progress bar */}
+                      <div 
+                        className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-100 shadow-lg shadow-cyan-500/50"
+                        style={{ width: `${carouselProgress}%` }}
+                      ></div>
+                    </>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+          </div>
+
+          {/* Feature highlights below screenshot */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
               <div className="group/card p-6 rounded-lg bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/50 hover:from-cyan-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-cyan-500/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"></div>
                 <div className="text-cyan-400 mb-2 transform group-hover/card:scale-110 transition-transform duration-300">
@@ -652,7 +741,6 @@ export default function LandingPage() {
                 <h3 className="text-xl font-bold text-white mb-2 relative">Grid Management</h3>
                 <p className="text-gray-400 relative">Manage multiple positions simultaneously with visual grid trading</p>
               </div>
-            </div>
           </div>
 
           {/* Stats */}
