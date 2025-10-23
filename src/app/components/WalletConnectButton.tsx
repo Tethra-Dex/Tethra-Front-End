@@ -244,7 +244,7 @@ const WalletConnectButton: React.FC = () => {
       : 'Connected';
 
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center">
         {/* Connect Wallet Button with Wallet Icon */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -255,7 +255,7 @@ const WalletConnectButton: React.FC = () => {
         </button>
 
         {/* Base Network Button */}
-        <div className="relative group">
+        <div className="relative group ml-3">
           <button
             className="flex items-center justify-center w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             title="Sepolia Base"
@@ -417,10 +417,10 @@ const WalletConnectButton: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <>
       {/* Connect Wallet Button with Wallet Icon */}
-      <button 
-        onClick={login} 
+      <button
+        onClick={login}
         className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
       >
         <Wallet className="w-5 h-5" />
@@ -444,7 +444,7 @@ const WalletConnectButton: React.FC = () => {
           Sepolia Base
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

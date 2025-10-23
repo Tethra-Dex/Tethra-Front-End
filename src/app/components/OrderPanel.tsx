@@ -7,6 +7,7 @@ import LimitOrder from './order-panel/LimitOrder';
 import TapToTrade from './order-panel/TaptoTrade';
 import { useTapToTrade } from '../contexts/TapToTradeContext';
 import WalletConnectButton from './WalletConnectButton';
+import ClaimUSDCButton from './ClaimUSDCButton';
 
 const OrderPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'long' | 'short' | 'swap'>('short');
@@ -35,7 +36,7 @@ const OrderPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col text-gray-100 relative overflow-hidden" style={{ borderRadius: '0.5rem' }}>
       {/* Separate Header with Wallet Connect Button - Dark Background */}
-      <div 
+      <div
         className="flex items-center justify-end"
         style={{
           padding: '0.60rem 1rem',
@@ -45,7 +46,10 @@ const OrderPanel: React.FC = () => {
           borderTopRightRadius: '0.5rem'
         }}
       >
-        <WalletConnectButton />
+        <div className="flex items-center gap-3">
+          <ClaimUSDCButton />
+          <WalletConnectButton />
+        </div>
       </div>
 
       {/* Order Panel - Aligned with Trading Chart Header */}
