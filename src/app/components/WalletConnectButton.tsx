@@ -336,10 +336,10 @@ const WalletConnectButton: React.FC = () => {
 
                   <button
                     onClick={handleDisconnect}
-                    className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer"
+                    className="p-2.5 bg-red-500 hover:bg-red-600 rounded-xl transition-colors cursor-pointer"
                     title="Disconnect"
                   >
-                    <LogOut className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                    <LogOut className="w-4 h-4 text-white hover:text-white" />
                   </button>
                 </div>
               </div>
@@ -421,7 +421,7 @@ const WalletConnectButton: React.FC = () => {
       {/* Connect Wallet Button with Wallet Icon */}
       <button 
         onClick={login} 
-        className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg"
+        className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
       >
         <Wallet className="w-5 h-5" />
         Connect wallet

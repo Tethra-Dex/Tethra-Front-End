@@ -514,7 +514,7 @@ const BottomTrading = () => {
               type="checkbox"
               checked={chartPositions}
               onChange={(e) => setChartPositions(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-300 focus:ring-blue-300 focus:ring-offset-0"
+              className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-300 focus:ring-blue-300 focus:ring-offset-0 cursor-pointer"
             />
             <span>Chart positions</span>
           </label>

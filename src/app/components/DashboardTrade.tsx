@@ -92,7 +92,7 @@ export default function DashboardTrade() {
 
       {/* Built on Base Badge */}
       <div className="mt-auto w-full">
-        <div className={`flex items-center space-x-2 bg-gradient-to-r from-blue-400 to-blue-300 rounded-lg shadow-lg hover:shadow-blue-300/20 transition-all duration-300 cursor-pointer ${
+        <div className={`flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg shadow-lg hover:shadow-blue-300/20 transition-all duration-300 cursor-pointer ${
           isExpanded ? 'justify-center px-3 py-2.5' : 'justify-center p-2.5'
         }`}>
           <Image
