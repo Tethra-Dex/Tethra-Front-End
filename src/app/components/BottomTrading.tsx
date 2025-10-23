@@ -116,19 +116,11 @@ const PositionRow = ({
     : entryPrice * (1 + liqPriceRatio);
   
   const pnlColor = unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400';
-  
-  // Get crypto icon based on symbol
-  const getCryptoIcon = (symbol: string) => {
-    const icons: { [key: string]: string } = {
-      'BTC': '₿',
-      'ETH': 'Ξ',
-      'SOL': '◎',
-      'AVAX': '🔺',
-      'MATIC': '🟣',
-      'ARB': '🔵',
-      'OP': '🔴',
-    };
-    return icons[symbol] || '💎';
+
+  // Get crypto logo URL from ALL_MARKETS
+  const getMarketLogo = (symbol: string) => {
+    const market = ALL_MARKETS.find(m => m.symbol === symbol);
+    return market?.logoUrl || '';
   };
   
   const handleRowClick = (e: React.MouseEvent) => {
@@ -156,9 +148,16 @@ const PositionRow = ({
       {/* Position / Market */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-lg">
-            {getCryptoIcon(position.symbol)}
-          </div>
+          <img
+            src={getMarketLogo(position.symbol)}
+            alt={position.symbol}
+            className="w-8 h-8 rounded-full bg-slate-700"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.onerror = null;
+              target.style.visibility = 'hidden';
+            }}
+          />
           <div className="flex flex-col">
             <span className="font-semibold text-white">{position.symbol}/USD</span>
             <div className="flex items-center gap-1">
