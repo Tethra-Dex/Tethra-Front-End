@@ -149,7 +149,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
                       setTradeMode('open-position');
                       setIsTapToTradeDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors ${
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
                       tradeMode === 'open-position' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                     }`}
                   >
@@ -161,7 +161,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
                       setTradeMode('one-tap-profit');
                       setIsTapToTradeDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors ${
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
                       tradeMode === 'one-tap-profit' ? 'bg-[#2D3748] text-blue-300' : 'text-white'
                     }`}
                   >
@@ -187,11 +187,11 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
         {activeOrderType === 'market' && <MarketOrder activeTab={activeTab} />}
         {activeOrderType === 'limit' && <LimitOrder activeTab={activeTab} />}
         {activeOrderType === 'Tap to Trade' && (
-          <div className="relative h-full">
+          <div className="relative min-h-full">
             <TapToTrade />
-            {/* Blur overlay when dropdown is open */}
+            {/* Blur overlay when dropdown is open - covers entire scrollable content */}
             {isTapToTradeDropdownOpen && (
-              <div className="absolute inset-0 bg-[#0B1017]/80 backdrop-blur-sm z-40 flex items-center justify-center">
+              <div className="absolute inset-0 bg-[#0B1017]/80 backdrop-blur-sm z-40 flex items-center justify-center min-h-full">
                 <div className="text-center px-6">
                   <div className="bg-blue-300/10 border border-blue-300/30 rounded-lg p-6 max-w-md">
                     <p className="text-sm text-blue-400 mb-2">
