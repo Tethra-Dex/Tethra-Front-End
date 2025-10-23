@@ -525,9 +525,9 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   }, [relayHash, usdcCharged, isTpSlEnabled, takeProfitPrice, stopLossPrice, embeddedAddress, setTPSL, refetchPositions, positionIds]);
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419]">
+    <div className="flex flex-col gap-3 md:px-4 px-3 md:py-4 py-3 bg-[#0F1419]">
       <div>
-        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3">
+        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg md:p-3 p-2">
           <label className="text-xs text-gray-400 mb-2 block">Pay</label>
           <div className="flex justify-between items-center mb-2">
             <input

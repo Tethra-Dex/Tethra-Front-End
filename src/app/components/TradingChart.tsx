@@ -433,16 +433,15 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
 
     return (
         <div
-            className="flex flex-wrap items-center justify-between"
+            className="flex flex-wrap items-center justify-between md:px-4 px-2 md:py-2 py-1.5"
             style={{
-                padding: '0.49rem 1rem',
                 gap: '0.75rem',
                 flexShrink: 0,
                 position: 'relative',
                 zIndex: 10
             }}
         >
-            <div className="flex items-center gap-x-6">
+            <div className="flex items-center md:gap-x-6 gap-x-3 flex-wrap">
                 <div className="relative" style={{ zIndex: 11 }}>
                     <button
                         ref={props.triggerRef}
@@ -483,16 +482,16 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                     />
                 </div>
 
-                <div className="flex flex-col min-w-[130px]">
-                    <span className="font-semibold font-mono text-lg text-white">
+                <div className="flex flex-col min-w-[100px] md:min-w-[130px]">
+                    <span className="font-semibold font-mono md:text-lg text-base text-white">
                         {displayPrice ? formatPrice(displayPrice) : '$--'}
                     </span>
-                    <span className={`font-semibold font-mono text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`font-semibold font-mono md:text-sm text-xs ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                         {props.marketData?.priceChangePercent ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(2)}%` : '--'}
                     </span>
                 </div>
 
-                <div className="flex flex-col">
+                <div className="md:flex flex-col hidden">
                     <span className="text-m text-slate-400">24H HIGH</span>
                     <div className="flex items-center gap-1">
                         <span className="text-green-400 text-xs">▲</span>
@@ -502,7 +501,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                     </div>
                 </div>
 
-                <div className="flex flex-col">
+                <div className="md:flex flex-col hidden">
                     <span className="text-m text-slate-400">24H LOW</span>
                     <div className="flex items-center gap-1">
                         <span className="text-red-400 text-xs">▼</span>
@@ -512,7 +511,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                     </div>
                 </div>
 
-                <div className="flex flex-col">
+                <div className="md:flex flex-col hidden">
                     <span className="text-m text-slate-400">24H VOLUME</span>
                     <span className="font-semibold font-mono text-sm text-slate-200">
                         {props.marketData?.volume24h ? formatVolume(parseFloat(props.marketData.volume24h)) : '--'}
@@ -522,7 +521,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                 {/* Futures Data */}
                 {props.futuresData && (
                     <>
-                        <div className="flex flex-col">
+                        <div className="md:flex flex-col hidden">
                             <span className="text-m text-slate-400">FUNDING RATE</span>
                             <div className="flex items-center gap-1">
                                 <span className={`font-semibold font-mono text-sm ${isFundingPositive ? 'text-green-400' : 'text-red-400'}`}>
@@ -533,16 +532,40 @@ const ChartHeader: React.FC<ChartHeaderProps> = (props) => {
                                 </span>
                             </div>
                         </div>
-                        <div className="flex flex-col">
+                        <div className="md:flex flex-col hidden">
                             <span className="text-m text-slate-400">OPEN INTEREST</span>
                             <span className="font-semibold font-mono text-sm text-slate-200">
                                 {formatVolume(parseFloat(props.futuresData.openInterestValue))}
                             </span>
                         </div>
-                        <RealTimeClock />
+                        <div className="md:flex hidden">
+                            <RealTimeClock />
+                        </div>
                     </>
                 )}
             </div>
+
+            {/* Mobile: Info Button - Top Right Corner */}
+            <button
+                className="md:hidden absolute top-2 right-2 flex items-center justify-center p-2 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"
+                onClick={() => {
+                    // Toggle mobile coin info panel with market data
+                    const event = new CustomEvent('toggleMobileCoinInfo', {
+                        detail: {
+                            marketData: {
+                                ...props.marketData,
+                                openInterestValue: props.futuresData?.openInterestValue
+                            },
+                            activeMarket: props.activeMarket
+                        }
+                    });
+                    window.dispatchEvent(event);
+                }}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
         </div>
     );
 };

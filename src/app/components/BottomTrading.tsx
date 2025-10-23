@@ -265,6 +265,7 @@ const PositionRow = ({
 
 const BottomTrading = () => {
   const [activeTab, setActiveTab] = useState('Positions');
+  const [orderSubTab, setOrderSubTab] = useState('Pending Orders');
   const [openPositionsCount, setOpenPositionsCount] = useState(0);
   const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { address } = useEmbeddedWallet();
@@ -393,7 +394,7 @@ const BottomTrading = () => {
   // No need for extra state or useEffect - just use positionIds directly
   const isLoading = isLoadingIds;
 
-  const tabs = ['Positions', 'Orders', 'Tap to Trade Orders', 'Binary Orders', 'Trades', 'Claims'];
+  const tabs = ['Positions', 'Orders', 'Trades', 'Claims'];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -464,11 +465,32 @@ const BottomTrading = () => {
           </div>
         );
       case 'Orders':
-        return <PendingOrdersTable />;
-      case 'Tap to Trade Orders':
-        return <TapToTradeOrders />;
-      case 'Binary Orders':
-        return <BinaryOrders />;
+        return (
+          <div>
+            {/* Orders Submenu */}
+            <div className="flex gap-2 p-3 border-b border-gray-800 bg-[#0F1419]">
+              {['Pending Orders', 'Tap to Trade Orders', 'Binary Orders'].map((subTab) => (
+                <button
+                  key={subTab}
+                  onClick={() => setOrderSubTab(subTab)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    orderSubTab === subTab
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  {subTab}
+                </button>
+              ))}
+            </div>
+            {/* Render content based on selected submenu */}
+            <div>
+              {orderSubTab === 'Pending Orders' && <PendingOrdersTable />}
+              {orderSubTab === 'Tap to Trade Orders' && <TapToTradeOrders />}
+              {orderSubTab === 'Binary Orders' && <BinaryOrders />}
+            </div>
+          </div>
+        );
       case 'Trades':
         return <div className="text-center py-16 text-gray-500">No trades found</div>;
       case 'Claims':
@@ -506,17 +528,6 @@ const BottomTrading = () => {
               )}
             </button>
           ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400 hover:text-white transition-colors">
-            <input
-              type="checkbox"
-              checked={chartPositions}
-              onChange={(e) => setChartPositions(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-300 focus:ring-blue-300 focus:ring-offset-0 cursor-pointer"
-            />
-            <span>Chart positions</span>
-          </label>
         </div>
       </div>
       <div className="flex-1 overflow-auto min-h-0">

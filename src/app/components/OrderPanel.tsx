@@ -9,9 +9,20 @@ import { useTapToTrade } from '../contexts/TapToTradeContext';
 import WalletConnectButton from './WalletConnectButton';
 import ClaimUSDCButton from './ClaimUSDCButton';
 
-const OrderPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'long' | 'short' | 'swap'>('short');
+interface OrderPanelProps {
+  mobileActiveTab?: 'long' | 'short' | 'swap';
+}
+
+const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
+  const [activeTab, setActiveTab] = useState<'long' | 'short' | 'swap'>(mobileActiveTab || 'short');
   const [activeOrderType, setActiveOrderType] = useState<'market' | 'limit' | 'Tap to Trade' | 'more'>('market');
+
+  // Sync with mobile tab if provided
+  React.useEffect(() => {
+    if (mobileActiveTab) {
+      setActiveTab(mobileActiveTab);
+    }
+  }, [mobileActiveTab]);
   const [isTapToTradeDropdownOpen, setIsTapToTradeDropdownOpen] = useState(false);
   const { isEnabled: tapToTradeEnabled, tradeMode, setTradeMode } = useTapToTrade();
 
@@ -34,10 +45,10 @@ const OrderPanel: React.FC = () => {
   }, [isTapToTradeDropdownOpen]);
 
   return (
-    <div className="h-full flex flex-col text-gray-100 relative overflow-hidden" style={{ borderRadius: '0.5rem' }}>
-      {/* Separate Header with Wallet Connect Button - Dark Background */}
+    <div className="h-full flex flex-col text-gray-100 relative overflow-hidden md:rounded-lg">
+      {/* Separate Header with Wallet Connect Button - Dark Background - Hidden on Mobile */}
       <div
-        className="flex items-center justify-end"
+        className="md:flex hidden items-center justify-end"
         style={{
           padding: '0.60rem 1rem',
           backgroundColor: '#000000',
@@ -53,7 +64,8 @@ const OrderPanel: React.FC = () => {
       </div>
 
       {/* Order Panel - Aligned with Trading Chart Header */}
-      <div className="flex-1 flex flex-col bg-[#0B1017] overflow-hidden">
+      <div className="flex-1 flex flex-col bg-[#0B1017] overflow-hidden md:rounded-b-lg">
+      {/* Tab buttons - Always visible */}
       <div className="flex border-b border-[#1A202C] bg-[#0B1017]">
         {[
           { key: 'long' as const, label: 'Long', icon: <TrendingUp size={16} />, color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)', shadowColor: 'rgba(16, 185, 129, 0.3)' },
