@@ -1,13 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { toast } from 'react-hot-toast';
 import { DollarSign } from 'lucide-react';
-import { BACKEND_API_URL } from '@/config/contracts';
+import { USDC_ADDRESS } from '@/config/contracts';
+import { encodeFunctionData } from 'viem';
+
+// Mock USDC ABI with faucet function
+const MOCK_USDC_ABI = [
+  {
+    inputs: [],
+    name: 'faucet',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
 
 const ClaimUSDCButton: React.FC = () => {
   const { authenticated, user } = usePrivy();
+  const { wallets } = useWallets();
   const [isClaiming, setIsClaiming] = useState(false);
 
   const handleClaimUSDC = async () => {
@@ -16,67 +29,68 @@ const ClaimUSDCButton: React.FC = () => {
       return;
     }
 
-    // Get embedded wallet address
-    const embeddedWallets = user.linkedAccounts?.filter(
-      (account: any) =>
-        account.type === 'wallet' &&
-        account.imported === false &&
-        account.id !== undefined
-    ) as any[];
-
-    const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
-
-    if (!embeddedWalletAddress) {
-      toast.error('Wallet address not found');
+    // Get embedded wallet
+    const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+    if (!embeddedWallet) {
+      toast.error('Embedded wallet not found');
       return;
     }
 
+    const walletAddress = embeddedWallet.address;
+
     setIsClaiming(true);
-    const loadingToast = toast.loading('Claiming 100 USDC from faucet...');
+    const loadingToast = toast.loading('Claiming USDC from faucet...');
 
     try {
-      // Call backend faucet API
-      const response = await fetch(`${BACKEND_API_URL}/api/faucet/claim`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          address: embeddedWalletAddress,
-          amount: '100'
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to claim USDC from faucet');
+      // Get wallet provider
+      const provider = await embeddedWallet.getEthereumProvider();
+      if (!provider) {
+        throw new Error('Could not get wallet provider');
       }
 
-      toast.success(`Successfully claimed 100 USDC! 🎉`, {
+      // Encode faucet() function call
+      const data = encodeFunctionData({
+        abi: MOCK_USDC_ABI,
+        functionName: 'faucet',
+        args: [],
+      });
+
+      // Send transaction to call faucet()
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: walletAddress,
+            to: USDC_ADDRESS,
+            data: data,
+          },
+        ],
+      });
+
+      console.log('Faucet transaction sent:', txHash);
+
+      toast.success(`USDC claimed successfully! 🎉`, {
         id: loadingToast,
         duration: 4000,
       });
 
       // Show transaction link
-      if (result.data?.explorerUrl) {
-        setTimeout(() => {
-          toast.success(
-            <div>
-              View on Explorer:{' '}
-              <a
-                href={result.data.explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Click here
-              </a>
-            </div>,
-            { duration: 5000 }
-          );
-        }, 500);
-      }
+      setTimeout(() => {
+        toast.success(
+          <div>
+            View on Explorer:{' '}
+            <a
+              href={`https://sepolia.basescan.org/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Click here
+            </a>
+          </div>,
+          { duration: 5000 }
+        );
+      }, 500);
 
       // Reload the page to refresh balance
       setTimeout(() => {
@@ -87,7 +101,9 @@ const ClaimUSDCButton: React.FC = () => {
 
       let errorMessage = 'Failed to claim USDC from faucet';
 
-      if (error?.message) {
+      if (error?.message?.includes('user rejected')) {
+        errorMessage = 'Transaction was rejected';
+      } else if (error?.message) {
         errorMessage = error.message;
       }
 
