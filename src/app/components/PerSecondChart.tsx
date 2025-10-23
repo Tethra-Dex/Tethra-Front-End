@@ -329,8 +329,10 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       ctx.lineWidth = 1.5; // Increased from 1 to 1.5
       ctx.setLineDash([5, 5]); // Dashed line: 5px dash, 5px gap
 
-      const lowestPriceLevel = Math.floor(displayMinPrice / GRID_Y_DOLLARS) * GRID_Y_DOLLARS;
-      const highestPriceLevel = Math.ceil(displayMaxPrice / GRID_Y_DOLLARS) * GRID_Y_DOLLARS;
+      // Round priceLevel to exact grid multiples to ensure consistent cellId
+      // Using toFixed to avoid floating point precision issues
+      const lowestPriceLevel = parseFloat((Math.floor(displayMinPrice / GRID_Y_DOLLARS) * GRID_Y_DOLLARS).toFixed(2));
+      const highestPriceLevel = parseFloat((Math.ceil(displayMaxPrice / GRID_Y_DOLLARS) * GRID_Y_DOLLARS).toFixed(2));
 
       for (let price = lowestPriceLevel; price <= highestPriceLevel; price += GRID_Y_DOLLARS) {
         const y = priceToY(price);
@@ -394,7 +396,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       // Draw grid cells (clickable areas) with hover and selection states
       let currentHoveredCell: string | null = null;
 
-      for (let priceLevel = lowestPriceLevel; priceLevel <= highestPriceLevel; priceLevel += GRID_Y_DOLLARS) {
+      for (let priceLevelRaw = lowestPriceLevel; priceLevelRaw <= highestPriceLevel; priceLevelRaw += GRID_Y_DOLLARS) {
+        // Round to avoid floating point precision issues
+        const priceLevel = parseFloat(priceLevelRaw.toFixed(2));
         const yTop = priceToY(priceLevel + GRID_Y_DOLLARS);
         const yBottom = priceToY(priceLevel);
 
@@ -408,8 +412,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           const boxWidth = xRight - xLeft;
           const boxHeight = Math.abs(yBottom - yTop);
 
-          // Create cell ID
-          const cellId = `${Math.floor(timestamp / 1000)}_${priceLevel}`;
+          // Create cell ID with consistent formatting
+          // Use toFixed to ensure consistent decimal representation
+          const cellId = `${Math.floor(timestamp / 1000)}_${priceLevel.toFixed(2)}`;
 
           // Check if mouse is hovering over this cell
           if (mousePos &&
@@ -432,6 +437,46 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
             ctx.lineWidth = 2;
             ctx.strokeRect(xLeft, yTop, boxWidth, boxHeight);
+
+            // Calculate multiplier and price for this cell
+            // Use same logic as hover calculation
+            const targetPrice = priceLevel; // Bottom of grid (same as hover)
+            const targetTime = Math.floor(timestamp / 1000); // Start time of grid (same as hover)
+            const entryPrice = priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].price : currentPrice;
+            const entryTime = Math.floor(Date.now() / 1000); // Current time (same as hover)
+            const mult = calculateMultiplier(entryPrice, targetPrice, entryTime, targetTime);
+
+            // Display center price for visual clarity
+            const displayPrice = priceLevel + (GRID_Y_DOLLARS / 2);
+
+            // Display multiplier in the center of selected cell
+            const centerX = xLeft + (boxWidth / 2);
+            const centerY = yTop + (boxHeight / 2);
+
+            // Draw multiplier text
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Text shadow for better visibility
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(`${(mult / 100).toFixed(2)}x`, centerX, centerY - 8);
+
+            // Draw price text
+            ctx.font = '600 12px monospace';
+            ctx.fillStyle = '#ffffff';
+            const decimals = symbol === 'SOL' ? 1 : 0;
+            ctx.fillText(`$${displayPrice.toFixed(decimals)}`, centerX, centerY + 8);
+
+            // Reset shadow
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
           } else if (isHovered && !isDragging) {
             // Hovered cell - light blue highlight
             ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';

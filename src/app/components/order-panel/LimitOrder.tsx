@@ -380,10 +380,18 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               onChange={handlePayInputChange}
               className="bg-transparent text-2xl text-white outline-none w-full"
             />
-            <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity">
-              <div className="w-7 h-7 rounded-full bg-blue-300 flex items-center justify-center text-sm font-semibold">$</div>
+            <div className="flex items-center gap-2 mr-6">
+              <img
+                src="/images/USDC.png"
+                alt="USDC"
+                className="w-7 h-7 rounded-full"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                }}
+              />
               <span className="font-medium">USDC</span>
-            </button>
+            </div>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">{formatPrice(payUsdValue)}</span>
@@ -474,7 +482,15 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             />
             {activeTab === 'swap' ? (
               <div className="flex items-center gap-1.5 text-white font-semibold text-sm whitespace-nowrap ml-3">
-                <div className="w-5 h-5 rounded-full bg-blue-300 flex items-center justify-center text-xs flex-shrink-0">$</div>
+                <img
+                  src="/images/USDC.png"
+                  alt="USDC"
+                  className="w-5 h-5 rounded-full flex-shrink-0"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
+                />
                 <span>USDC per</span>
                 {activeMarket && (
                   <img

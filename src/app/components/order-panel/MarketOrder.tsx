@@ -537,10 +537,18 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               onChange={handlePayInputChange}
               className="bg-transparent text-2xl text-white outline-none w-full"
             />
-            <button className="flex items-center gap-2 bg-transparent rounded-lg px-3 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity relative">
-              <div className="w-7 h-7 rounded-full bg-blue-300 flex items-center justify-center text-sm font-semibold">$</div>
+            <div className="flex items-center gap-2 mr-6">
+              <img
+                src="/images/USDC.png"
+                alt="USDC"
+                className="w-7 h-7 rounded-full"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                }}
+              />
               <span className="font-medium">USDC</span>
-            </button>
+            </div>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">{formatPrice(payUsdValue)}</span>
