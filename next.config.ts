@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+        port: '',
+        pathname: '/trustwallet/assets/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

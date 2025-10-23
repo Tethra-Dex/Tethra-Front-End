@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import ProblemSolution from './components/landing/ProblemSolution';
-import Comparison from './components/landing/Comparison';
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -19,6 +17,10 @@ export default function LandingPage() {
   // Header visibility state
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Supported chains animation state
+  const [isChainsVisible, setIsChainsVisible] = useState(false);
+  const chainsRef = useRef<HTMLDivElement>(null);
   
   const slides = [
     {
@@ -185,9 +187,9 @@ export default function LandingPage() {
   // Carousel auto-transition with progress
   useEffect(() => {
     if (isCarouselPaused) return;
-    
+
     setCarouselProgress(0);
-    
+
     // Progress bar animation (100 steps in 3 seconds)
     const progressInterval = setInterval(() => {
       setCarouselProgress((prev) => {
@@ -206,6 +208,29 @@ export default function LandingPage() {
       clearInterval(slideInterval);
     };
   }, [currentSlide, slides.length, isCarouselPaused]);
+
+  // Chains animation on scroll
+  useEffect(() => {
+    const handleChainsScroll = () => {
+      if (!chainsRef.current) return;
+
+      const rect = chainsRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      // Show chains when section is visible (60% threshold)
+      // Hide chains when scrolled past the section
+      if (rect.top <= windowHeight * 0.6 && rect.bottom >= windowHeight * 0.4) {
+        setIsChainsVisible(true);
+      } else {
+        setIsChainsVisible(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleChainsScroll);
+    handleChainsScroll(); // Check on mount
+
+    return () => window.removeEventListener('scroll', handleChainsScroll);
+  }, []);
 
   const handleSlideChange = (index: number) => {
     setCurrentSlide(index);
@@ -792,37 +817,181 @@ export default function LandingPage() {
               </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-            <div className="group/stat p-8 rounded-lg bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 text-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-emerald-500/0 group-hover/stat:from-cyan-500/10 group-hover/stat:to-emerald-500/5 transition-all duration-300"></div>
-              <div className="relative text-5xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-2 group-hover/stat:scale-110 transition-transform duration-300">
-                24/7
-              </div>
-              <div className="relative text-gray-400 text-lg group-hover/stat:text-gray-300 transition-colors duration-300">Automated Trading</div>
-            </div>
-            <div className="group/stat p-8 rounded-lg bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 text-center hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-cyan-500/0 group-hover/stat:from-emerald-500/10 group-hover/stat:to-cyan-500/5 transition-all duration-300"></div>
-              <div className="relative text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-2 group-hover/stat:scale-110 transition-transform duration-300">
-                0%
-              </div>
-              <div className="relative text-gray-400 text-lg group-hover/stat:text-gray-300 transition-colors duration-300">Platform Fees</div>
-            </div>
-            <div className="group/stat p-8 rounded-lg bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 text-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-emerald-500/0 group-hover/stat:from-cyan-500/10 group-hover/stat:to-emerald-500/5 transition-all duration-300"></div>
-              <div className="relative text-5xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-2 group-hover/stat:scale-110 transition-transform duration-300">
-                100%
-              </div>
-              <div className="relative text-gray-400 text-lg group-hover/stat:text-gray-300 transition-colors duration-300">Decentralized</div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4">
-        <ProblemSolution />
-        <Comparison />
+      {/* Supported Chains Section */}
+      <section ref={chainsRef} id="supported-chains" className="relative py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(6, 182, 212, 0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '60px 60px',
+            }}
+          />
+        </div>
+
+        {/* Gradient Orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"></div>
+
+        <div className="container mx-auto max-w-6xl relative z-10">
+          {/* Section Title */}
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-4">
+              Supported Chains
+            </h2>
+            <p className="text-xl text-gray-400">
+              Trade seamlessly across multiple blockchain networks
+            </p>
+          </div>
+
+          {/* Chains Grid with Logo in Center */}
+          <div className="relative">
+            {/* Center Logo */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+              <button
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="relative group cursor-pointer focus:outline-none"
+                aria-label="Back to top"
+              >
+                {/* Animated Ring */}
+                <div
+                  className="absolute inset-0 rounded-full border-2 border-cyan-500/30 scale-125"
+                  style={{
+                    animation: 'rotate 15s linear infinite',
+                  }}
+                />
+                <div
+                  className="absolute inset-0 rounded-full border-2 border-emerald-500/30 scale-150"
+                  style={{
+                    animation: 'rotate 20s linear infinite reverse',
+                  }}
+                />
+
+                {/* Glow Effect - Default */}
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 rounded-full blur-2xl scale-150 opacity-100 group-hover:opacity-0 transition-opacity duration-500"></div>
+
+                {/* Glow Effect - Hover (Gradient Circle) */}
+                <div className="absolute inset-0 rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div
+                    className="absolute inset-0 rounded-full blur-2xl"
+                    style={{
+                      background: 'conic-gradient(from 0deg, #06b6d4, #10b981, #06b6d4, #10b981, #06b6d4)',
+                      animation: 'rotate 3s linear infinite',
+                    }}
+                  ></div>
+                </div>
+
+                {/* Tethra Logo */}
+                <div className="relative bg-black rounded-full p-6 border-2 border-cyan-500/50 group-hover:border-cyan-500 group-hover:scale-110 transition-all duration-500 group-hover:shadow-[0_0_40px_rgba(6,182,212,0.6)]">
+                  <Image
+                    src="/images/logo.png"
+                    alt="Tethra Finance"
+                    width={120}
+                    height={120}
+                    className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] group-hover:drop-shadow-[0_0_50px_rgba(6,182,212,0.8)] transition-all duration-500"
+                  />
+                </div>
+              </button>
+            </div>
+
+            {/* Chain Logos in Circle - With Rotation Animation */}
+            <div
+              className="relative w-full max-w-4xl mx-auto aspect-square"
+              style={{
+                animation: isChainsVisible ? 'rotateChains 60s linear infinite' : 'none',
+              }}
+            >
+              {[
+                { name: 'Bitcoin', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', position: 0 },
+                { name: 'Ethereum', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', position: 1 },
+                { name: 'Solana', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', position: 2 },
+                { name: 'Avalanche', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png', position: 3 },
+                { name: 'NEAR', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png', position: 4 },
+                { name: 'BNB', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png', position: 5 },
+                { name: 'Ripple', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png', position: 6 },
+                { name: 'Arbitrum', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png', position: 7 },
+                { name: 'Polygon', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png', position: 8 },
+                { name: 'Dogecoin', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png', position: 9 },
+              ].map((chain, index) => {
+                const totalChains = 10;
+                const angle = (chain.position * 360) / totalChains - 90; // -90 to start from top
+                const radius = 45; // percentage
+                const x = 50 + radius * Math.cos((angle * Math.PI) / 180);
+                const y = 50 + radius * Math.sin((angle * Math.PI) / 180);
+
+                return (
+                  <div
+                    key={chain.name}
+                    className={`absolute group/chain cursor-pointer transition-all duration-1000 ease-out ${
+                      isChainsVisible ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{
+                      left: isChainsVisible ? `${x}%` : '50%',
+                      top: isChainsVisible ? `${y}%` : '50%',
+                      transform: 'translate(-50%, -50%)',
+                      transitionDelay: `${index * 100}ms`,
+                    }}
+                  >
+                    {/* Connection Line to Center */}
+                    <div
+                      className="absolute w-0.5 bg-gradient-to-r from-cyan-500/20 to-transparent opacity-0 group-hover/chain:opacity-100 transition-opacity duration-300"
+                      style={{
+                        height: `${radius * 2}%`,
+                        transformOrigin: 'top center',
+                        transform: `rotate(${angle + 90}deg)`,
+                        top: '50%',
+                        left: '50%',
+                      }}
+                    />
+
+                    {/* Chain Logo Container */}
+                    <div
+                      className="relative"
+                      style={{
+                        animation: isChainsVisible ? 'rotateChains 60s linear infinite reverse' : 'none',
+                      }}
+                    >
+                      {/* Glow on Hover */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-emerald-500/0 group-hover/chain:from-cyan-500/30 group-hover/chain:to-emerald-500/30 rounded-full blur-xl scale-150 transition-all duration-300"></div>
+
+                      {/* Logo */}
+                      <div className="relative bg-gray-900 rounded-full p-3 md:p-4 border border-gray-700 group-hover/chain:border-cyan-500/50 group-hover/chain:scale-110 transition-all duration-300">
+                        <img
+                          src={chain.logo}
+                          alt={chain.name}
+                          className="w-8 h-8 md:w-12 md:h-12"
+                        />
+                      </div>
+
+                      {/* Chain Name */}
+                      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover/chain:opacity-100 transition-opacity duration-300">
+                        <span className="text-xs md:text-sm text-cyan-400 font-medium">
+                          {chain.name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="text-center mt-32">
+            <p className="text-gray-400 text-lg">
+              More chains coming soon...
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Footer */}
@@ -932,6 +1101,15 @@ export default function LandingPage() {
         }
 
         @keyframes rotate {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes rotateChains {
           from {
             transform: rotate(0deg);
           }
