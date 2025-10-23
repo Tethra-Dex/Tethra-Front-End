@@ -42,6 +42,10 @@ const TradingViewWidget: React.FC<TradingViewWidgetProps> = memo(({ symbol }) =>
 
         const initWidget = () => {
             if (typeof (window as any).TradingView !== 'undefined') {
+                // Check if mobile device (not just screen size)
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                                 (window.innerWidth < 768 && 'ontouchstart' in window);
+
                 new (window as any).TradingView.widget({
                     autosize: true,
                     symbol: `BINANCE:${symbol}`,
@@ -52,7 +56,7 @@ const TradingViewWidget: React.FC<TradingViewWidgetProps> = memo(({ symbol }) =>
                     locale: 'en',
                     toolbar_bg: '#171B26',
                     enable_publishing: false,
-                    hide_side_toolbar: false,
+                    hide_side_toolbar: isMobile, // Hide on mobile, show on desktop
                     allow_symbol_change: true,
                     details: false,
                     hotlist: false,

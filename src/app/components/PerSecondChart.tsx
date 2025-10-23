@@ -858,6 +858,55 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            setIsDragging(true);
+            setHasMoved(false);
+            setDragStartX(touch.clientX);
+            setDragStartY(touch.clientY);
+            setDragStartScrollOffset(scrollOffset);
+            setDragStartVerticalOffset(verticalOffset);
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isDragging && e.touches.length === 1) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const deltaX = dragStartX - touch.clientX;
+            const deltaY = touch.clientY - dragStartY; // Inverted for natural touch scrolling
+
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+              setHasMoved(true);
+              setScrollOffset(dragStartScrollOffset + deltaX);
+              setVerticalOffset(dragStartVerticalOffset + deltaY);
+            }
+          }
+        }}
+        onTouchEnd={async () => {
+          if (isDragging && !hasMoved && hoveredCell) {
+            // Treat as tap/click
+            const [timestampStr, priceLevelStr] = hoveredCell.split('_');
+            const timestamp = parseInt(timestampStr);
+            const priceLevel = parseFloat(priceLevelStr);
+
+            // Handle bet placement similar to mouse click
+            if (!isPlacingBet) {
+              const currentTime = Date.now();
+              const isFuture = timestamp > currentTime;
+
+              if (isFuture) {
+                const currentPriceVal = typeof currentPrice === 'string' ? parseFloat(currentPrice) : currentPrice;
+                const isLong = priceLevel > currentPriceVal;
+
+                // Place bet logic here (same as handleMouseUp)
+                console.log('Touch bet:', { timestamp, priceLevel, isLong });
+              }
+            }
+          }
+          setIsDragging(false);
+        }}
         style={{
           width: '100%',
           height: '100%',

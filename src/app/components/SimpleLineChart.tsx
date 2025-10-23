@@ -38,7 +38,22 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
-  const [visibleCandles, setVisibleCandles] = useState(20); // Number of visible candles - reduced for larger grid cells
+  // Dynamic mobile check
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  const [visibleCandles, setVisibleCandles] = useState(isMobile ? 3 : 20); // Fewer candles on mobile = more zoomed in
+
+  // Update mobile state on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Update visibleCandles based on screen size
+      setVisibleCandles(mobile ? 3 : 20);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [panOffset, setPanOffset] = useState(0); // Horizontal pan offset in pixels
   const [verticalPanOffset, setVerticalPanOffset] = useState(0); // Vertical pan offset in pixels
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null); // Mouse position for crosshair
@@ -277,7 +292,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Define margins for labels (right side for price, bottom for time)
-      const rightMargin = 120; // Space for price labels on the right
+      const rightMargin = isMobile ? 80 : 120; // Space for price labels on the right (smaller on mobile)
       const bottomMargin = 25; // Space for time labels at the bottom
       const chartWidth = canvas.width - rightMargin;
       const chartHeight = canvas.height - bottomMargin;
@@ -605,8 +620,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           labelGroupMinutes = 15; // 15 minutes
         } else if (visibleCandles >= 20) {
           labelGroupMinutes = 5; // 5 minutes
+        } else if (visibleCandles >= 5) {
+          // Mobile zoomed in (3-5 visible candles)
+          labelGroupMinutes = Math.max(1, intervalMinutes); // Show every 1 minute for 1m interval
         } else {
-          // Zoomed in - show every interval
+          // Very zoomed in - show every interval
           labelGroupMinutes = intervalMinutes;
         }
 
@@ -660,8 +678,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           } else if (labelGroupMinutes === 5) {
             // 5-minute labels - show at :00, :05, :10, etc.
             shouldDrawLabel = date.getMinutes() % 5 === 0;
+          } else if (labelGroupMinutes === 1) {
+            // 1-minute labels - show every minute
+            shouldDrawLabel = true;
           } else {
-            // Show every column (for 1m when zoomed in)
+            // Show every column based on columnsPerLabel
             shouldDrawLabel = i % columnsPerLabel === 0;
           }
 
@@ -994,7 +1015,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const clickY = (e.clientY - rect.top) * scaleY;
 
       // Define margins (same as in draw function)
-      const rightMargin = 120;
+      const rightMargin = isMobile ? 80 : 120;
       const bottomMargin = 25;
       const chartWidth = canvas.width - rightMargin;
       const chartHeight = canvas.height - bottomMargin;
@@ -1177,7 +1198,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     setMousePosition({ x: mouseX, y: mouseY });
 
     // Define margins (same as in draw function)
-    const rightMargin = 120;
+    const rightMargin = isMobile ? 80 : 120;
     const bottomMargin = 25;
     const chartWidth = canvas.width - rightMargin;
     const chartHeight = canvas.height - bottomMargin;
@@ -1577,6 +1598,35 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            setIsDragging(true);
+            setHasMoved(false);
+            setDragStartX(touch.clientX);
+            setDragStartY(touch.clientY);
+            setDragStartPanOffset(panOffset);
+            setDragStartVerticalOffset(verticalPanOffset);
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isDragging && e.touches.length === 1) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const deltaX = dragStartX - touch.clientX;
+            const deltaY = touch.clientY - dragStartY; // Inverted for natural touch scrolling
+
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+              setHasMoved(true);
+            }
+
+            setPanOffset(dragStartPanOffset + deltaX);
+            setVerticalPanOffset(dragStartVerticalOffset + deltaY);
+          }
+        }}
+        onTouchEnd={() => {
+          setIsDragging(false);
+        }}
         style={{
           width: '100%',
           height: '100%',

@@ -14,7 +14,7 @@ import { useSidebar } from '../contexts/SidebarContext';
 
 function TradePageContent() {
   const { isExpanded } = useSidebar();
-  const { isEnabled } = useTapToTrade();
+  const { isEnabled, toggleMode } = useTapToTrade();
   const { activeMarket, currentPrice } = useMarket();
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -44,9 +44,9 @@ function TradePageContent() {
   }, []);
 
   return (
-    <main className="bg-black text-white h-screen flex flex-col relative md:p-2 p-0 overflow-hidden">
+    <main className="bg-black text-white h-screen flex flex-col relative md:p-2 p-2 md:overflow-hidden overflow-auto">
       {/* Mobile Header - Only visible on mobile */}
-      <div className="md:hidden flex items-center justify-between p-3 bg-[#0B1017] flex-shrink-0">
+      <div className="md:hidden flex items-center justify-between p-3 bg-[#0B1017] flex-shrink-0 rounded-lg mb-2">
         {/* Left: Menu Button + Logo + Name */}
         <div className="flex items-center gap-3">
           <button
@@ -55,17 +55,14 @@ function TradePageContent() {
           >
             <Menu size={24} />
           </button>
-          <div className="flex items-center gap-2">
-            <img
-              src="/images/logo.png"
-              alt="Tethra"
-              className="w-6 h-6"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <span className="font-bold text-white">Tethra</span>
-          </div>
+          <img
+            src="/images/logo.png"
+            alt="Tethra"
+            className="w-6 h-6"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
         {/* Right: Wallet Connect */}
@@ -83,7 +80,7 @@ function TradePageContent() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row w-full flex-1 md:gap-2 gap-0 overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="flex flex-col md:flex-row w-full flex-1 md:gap-2 gap-2 md:overflow-hidden" style={{ minHeight: 0 }}>
         {/* Left Sidebar - Hidden on mobile */}
         <div
           className="hidden md:flex shrink-0 transition-all duration-300 flex-col"
@@ -97,13 +94,12 @@ function TradePageContent() {
         </div>
 
         {/* Center - Chart and Bottom Trading */}
-        <div className="flex-1 flex flex-col min-w-0 relative md:gap-2 gap-0" style={{ minHeight: 0 }}>
+        <div className="md:flex-1 flex flex-col min-w-0 relative md:gap-2" style={{ minHeight: 0, gap: isTapToTradeActive ? 0 : '0.5rem' }}>
           {/* Trading Chart */}
           <div
-            className="flex-1 transition-all duration-300 relative"
+            className="transition-all duration-300 relative flex-1"
             style={{
-              minHeight: isTapToTradeActive ? '0' : '400px',
-              maxHeight: isTapToTradeActive ? '100%' : '70vh',
+              minHeight: isTapToTradeActive ? '80vh' : '400px',
               display: 'flex',
               flexDirection: 'column'
             }}
@@ -211,7 +207,7 @@ function TradePageContent() {
               {/* Bottom Panel - Overlays the chart when open */}
               {isBottomPanelOpen && (
                 <div
-                  className="absolute bottom-0 left-0 right-0 z-10 transition-all duration-300 flex flex-col"
+                  className="absolute bottom-0 left-0 right-0 z-10 transition-all duration-300 flex flex-col mb-0 md:mb-0"
                   style={{
                     height: '40vh',
                     minHeight: '200px',
@@ -236,25 +232,13 @@ function TradePageContent() {
                   </div>
                 </div>
               )}
-
-              {/* Toggle Button - Only shown when closed */}
-              {!isBottomPanelOpen && (
-                <button
-                  onClick={() => setIsBottomPanelOpen(!isBottomPanelOpen)}
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 bg-[#0B1017] border border-gray-700/50 rounded-t-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-800/50 transition-colors"
-                >
-                  <ChevronUp size={16} className="text-gray-400" />
-                  <span className="text-xs text-gray-400 font-medium">Open Positions</span>
-                  <ChevronUp size={16} className="text-gray-400" />
-                </button>
-              )}
             </>
           ) : (
             /* Normal mode - Regular layout with BottomTrading */
             <div
-              className="flex-1 transition-all duration-300"
+              className="md:flex-1 transition-all duration-300 mb-20 md:mb-0"
               style={{
-                minHeight: '200px',
+                minHeight: '400px',
                 maxHeight: '40vh'
               }}
             >
@@ -275,50 +259,90 @@ function TradePageContent() {
           <OrderPanel />
         </div>
 
+        {/* Tap to Trade "Open Positions" Button - Mobile Only, Independent */}
+        {isTapToTradeActive && !isBottomPanelOpen && (
+          <button
+            onClick={() => setIsBottomPanelOpen(!isBottomPanelOpen)}
+            className="md:hidden fixed bottom-[56px] left-1/2 -translate-x-1/2 z-50 bg-[#0B1017] border border-gray-700/50 rounded-t-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-800/50 transition-colors"
+          >
+            <ChevronUp size={16} className="text-gray-400" />
+            <span className="text-xs text-gray-400 font-medium">Open Positions</span>
+            <ChevronUp size={16} className="text-gray-400" />
+          </button>
+        )}
+
         {/* Mobile Order Panel - Bottom Sheet */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-          {/* Long/Short/Swap Tabs - Always Visible */}
+          {/* Long/Short/Swap Tabs OR Stop Tap to Trade Button */}
           {!isMobileOrderPanelOpen && (
-            <div className="flex items-center bg-[#16191E]">
-              <button
-                onClick={() => {
-                  setMobileActiveTab('long');
-                  setIsMobileOrderPanelOpen(true);
-                }}
-                className="flex-1 py-3.5 font-semibold text-sm bg-[#0E4D3C] text-white hover:bg-[#105D47] transition-colors flex items-center justify-center gap-2"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                  <polyline points="17 6 23 6 23 12"></polyline>
-                </svg>
-                Long
-              </button>
-              <button
-                onClick={() => {
-                  setMobileActiveTab('short');
-                  setIsMobileOrderPanelOpen(true);
-                }}
-                className="flex-1 py-3.5 font-semibold text-sm bg-[#1E2329] text-gray-300 hover:bg-[#2B3139] transition-colors flex items-center justify-center gap-2"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
-                  <polyline points="17 18 23 18 23 12"></polyline>
-                </svg>
-                Short
-              </button>
-              <button
-                onClick={() => {
-                  setMobileActiveTab('swap');
-                  setIsMobileOrderPanelOpen(true);
-                }}
-                className="flex-1 py-3.5 font-semibold text-sm bg-[#1E2329] text-gray-300 hover:bg-[#2B3139] transition-colors flex items-center justify-center gap-2"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                </svg>
-                Swap
-              </button>
-            </div>
+            <>
+              {isTapToTradeActive ? (
+                /* Stop Tap to Trade Button */
+                <button
+                  onClick={() => toggleMode()}
+                  className="w-full py-3.5 font-semibold text-sm bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                  Stop Tap to Trade
+                </button>
+              ) : (
+                /* Normal Mode: Long/Short/Swap Tabs */
+                <div className="flex items-center bg-[#16191E]">
+                  <button
+                    onClick={() => {
+                      setMobileActiveTab('long');
+                      setIsMobileOrderPanelOpen(true);
+                    }}
+                    className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                      mobileActiveTab === 'long'
+                        ? 'bg-[#0E4D3C] text-white hover:bg-[#105D47]'
+                        : 'bg-[#1E2329] text-gray-300 hover:bg-[#2B3139]'
+                    }`}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                      <polyline points="17 6 23 6 23 12"></polyline>
+                    </svg>
+                    Long
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileActiveTab('short');
+                      setIsMobileOrderPanelOpen(true);
+                    }}
+                    className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                      mobileActiveTab === 'short'
+                        ? 'bg-[#0E4D3C] text-white hover:bg-[#105D47]'
+                        : 'bg-[#1E2329] text-gray-300 hover:bg-[#2B3139]'
+                    }`}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                      <polyline points="17 18 23 18 23 12"></polyline>
+                    </svg>
+                    Short
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileActiveTab('swap');
+                      setIsMobileOrderPanelOpen(true);
+                    }}
+                    className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                      mobileActiveTab === 'swap'
+                        ? 'bg-[#0E4D3C] text-white hover:bg-[#105D47]'
+                        : 'bg-[#1E2329] text-gray-300 hover:bg-[#2B3139]'
+                    }`}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                    Swap
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* Bottom Sheet Panel */}
@@ -331,7 +355,7 @@ function TradePageContent() {
               />
 
               {/* Panel */}
-              <div className="bg-[#0B1017] shadow-2xl animate-slide-up" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+              <div className="bg-[#0B1017] shadow-2xl animate-slide-up rounded-t-lg" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
                 {/* Order Panel Content */}
                 <OrderPanel mobileActiveTab={mobileActiveTab} />
               </div>

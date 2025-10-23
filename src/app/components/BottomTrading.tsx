@@ -394,7 +394,10 @@ const BottomTrading = () => {
   // No need for extra state or useEffect - just use positionIds directly
   const isLoading = isLoadingIds;
 
-  const tabs = ['Positions', 'Orders', 'Trades', 'Claims'];
+  // Mobile tabs: Orders instead of 3 separate tabs
+  const mobileTabs = ['Positions', 'Orders', 'Trades', 'Claims'];
+  // Desktop tabs: 3 separate order tabs
+  const desktopTabs = ['Positions', 'Pending Orders', 'Tap to Trade Orders', 'Binary Orders', 'Trades', 'Claims'];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -465,9 +468,9 @@ const BottomTrading = () => {
           </div>
         );
       case 'Orders':
+        // Mobile only - show submenu
         return (
           <div>
-            {/* Orders Submenu */}
             <div className="flex gap-2 p-3 border-b border-gray-800 bg-[#0F1419]">
               {['Pending Orders', 'Tap to Trade Orders', 'Binary Orders'].map((subTab) => (
                 <button
@@ -483,7 +486,6 @@ const BottomTrading = () => {
                 </button>
               ))}
             </div>
-            {/* Render content based on selected submenu */}
             <div>
               {orderSubTab === 'Pending Orders' && <PendingOrdersTable />}
               {orderSubTab === 'Tap to Trade Orders' && <TapToTradeOrders />}
@@ -491,6 +493,12 @@ const BottomTrading = () => {
             </div>
           </div>
         );
+      case 'Pending Orders':
+        return <PendingOrdersTable />;
+      case 'Tap to Trade Orders':
+        return <TapToTradeOrders />;
+      case 'Binary Orders':
+        return <BinaryOrders />;
       case 'Trades':
         return <div className="text-center py-16 text-gray-500">No trades found</div>;
       case 'Claims':
@@ -503,9 +511,36 @@ const BottomTrading = () => {
   return (
     <>
     <div className="bg-[#0B1017] border border-gray-700/50 rounded-lg h-full flex flex-col">
-      <div className="flex items-center justify-between border-b border-gray-800/50 px-4 flex-shrink-0">
-        <div className="flex space-x-6">
-          {tabs.map((tab) => (
+      <div className="flex items-center justify-between border-b border-gray-800/50 flex-shrink-0 md:px-4">
+        {/* Mobile tabs - full width divided by 4 */}
+        <div className="flex w-full md:hidden">
+          {mobileTabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-3.5 text-sm font-medium transition-colors duration-200 cursor-pointer relative ${
+                activeTab === tab
+                  ? 'text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                {tab}
+                {tab === 'Positions' && openPositionsCount > 0 && (
+                  <span className="bg-gray-700/50 text-white text-xs rounded px-1.5 py-0.5">
+                    {openPositionsCount}
+                  </span>
+                )}
+              </span>
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-300"></div>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* Desktop tabs */}
+        <div className="hidden md:flex space-x-6">
+          {desktopTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
