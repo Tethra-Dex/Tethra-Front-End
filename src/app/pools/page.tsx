@@ -1,43 +1,50 @@
 "use client";
 
 import React from "react";
-import DashboardTrade from "../components/DashboardTrade";
-import MobileHeader from "../components/MobileHeader";
+import PageLayout from "../components/PageLayout";
 import usePoolData from "../../hooks/usePoolData";
 import LiquidityProvision from "../../components/LiquidityProvision";
-import WalletConnectButton from "../components/WalletConnectButton";
 
 export default function PoolsPage() {
   const poolData = usePoolData();
 
   return (
-    <main className="min-h-screen bg-black text-white p-2">
-      {/* Mobile Header */}
-      <MobileHeader rightContent={<WalletConnectButton />} />
-
-      <div className="flex w-full h-screen gap-2">
-        {/* Sidebar - Responsive */}
-        <DashboardTrade />
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">
-              {poolData.isLoading ? (
-                <div className="animate-pulse bg-gray-700 h-10 w-64 rounded"></div>
-              ) : (
-                poolData.totalTVL
-              )}
-            </h1>
-            <p className="text-gray-400 text-sm">TVL in vaults and pools.</p>
-            {poolData.error && (
-              <p className="text-red-400 text-xs mt-1">
-                Error: {poolData.error}
-              </p>
+    <PageLayout
+      navbar={{
+        title: poolData.isLoading ? "Loading..." : poolData.totalTVL,
+        subtitle: "TVL in vaults and pools",
+      }}
+      mobileHeaderContent={
+        <div>
+          <h1 className="text-3xl font-bold mb-2">
+            {poolData.isLoading ? (
+              <div className="animate-pulse bg-gray-700 h-8 w-48 rounded"></div>
+            ) : (
+              poolData.totalTVL
             )}
+          </h1>
+          <p className="text-gray-400 text-sm">TVL in vaults and pools.</p>
+          {poolData.error && (
+            <p className="text-red-400 text-xs mt-1">Error: {poolData.error}</p>
+          )}
+        </div>
+      }
+    >
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-2">
+          {poolData.isLoading ? (
+            <div className="animate-pulse bg-gray-700 h-10 w-64 rounded"></div>
+          ) : (
+            poolData.totalTVL
+          )}
+        </h1>
+        <p className="text-gray-400 text-sm">TVL in vaults and pools.</p>
+        {poolData.error && (
+          <p className="text-red-400 text-xs mt-1">Error: {poolData.error}</p>
+        )}
 
-            {/* Time period tabs */}
+        {/* Time period tabs */}
             <div className="flex gap-2 mt-4">
               {["Last 30d", "Last 90d", "Last 180d", "Total"].map((period) => (
                 <button
@@ -248,8 +255,6 @@ export default function PoolsPage() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
-    </main>
+    </PageLayout>
   );
 }

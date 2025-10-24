@@ -1,32 +1,18 @@
 'use client';
 
 import React from 'react';
-import DashboardTrade from '../components/DashboardTrade';
-import MobileHeader from '../components/MobileHeader';
-import WalletConnectButton from '../components/WalletConnectButton';
+import PageLayout from '../components/PageLayout';
 import SimpleStaking from '../../components/SimpleStaking';
 import AnalyticsDashboard from '../../components/AnalyticsDashboard';
 
 export default function StakePage() {
   return (
-    <main className="min-h-screen bg-black text-white p-2">
-      {/* Mobile Header */}
-      <MobileHeader rightContent={<WalletConnectButton />} />
-
-      <div className="flex w-full h-screen gap-2">
-        {/* Sidebar - Responsive */}
-        <DashboardTrade />
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">TETH Staking</h1>
-            <p className="text-gray-400 text-sm">
-              Stake TETH tokens to earn USDC rewards from protocol trading fees. 
-              30% of all protocol revenue is distributed to TETH stakers.
-            </p>
-          </div>
+    <PageLayout
+      navbar={{
+        title: "TETH Staking",
+        subtitle: "Stake TETH tokens to earn USDC rewards from protocol trading fees",
+      }}
+    >
 
           {/* Protocol Analytics */}
           <div className="mb-8">
@@ -98,8 +84,6 @@ export default function StakePage() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </main>
+    </PageLayout>
   );
 }

@@ -2,9 +2,7 @@
 
 import { Star, TrendingUp, Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import DashboardTrade from '../components/DashboardTrade';
-import MobileHeader from '../components/MobileHeader';
-import WalletConnectButton from '../components/WalletConnectButton';
+import PageLayout from '../components/PageLayout';
 
 // Mock data untuk traders
 const mockTraders = [
@@ -184,23 +182,16 @@ export default function CopyTradePage() {
   const filteredTraders = getSortedTraders();
 
   return (
-    <main className="h-screen bg-black text-white p-2">
-      {/* Mobile Header */}
-      <MobileHeader rightContent={<WalletConnectButton />} />
-
-      <div className="flex flex-col md:flex-row w-full h-full gap-2">
-        {/* Sidebar - Responsive */}
-        <DashboardTrade />
-
-        <div className="flex-1 overflow-auto bg-[#0a0e14] rounded-lg copy-trade-scrollbar">
-          <div className="p-6 space-y-6">
-            {/* Header */}
-            <div>
-              <h1 className="text-4xl font-bold mb-2">Copy Trade</h1>
-              <p className="text-gray-500 text-sm">
-                Follow the world's top crypto traders and copy their trades with one click
-              </p>
-            </div>
+    <PageLayout
+      navbar={{
+        title: "Copy Trade",
+        subtitle: "Follow the world's top crypto traders",
+        variant: "transparent",
+      }}
+      contentClassName="!p-0"
+    >
+      <div className="h-full overflow-auto bg-[#0a0e14] rounded-lg copy-trade-scrollbar">
+        <div className="p-6 space-y-6">
 
             {/* Banner and Growth Plan Card */}
             <div className="flex gap-4 flex-col lg:flex-row">
@@ -560,9 +551,8 @@ export default function CopyTradePage() {
                 </div>
               ))}
             </div>
-          </div>
         </div>
       </div>
-    </main>
+    </PageLayout>
   );
 }
