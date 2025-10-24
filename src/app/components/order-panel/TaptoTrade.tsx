@@ -403,33 +403,6 @@ const TapToTrade: React.FC = () => {
     }).format(price);
   };
 
-  // Handler for enabling/disabling binary trading
-  const handleToggleBinaryTrading = async () => {
-    if (tapToTrade.isBinaryTradingEnabled) {
-      // Disable binary trading
-      tapToTrade.setIsBinaryTradingEnabled(false);
-      toast.success('Binary Trading disabled');
-    } else {
-      // Enable binary trading - create session key
-      try {
-        toast.loading('Creating session key for gasless binary trading...', { id: 'binary-session' });
-        await createBinarySession();
-        
-        if (isBinarySessionValid()) {
-          tapToTrade.setIsBinaryTradingEnabled(true);
-          toast.success('✅ Binary Trading enabled! Tap grid to place bets without signatures', { 
-            id: 'binary-session',
-            duration: 5000
-          });
-        } else {
-          throw new Error('Session creation failed');
-        }
-      } catch (error) {
-        console.error('Failed to enable binary trading:', error);
-        toast.error('Failed to enable binary trading. Please try again.', { id: 'binary-session' });
-      }
-    }
-  };
 
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-[#0F1419] h-full">

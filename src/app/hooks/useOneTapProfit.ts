@@ -115,10 +115,9 @@ export const useOneTapProfit = () => {
       throw new Error('Wallet not connected');
     }
 
-    // Create session if not exists or expired
+    // Check if session is valid
     if (!isSessionValid()) {
-      console.log('Creating new session key...');
-      await createSession();
+      throw new Error('Session key expired or not created. Please enable Binary Trading again.');
     }
 
     setIsPlacingBet(true);
