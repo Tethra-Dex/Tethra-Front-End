@@ -358,7 +358,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
   return (
     <div
       ref={panelRef}
-      className="absolute top-full mt-2 left-0 w-[900px] max-h-[60vh] bg-[#171B26] border border-slate-700 rounded-lg shadow-xl flex flex-col overflow-hidden"
+      className="absolute top-full mt-2 left-0 w-screen max-h-[60vh] max-w-[90vw] lg:max-w-[80vw] bg-[#171B26] border border-slate-700 rounded-lg shadow-xl flex flex-col overflow-hidden"
       style={{ zIndex: 9999 }}
     >
       <div className="p-4 border-b border-slate-800">
@@ -372,10 +372,10 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
         />
       </div>
       {/* Header Row */}
-      <div className="grid grid-cols-6 gap-3 px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800/50 border-b border-slate-700 sticky top-0">
+      <div className="grid lg:grid-cols-6 grid-cols-2 gap-3 px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800/50 border-b border-slate-700 sticky top-0">
         <div>Market</div>
         <div
-          className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+          className="lg:text-right text-start cursor-pointer hover:text-slate-200 transition-colors flex items-center jlg:ustify-end gap-1"
           onClick={() => handleSort("price")}
         >
           Price
@@ -391,7 +391,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
           )}
         </div>
         <div
-          className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+          className="text-right cursor-pointer hover:text-slate-200 transition-colors lg:flex items-center justify-end gap-1 hidden"
           onClick={() => handleSort("24hChange")}
         >
           24h Change
@@ -407,7 +407,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
           )}
         </div>
         <div
-          className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+          className="text-right cursor-pointer hover:text-slate-200 transition-colors lg:flex items-center justify-end gap-1 hidden"
           onClick={() => handleSort("24hVolume")}
         >
           24h Volume
@@ -423,7 +423,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
           )}
         </div>
         <div
-          className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+          className="text-right cursor-pointer hover:text-slate-200 transition-colors lg:flex items-center justify-end gap-1 hidden"
           onClick={() => handleSort("fundingRate")}
         >
           Funding Rate
@@ -439,7 +439,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
           )}
         </div>
         <div
-          className="text-right cursor-pointer hover:text-slate-200 transition-colors flex items-center justify-end gap-1"
+          className="text-right cursor-pointer hover:text-slate-200 transition-colors lg:flex items-center justify-end gap-1 hidden"
           onClick={() => handleSort("openInterest")}
         >
           Open Interest
@@ -477,7 +477,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                   onSelect(market.symbol);
                   onClose();
                 }}
-                className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition-colors"
+                className="grid lg:grid-cols-6 grid-cols-2 items-center gap-3 px-4 py-3 text-sm border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <img
@@ -494,7 +494,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                     {market.symbol}/USD
                   </span>
                 </div>
-                <div className="text-right font-mono text-slate-200">
+                <div className="lg:text-right text-start font-mono text-slate-200">
                   {price
                     ? `$${parseFloat(price).toLocaleString("en-US", {
                         minimumFractionDigits: 2,
@@ -502,7 +502,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                       })}`
                     : "--"}
                 </div>
-                <div className="text-right">
+                <div className="text-right hidden lg:block">
                   {marketData?.priceChangePercent ? (
                     <span
                       className={`font-semibold font-mono ${
@@ -516,12 +516,12 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                     <span className="text-slate-500">--</span>
                   )}
                 </div>
-                <div className="text-right font-mono text-slate-200">
+                <div className="text-right font-mono text-slate-200 hidden lg:block">
                   {marketData?.volume24h
                     ? formatVolume(parseFloat(marketData.volume24h))
                     : "--"}
                 </div>
-                <div className="text-right">
+                <div className="text-right hidden lg:block">
                   {futuresData ? (
                     <span
                       className={`font-semibold font-mono ${
@@ -534,7 +534,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                     <span className="text-slate-500">--</span>
                   )}
                 </div>
-                <div className="text-right font-mono text-slate-200">
+                <div className="text-right font-mono text-slate-200 hidden lg:block">
                   {futuresData?.openInterestValue
                     ? formatVolume(parseFloat(futuresData.openInterestValue))
                     : "--"}

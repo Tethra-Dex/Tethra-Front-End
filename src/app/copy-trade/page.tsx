@@ -365,7 +365,7 @@ export default function CopyTradePage() {
                           setSortOrder('desc');
                         }
                       }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
                         selectedMetric === 'MDD' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
                       }`}
                     >
@@ -380,7 +380,7 @@ export default function CopyTradePage() {
                           setSortOrder('desc');
                         }
                       }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
                         selectedMetric === 'AUM' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
                       }`}
                     >
@@ -388,10 +388,10 @@ export default function CopyTradePage() {
                     </button>
                   </div>
 
-                  <span className="text-gray-600">|</span>
+                  <span className="text-gray-600 lg:block hidden">|</span>
 
                   {/* Category 2: Copy Traders, Copy Trader PnL */}
-                  <div className="flex items-center gap-3">
+                  <div className="lg:flex hidden items-center gap-3">
                     <button
                       onClick={() => {
                         if (selectedMetric === 'Copy Traders') {
@@ -436,7 +436,7 @@ export default function CopyTradePage() {
                         setSortOrder('desc');
                       }
                     }}
-                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
                       selectedMetric === 'Sharpe Ratio' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
                     }`}
                   >

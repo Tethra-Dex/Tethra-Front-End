@@ -269,22 +269,22 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-8 text-gray-300">
             <Link
-              href="/trade"
-              className="hover:text-white transition-colors duration-200"
-            >
-              Trade
-            </Link>
-            <Link
-              href="#platform"
-              className="hover:text-white transition-colors duration-200"
-            >
-              Platform
-            </Link>
-            <Link
               href="#features"
               className="hover:text-white transition-colors duration-200"
             >
               Features
+            </Link>
+            <Link
+              href="#chains"
+              className="hover:text-white transition-colors duration-200"
+            >
+              Chains
+            </Link>
+            <Link
+              href="#smart-contracts"
+              className="hover:text-white transition-colors duration-200"
+            >
+              Smart Contract
             </Link>
           </div>
 
@@ -777,7 +777,7 @@ export default function LandingPage() {
 
       {/* Platform Preview Section with Carousel */}
       <section
-        id="platform"
+        id="features"
         className="relative z-20 bg-black pb-20 mt-30 px-4"
       >
         <div className="container mx-auto max-w-7xl">
@@ -1192,7 +1192,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="container mx-auto max-w-6xl relative z-10">
+        <div className="container mx-auto max-w-6xl relative z-10" id="chains">
           {/* Section Title */}
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-4">
@@ -1616,18 +1616,18 @@ export default function LandingPage() {
               </span>
             </div>
             <div className="flex gap-6 text-gray-400">
-              <Link href="#" className="hover:text-white transition-colors">
+              <span className="hover:text-white transition-colors">
                 Twitter
-              </Link>
-              <Link href="#" className="hover:text-white transition-colors">
+              </span>
+              <span className="hover:text-white transition-colors">
                 Discord
-              </Link>
-              <Link href="#" className="hover:text-white transition-colors">
+              </span>
+              <Link href="https://github.com/Tethra-Dex" target="_blank" className="hover:text-white transition-colors">
                 GitHub
               </Link>
-              <Link href="#" className="hover:text-white transition-colors">
+              <span className="hover:text-white transition-colors">
                 Docs
-              </Link>
+              </span>
             </div>
           </div>
         </div>
