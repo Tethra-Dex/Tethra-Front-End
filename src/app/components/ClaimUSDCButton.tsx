@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { toast } from 'react-hot-toast';
-import { DollarSign } from 'lucide-react';
-import { USDC_ADDRESS } from '@/config/contracts';
-import { encodeFunctionData } from 'viem';
+import React, { useState } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { toast } from "react-hot-toast";
+import { DollarSign } from "lucide-react";
+import { USDC_ADDRESS } from "@/config/contracts";
+import { encodeFunctionData } from "viem";
 
 // Mock USDC ABI with faucet function
 const MOCK_USDC_ABI = [
   {
     inputs: [],
-    name: 'faucet',
+    name: "faucet",
     outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
+    stateMutability: "nonpayable",
+    type: "function",
   },
 ] as const;
 
@@ -25,39 +25,39 @@ const ClaimUSDCButton: React.FC = () => {
 
   const handleClaimUSDC = async () => {
     if (!authenticated || !user) {
-      toast.error('Please connect your wallet first');
+      toast.error("Please connect your wallet first");
       return;
     }
 
     // Get embedded wallet
-    const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+    const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
     if (!embeddedWallet) {
-      toast.error('Embedded wallet not found');
+      toast.error("Embedded wallet not found");
       return;
     }
 
     const walletAddress = embeddedWallet.address;
 
     setIsClaiming(true);
-    const loadingToast = toast.loading('Claiming USDC from faucet...');
+    const loadingToast = toast.loading("Claiming USDC from faucet...");
 
     try {
       // Get wallet provider
       const provider = await embeddedWallet.getEthereumProvider();
       if (!provider) {
-        throw new Error('Could not get wallet provider');
+        throw new Error("Could not get wallet provider");
       }
 
       // Encode faucet() function call
       const data = encodeFunctionData({
         abi: MOCK_USDC_ABI,
-        functionName: 'faucet',
+        functionName: "faucet",
         args: [],
       });
 
       // Send transaction to call faucet()
       const txHash = await provider.request({
-        method: 'eth_sendTransaction',
+        method: "eth_sendTransaction",
         params: [
           {
             from: walletAddress,
@@ -67,7 +67,7 @@ const ClaimUSDCButton: React.FC = () => {
         ],
       });
 
-      console.log('Faucet transaction sent:', txHash);
+      console.log("Faucet transaction sent:", txHash);
 
       toast.success(`USDC claimed successfully! 🎉`, {
         id: loadingToast,
@@ -78,7 +78,7 @@ const ClaimUSDCButton: React.FC = () => {
       setTimeout(() => {
         toast.success(
           <div>
-            View on Explorer:{' '}
+            View on Explorer:{" "}
             <a
               href={`https://sepolia.basescan.org/tx/${txHash}`}
               target="_blank"
@@ -97,12 +97,12 @@ const ClaimUSDCButton: React.FC = () => {
         window.location.reload();
       }, 2000);
     } catch (error: any) {
-      console.error('Error claiming USDC:', error);
+      console.error("Error claiming USDC:", error);
 
-      let errorMessage = 'Failed to claim USDC from faucet';
+      let errorMessage = "Failed to claim USDC from faucet";
 
-      if (error?.message?.includes('user rejected')) {
-        errorMessage = 'Transaction was rejected';
+      if (error?.message?.includes("user rejected")) {
+        errorMessage = "Transaction was rejected";
       } else if (error?.message) {
         errorMessage = error.message;
       }
@@ -123,11 +123,11 @@ const ClaimUSDCButton: React.FC = () => {
     <button
       onClick={handleClaimUSDC}
       disabled={isClaiming}
-      className="flex items-center gap-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap cursor-pointer"
+      className="hidden xl:flex items-center gap-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap cursor-pointer"
       title="Claim 100 Mock USDC"
     >
       <DollarSign className="w-5 h-5" />
-      {isClaiming ? 'Claiming...' : 'Claim USDC'}
+      {isClaiming ? "Claiming..." : "Claim USDC"}
     </button>
   );
 };

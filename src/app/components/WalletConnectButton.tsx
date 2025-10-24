@@ -483,6 +483,7 @@ const WalletConnectButton: React.FC = () => {
   return (
     <div className="flex gap-2">
       {/* Connect Wallet Button with Wallet Icon */}
+
       <button
         onClick={login}
         className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg md:px-5 px-3 md:py-3 py-1 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
