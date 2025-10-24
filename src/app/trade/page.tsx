@@ -395,7 +395,7 @@ function TradePageContent() {
                     }}
                     className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
                       mobileActiveTab === "long"
-                        ? "bg-[#0E4D3C] text-white hover:bg-[#105D47]"
+                        ? "bg-green-800 text-white hover:bg-[#105D47]"
                         : "bg-[#1E2329] text-gray-300 hover:bg-[#2B3139]"
                     }`}
                   >
@@ -419,7 +419,7 @@ function TradePageContent() {
                     }}
                     className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
                       mobileActiveTab === "short"
-                        ? "bg-[#0E4D3C] text-white hover:bg-[#105D47]"
+                        ? "bg-red-600 text-white hover:bg-[#105D47]"
                         : "bg-[#1E2329] text-gray-300 hover:bg-[#2B3139]"
                     }`}
                   >
@@ -443,7 +443,7 @@ function TradePageContent() {
                     }}
                     className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
                       mobileActiveTab === "swap"
-                        ? "bg-[#0E4D3C] text-white hover:bg-[#105D47]"
+                        ? "bg-blue-800 text-white hover:bg-[#105D47]"
                         : "bg-[#1E2329] text-gray-300 hover:bg-[#2B3139]"
                     }`}
                   >
