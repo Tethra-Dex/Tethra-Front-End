@@ -606,7 +606,7 @@ export default function LandingPage() {
 
         {/* TAP Text - Background Layer (Cyan - matching left logo) with Parallax */}
         <div
-          className={`absolute top-12 left-0 pointer-events-none select-none md:pl-5 transition-all duration-1000 ${
+          className={`absolute top-12 left-0 pointer-events-none select-none pl-2 md:pl-5 transition-all duration-1000 ${
             isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-20"
           }`}
           style={{
@@ -633,7 +633,7 @@ export default function LandingPage() {
 
         {/* TRADE Text - Background Layer (Emerald - matching right logo) with Parallax */}
         <div
-          className={`absolute -bottom-4 right-0 pointer-events-none select-none md:pr-5 transition-all duration-1000 ${
+          className={`absolute -bottom-4 right-0 pointer-events-none select-none pr-2 md:pr-5 transition-all duration-1000 ${
             isLoaded ? "opacity-100 translate-x-0" : "opacity-0 translate-x-20"
           }`}
           style={{
@@ -715,7 +715,7 @@ export default function LandingPage() {
 
         {/* Description Text - Bottom Left */}
         <div
-          className={`hidden md:block absolute bottom-16 left-16 max-w-2xl z-10 transition-all duration-1000 ${
+          className={`hidden lg:block absolute bottom-16 left-16 max-w-2xl z-10 transition-all duration-1000 ${
             isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-10"
           }`}
           style={{
@@ -776,7 +776,10 @@ export default function LandingPage() {
       </section>
 
       {/* Platform Preview Section with Carousel */}
-      <section id="platform" className="relative z-20 bg-black pb-20 px-4">
+      <section
+        id="platform"
+        className="relative z-20 bg-black pb-20 mt-30 px-4"
+      >
         <div className="container mx-auto max-w-7xl">
           {/* Section Title */}
           <div className="text-center mb-16">
@@ -872,7 +875,7 @@ export default function LandingPage() {
           </div>
 
           {/* Feature highlights below screenshot */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-30">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-60 md:mt-40 xl:-mt-15">
             <div className="group/card p-6 rounded-lg bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/50 hover:from-cyan-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-cyan-500/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"></div>
               <div className="text-cyan-400 mb-2 transform group-hover/card:scale-110 transition-transform duration-300">
