@@ -22,6 +22,29 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: 'Tethra DEX',
   description: 'Decentralized Exchange with Advanced Trading Features',
+  openGraph: {
+    title: 'Tethra DEX',
+    description: 'Decentralized Exchange with Advanced Trading Features',
+    url: 'https://tethradex.vercel.app',
+    siteName: 'Tethra DEX',
+    images: [
+      {
+        url: '/images/og-banner.png',
+        width: 1200,
+        height: 630,
+        alt: 'Tethra DEX Banner',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tethra DEX',
+    description: 'Decentralized Exchange with Advanced Trading Features',
+    images: ['/images/og-banner.png'],
+    creator: '@tethradex',
+  },
 };
 
 export const viewport: Viewport = {
