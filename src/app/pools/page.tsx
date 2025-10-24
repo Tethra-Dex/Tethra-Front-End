@@ -66,9 +66,9 @@ export default function PoolsPage() {
             <LiquidityProvision />
           </div>
 
-          {/* GM Liquidity Pools (Mockup) */}
+          {/* Tetra Liquidity Pools (Mockup) */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-2">GM Liquidity Pools</h2>
+            <h2 className="text-2xl font-bold mb-2">Tethra Liquidity Pools</h2>
             <p className="text-gray-400 text-sm mb-4">
               Provide dual-asset liquidity to earn trading fees + TETH rewards.
               Protected against impermanent loss with Pyth Oracle pricing.
@@ -216,7 +216,7 @@ export default function PoolsPage() {
               </div>
             </div>
 
-            {/* GLV Vaults Preview */}
+            {/* Tethra Vaults Preview */}
             <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-lg border border-blue-500/30 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
@@ -224,10 +224,10 @@ export default function PoolsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-white">
-                    GLV Multi-Strategy Vaults
+                    Tethra Multi-Strategy Vaults
                   </h3>
                   <p className="text-xs text-gray-400">
-                    Auto-diversified yield across multiple GM pools
+                    Auto-diversified yield across multiple Tethra pools
                   </p>
                 </div>
               </div>

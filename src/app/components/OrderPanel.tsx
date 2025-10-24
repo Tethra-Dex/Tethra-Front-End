@@ -9,9 +9,10 @@ import {
   TrendingDown,
   Zap,
 } from "lucide-react";
-import MarketOrder from "./order-panel/MarketOrder";
-import LimitOrder from "./order-panel/LimitOrder";
-import TapToTrade from "./order-panel/TaptoTrade";
+import MarketOrder from './order-panel/MarketOrder';
+import LimitOrder from './order-panel/LimitOrder';
+import TapToTrade from './order-panel/TaptoTrade';
+import SwapPanel from './order-panel/SwapPanel';
 import { useTapToTrade } from "../contexts/TapToTradeContext";
 import WalletConnectButton from "./WalletConnectButton";
 import ClaimUSDCButton from "./ClaimUSDCButton";
@@ -257,65 +258,47 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar-dark relative">
-          {/* Render different components based on activeOrderType */}
-          {activeOrderType === "market" && (
-            <MarketOrder activeTab={activeTab} />
-          )}
-          {activeOrderType === "limit" && <LimitOrder activeTab={activeTab} />}
-          {activeOrderType === "Tap to Trade" && (
-            <div className="relative min-h-full">
-              <TapToTrade />
-              {/* Blur overlay when dropdown is open - covers entire scrollable content */}
-              {isTapToTradeDropdownOpen && (
-                <div className="absolute inset-0 bg-[#0B1017]/80 backdrop-blur-sm z-40 flex items-center justify-center min-h-full">
-                  <div className="text-center px-6">
-                    <div className="bg-blue-300/10 border border-blue-300/30 rounded-lg p-6 max-w-md">
-                      <p className="text-sm text-blue-400 mb-2">
-                        Please select a trade mode to continue
-                      </p>
-                      <div className="flex items-center justify-center gap-2">
-                        <ChevronDown
-                          size={16}
-                          className="text-blue-300 animate-bounce"
-                        />
-                        <p className="text-xs text-gray-400">
-                          Choose from the dropdown above
-                        </p>
+          {/* Render different components based on activeTab and activeOrderType */}
+          {activeTab === "swap" ? (
+            <SwapPanel />
+          ) : (
+            <>
+              {activeOrderType === "market" && (
+                <MarketOrder activeTab={activeTab} />
+              )}
+              {activeOrderType === "limit" && <LimitOrder activeTab={activeTab} />}
+              {activeOrderType === "Tap to Trade" && (
+                <div className="relative min-h-full">
+                  <TapToTrade />
+                  {/* Blur overlay when dropdown is open - covers entire scrollable content */}
+                  {isTapToTradeDropdownOpen && (
+                    <div className="absolute inset-0 bg-[#0B1017]/80 backdrop-blur-sm z-40 flex items-center justify-center min-h-full">
+                      <div className="text-center px-6">
+                        <div className="bg-blue-300/10 border border-blue-300/30 rounded-lg p-6 max-w-md">
+                          <p className="text-sm text-blue-400 mb-2">
+                            Please select a trade mode to continue
+                          </p>
+                          <div className="flex items-center justify-center gap-2">
+                            <ChevronDown
+                              size={16}
+                              className="text-blue-300 animate-bounce"
+                            />
+                            <p className="text-xs text-gray-400">
+                              Choose from the dropdown above
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-          {activeOrderType === "more" && (
-            <div className="text-center py-8 text-gray-400">
-              <p>More order types coming soon...</p>
-            </div>
-          )}
-
-          {/* Coming Soon Overlay for Swap Tab */}
-          {activeTab === "swap" && (
-            <div className="absolute inset-0 bg-[#0B1017]/95 backdrop-blur-sm z-50 flex items-center justify-center">
-              <div className="text-center px-6">
-                <div className="mb-4">
-                  <Zap
-                    size={64}
-                    className="text-blue-300 mx-auto animate-pulse"
-                  />
+              {activeOrderType === "more" && (
+                <div className="text-center py-8 text-gray-400">
+                  <p>More order types coming soon...</p>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Swap Feature
-                </h3>
-                <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
-                <div className="bg-blue-300/10 border border-blue-300/30 rounded-lg p-4 max-w-md">
-                  <p className="text-sm text-blue-400">
-                    We're working hard to bring you the best swap experience.
-                    Stay tuned!
-                  </p>
-                </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

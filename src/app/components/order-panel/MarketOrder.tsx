@@ -250,6 +250,25 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
     return oraclePrice > 0 ? longShortUsdValue / oraclePrice : 0;
   }, [oraclePrice, longShortUsdValue]);
 
+  // Calculate liquidation price
+  const liquidationPrice = useMemo(() => {
+    if (!oraclePrice || !leverage || leverage <= 0 || !payAmount || parseFloat(payAmount) <= 0) {
+      return null;
+    }
+    
+    // Liquidation happens when loss = collateral
+    // For LONG: liquidationPrice = entryPrice * (1 - 1/leverage)
+    // For SHORT: liquidationPrice = entryPrice * (1 + 1/leverage)
+    const liqPercentage = 1 / leverage;
+    
+    if (activeTab === 'long') {
+      return oraclePrice * (1 - liqPercentage);
+    } else if (activeTab === 'short') {
+      return oraclePrice * (1 + liqPercentage);
+    }
+    return null;
+  }, [oraclePrice, leverage, payAmount, activeTab]);
+
   const handlePayInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
@@ -785,73 +804,41 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
               {/* Take Profit */}
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-gray-400">Take Profit</label>
-                  <button
-                    className="text-xs text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
-                    onClick={() => setTakeProfitPrice('')}
-                  >
-                    + Add
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                    <span className="text-xs text-gray-400 mr-2">$</span>
-                    <input
-                      type="text"
-                      placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
-                      value={takeProfitPrice}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setTakeProfitPrice(value);
-                        }
-                      }}
-                      className="bg-transparent text-sm text-white outline-none w-full"
-                    />
-                  </div>
-                  <button
-                    onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
-                    className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
-                  >
-                    {tpSlUnit === 'price' ? 'Price' : '%'}
-                  </button>
+                <label className="text-xs text-gray-400 mb-2 block">Take Profit</label>
+                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+                  <span className="text-xs text-gray-400 mr-2">$</span>
+                  <input
+                    type="text"
+                    placeholder="Price"
+                    value={takeProfitPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setTakeProfitPrice(value);
+                      }
+                    }}
+                    className="bg-transparent text-sm text-white outline-none w-full"
+                  />
                 </div>
               </div>
 
               {/* Stop Loss */}
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-gray-400">Stop Loss</label>
-                  <button
-                    className="text-xs text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
-                    onClick={() => setStopLossPrice('')}
-                  >
-                    + Add
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                    <span className="text-xs text-gray-400 mr-2">$</span>
-                    <input
-                      type="text"
-                      placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
-                      value={stopLossPrice}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setStopLossPrice(value);
-                        }
-                      }}
-                      className="bg-transparent text-sm text-white outline-none w-full"
-                    />
-                  </div>
-                  <button
-                    onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
-                    className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
-                  >
-                    {tpSlUnit === 'price' ? 'Price' : '%'}
-                  </button>
+                <label className="text-xs text-gray-400 mb-2 block">Stop Loss</label>
+                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+                  <span className="text-xs text-gray-400 mr-2">$</span>
+                  <input
+                    type="text"
+                    placeholder="Price"
+                    value={stopLossPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setStopLossPrice(value);
+                      }
+                    }}
+                    className="bg-transparent text-sm text-white outline-none w-full"
+                  />
                 </div>
               </div>
             </div>
@@ -931,7 +918,9 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Liquidation Price</span>
-          <span className="text-white">-</span>
+          <span className="text-white">
+            {liquidationPrice ? formatPrice(liquidationPrice) : '-'}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Trading Fee</span>
@@ -942,36 +931,6 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             }
           </span>
         </div>
-
-        <details className="cursor-pointer">
-          <summary className="flex justify-between items-center hover:text-white transition-colors">
-            <span className="text-gray-400">Execution Details</span>
-          </summary>
-          <div className="mt-2 ml-4 space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Fees</span>
-              <span className="text-white">-</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Network Fee</span>
-                <Info size={10} className="text-gray-600" />
-              </div>
-              <span className="text-white">-$0.94</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Collateral Spread</span>
-              <span className="text-white">0.00%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Allowed Slippage</span>
-                <Info size={10} className="text-gray-600" />
-              </div>
-              <span className="text-white">- 1%</span>
-            </div>
-          </div>
-        </details>
       </div>
     </div>
   );

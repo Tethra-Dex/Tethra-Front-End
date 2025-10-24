@@ -16,6 +16,25 @@ const MOCK_USDC_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "hasClaimed",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 const ClaimUSDCButton: React.FC = () => {
@@ -39,7 +58,7 @@ const ClaimUSDCButton: React.FC = () => {
     const walletAddress = embeddedWallet.address;
 
     setIsClaiming(true);
-    const loadingToast = toast.loading("Claiming USDC from faucet...");
+    const loadingToast = toast.loading("Checking claim status...");
 
     try {
       // Get wallet provider
@@ -47,6 +66,41 @@ const ClaimUSDCButton: React.FC = () => {
       if (!provider) {
         throw new Error("Could not get wallet provider");
       }
+
+      // Check if user has already claimed
+      const hasClaimedData = encodeFunctionData({
+        abi: MOCK_USDC_ABI,
+        functionName: "hasClaimed",
+        args: [walletAddress as `0x${string}`],
+      });
+
+      const hasClaimedResult = await provider.request({
+        method: "eth_call",
+        params: [
+          {
+            to: USDC_ADDRESS,
+            data: hasClaimedData,
+          },
+          "latest",
+        ],
+      });
+
+      // Parse the result (0x0000...0001 = true, 0x0000...0000 = false)
+      const alreadyClaimed = hasClaimedResult !== "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+      if (alreadyClaimed) {
+        toast.error(
+          "You have already claimed USDC from the faucet. Each wallet can only claim once.",
+          {
+            id: loadingToast,
+            duration: 5000,
+          }
+        );
+        return;
+      }
+
+      // Update loading message
+      toast.loading("Claiming USDC from faucet...", { id: loadingToast });
 
       // Encode faucet() function call
       const data = encodeFunctionData({

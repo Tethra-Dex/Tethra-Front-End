@@ -1,10 +1,14 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Info, Grid as GridIcon, Star } from 'lucide-react';
 import { useMarket } from '../../contexts/MarketContext';
 import { useGridTradingContext } from '../../contexts/GridTradingContext';
 import { useTapToTrade } from '../../contexts/TapToTradeContext';
 import { useUSDCBalance } from '@/hooks/useUSDCBalance';
+import { useTapToTradeApproval } from '@/hooks/useTapToTradeApproval';
+import { usePrivy } from '@privy-io/react-auth';
+import { parseUnits } from 'viem';
+import { toast } from 'react-hot-toast';
 
 interface Market {
   symbol: string;
@@ -163,6 +167,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
 const TapToTrade: React.FC = () => {
   const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
+  const { authenticated } = usePrivy();
   const [leverage, setLeverage] = useState(10);
   const [leverageInput, setLeverageInput] = useState<string>('10.0');
   const [marginAmount, setMarginAmount] = useState<string>('');
@@ -172,9 +177,13 @@ const TapToTrade: React.FC = () => {
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [showLeverageTooltip, setShowLeverageTooltip] = useState(false);
   const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
+  const [hasSelectedYGrid, setHasSelectedYGrid] = useState(false); // Track if user explicitly selected Y grid
   const timeframeRef = useRef<HTMLDivElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null); // For market selector
   const modeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Approval hook for USDC (TapToTradeExecutor-specific)
+  const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useTapToTradeApproval();
 
   // Grid Trading dari Context
   const gridTrading = useGridTradingContext();
@@ -187,6 +196,28 @@ const TapToTrade: React.FC = () => {
   const setTradeMode = tapToTrade.setTradeMode;
 
   const leverageMarkers = [1, 2, 5, 10, 25, 50, 100]; // Updated to match MarketOrder
+
+  // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
+  const hasLargeAllowance = useMemo(() => {
+    return Boolean(allowance && allowance > parseUnits('10000', 6));
+  }, [allowance]);
+
+  // Handler for pre-approve USDC in large amount
+  const handlePreApprove = async () => {
+    try {
+      toast.loading('Approving unlimited USDC...', { id: 'pre-approve' });
+      // Approve 1 million USDC (enough for many trades)
+      const maxAmount = parseUnits('1000000', 6).toString();
+      await approveUSDC(maxAmount);
+      toast.success('✅ Pre-approved! You can now trade without approval popups', { 
+        id: 'pre-approve',
+        duration: 5000
+      });
+    } catch (error) {
+      console.error('Pre-approve error:', error);
+      toast.error('Failed to approve USDC. Please try again.', { id: 'pre-approve' });
+    }
+  };
 
   // Close timeframe dropdown when clicking outside
   useEffect(() => {
@@ -652,7 +683,10 @@ const TapToTrade: React.FC = () => {
             {activeMarket?.symbol === 'SOL' && timeframe === '1' ? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => tapToTrade.setGridSizeY(0.1)}
+                  onClick={() => {
+                    tapToTrade.setGridSizeY(0.1);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className={`flex-1 py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
                     tapToTrade.gridSizeY === 0.1
@@ -663,7 +697,10 @@ const TapToTrade: React.FC = () => {
                   0.1%
                 </button>
                 <button
-                  onClick={() => tapToTrade.setGridSizeY(0.2)}
+                  onClick={() => {
+                    tapToTrade.setGridSizeY(0.2);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className={`flex-1 py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
                     tapToTrade.gridSizeY === 0.2
@@ -677,7 +714,10 @@ const TapToTrade: React.FC = () => {
             ) : activeMarket?.symbol === 'SOL' && timeframe === '5' ? (
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => tapToTrade.setGridSizeY(0.1)}
+                  onClick={() => {
+                    tapToTrade.setGridSizeY(0.1);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
                     tapToTrade.gridSizeY === 0.1
@@ -688,7 +728,10 @@ const TapToTrade: React.FC = () => {
                   0.1%
                 </button>
                 <button
-                  onClick={() => tapToTrade.setGridSizeY(0.2)}
+                  onClick={() => {
+                    tapToTrade.setGridSizeY(0.2);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
                     tapToTrade.gridSizeY === 0.2
@@ -699,7 +742,10 @@ const TapToTrade: React.FC = () => {
                   0.2%
                 </button>
                 <button
-                  onClick={() => tapToTrade.setGridSizeY(0.3)}
+                  onClick={() => {
+                    tapToTrade.setGridSizeY(0.3);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
                     tapToTrade.gridSizeY === 0.3
@@ -710,7 +756,10 @@ const TapToTrade: React.FC = () => {
                   0.3%
                 </button>
                 <button
-                  onClick={() => tapToTrade.setGridSizeY(0.4)}
+                  onClick={() => {
+                    tapToTrade.setGridSizeY(0.4);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className={`py-3 rounded-lg font-semibold transition-all disabled:cursor-not-allowed ${
                     tapToTrade.gridSizeY === 0.4
@@ -729,7 +778,10 @@ const TapToTrade: React.FC = () => {
                   max="100"
                   step="0.1"
                   value={tapToTrade.gridSizeY}
-                  onChange={(e) => tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.5)}
+                  onChange={(e) => {
+                    tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.5);
+                    setHasSelectedYGrid(true);
+                  }}
                   disabled={tapToTrade.isEnabled}
                   className="bg-transparent text-white outline-none w-full [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100 disabled:cursor-not-allowed"
                   style={{
@@ -781,57 +833,154 @@ const TapToTrade: React.FC = () => {
         </div>
       )}
 
-      {/* Action Buttons */}
-      {!tapToTrade.isEnabled ? (
-        <button
-          onClick={async () => {
-            // Validate inputs
-            if (!marginAmount || parseFloat(marginAmount) === 0) {
-              alert('Please enter margin amount');
-              return;
-            }
+      {/* Pre-Approve Section */}
+      {authenticated && !hasLargeAllowance && (
+        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-300/30">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-blue-300 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-300 font-medium mb-1">⚡ Enable One-Click Trading</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade for security.
+              </p>
+              <button
+                onClick={handlePreApprove}
+                disabled={isApprovalPending}
+                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors cursor-pointer"
+              >
+                {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-            // Different behavior for different modes
-            if (tradeMode === 'open-position') {
-              // Call toggleMode with parameters to create grid session
-              await tapToTrade.toggleMode({
-                symbol: activeMarket?.symbol || 'BTC',
-                margin: marginAmount,
-                leverage: leverage,
-                timeframe: timeframe,
-                currentPrice: Number(currentPrice) || 0,
-              });
-            } else {
-              // One Tap Profit mode - just enable the mode
-              await tapToTrade.toggleMode({
-                symbol: activeMarket?.symbol || 'BTC',
-                margin: marginAmount,
-                leverage: leverage,
-                timeframe: '1', // 1 minute default for one-tap-profit trading
-                currentPrice: Number(currentPrice) || 0,
-              });
-            }
-          }}
-          disabled={tapToTrade.isLoading || !marginAmount}
-          className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-300 hover:bg-blue-400 transition-all shadow-lg shadow-blue-300/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {tapToTrade.isLoading ? (
-            <>
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Starting...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-              </svg>
-              {tradeMode === 'one-tap-profit' ? 'Start Tap to Trade' : 'Enable Tap to Trade'}
-            </>
+      {/* Large Allowance Indicator */}
+      {authenticated && hasLargeAllowance && (
+        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
+          <div className="flex items-center gap-2">
+            <span className="text-green-400">✅</span>
+            <div className="flex-1">
+              <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
+              {/* <p className="text-xs text-gray-400 mt-0.5">
+                USDC pre-approved! Just 1 confirmation per trade (for your security).
+              </p> */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons - Separated for each mode */}
+      {!tapToTrade.isEnabled ? (
+        <>
+          {/* Tap to Trade Mode (Open Position) - Needs Session Key */}
+          {tradeMode === 'open-position' && (
+            <button
+              onClick={async () => {
+                // Check if USDC is approved first
+                if (!hasLargeAllowance) {
+                  toast.error('Please enable One-Click Trading first by approving USDC', {
+                    duration: 4000,
+                    icon: '⚠️'
+                  });
+                  return;
+                }
+
+                // Check if Y coordinate (price grid) is selected
+                if (!hasSelectedYGrid) {
+                  toast.error('Please select Y Coordinate (Price Grid) first', {
+                    duration: 4000,
+                    icon: '⚠️'
+                  });
+                  return;
+                }
+
+                // Validate inputs
+                if (!marginAmount || parseFloat(marginAmount) === 0) {
+                  alert('Please enter margin amount');
+                  return;
+                }
+
+                // Enable with session key setup
+                await tapToTrade.toggleMode({
+                  symbol: activeMarket?.symbol || 'BTC',
+                  margin: marginAmount,
+                  leverage: leverage,
+                  timeframe: timeframe,
+                  currentPrice: Number(currentPrice) || 0,
+                });
+              }}
+              disabled={
+                tapToTrade.isLoading || 
+                !marginAmount || 
+                !hasLargeAllowance || 
+                !hasSelectedYGrid
+              }
+              className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-300 hover:bg-blue-400 transition-all shadow-lg shadow-blue-300/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {tapToTrade.isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Setting up session key...
+                </>
+              ) : !hasLargeAllowance ? (
+                '⚡ Enable One-Click Trading First'
+              ) : (
+                'Enable Tap to Trade'
+              )}
+            </button>
           )}
-        </button>
+
+          {/* One Tap Profit Mode - No Session Key, Just Save Config */}
+          {tradeMode === 'one-tap-profit' && (
+            <button
+              onClick={async () => {
+                // Validate inputs
+                if (!marginAmount || parseFloat(marginAmount) === 0) {
+                  toast.error('Please enter bet amount', {
+                    duration: 3000,
+                    icon: '⚠️'
+                  });
+                  return;
+                }
+
+                // Just enable mode without session key setup
+                await tapToTrade.toggleMode({
+                  symbol: activeMarket?.symbol || 'BTC',
+                  margin: marginAmount,
+                  leverage: 1, // Not used in binary trading but required
+                  timeframe: '1', // Fixed 1 second for binary
+                  currentPrice: Number(currentPrice) || 0,
+                });
+              }}
+              disabled={
+                tapToTrade.isLoading || 
+                !marginAmount
+              }
+              className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-300 hover:bg-blue-400 transition-all shadow-lg shadow-blue-300/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {tapToTrade.isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Enabling...
+                </>
+              ) : (
+                <>
+                  {/* <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                  </svg> */}
+                  Enable Binary Trade
+                </>
+              )}
+            </button>
+          )}
+        </>
       ) : (
         <button
           onClick={async () => {

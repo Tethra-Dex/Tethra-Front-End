@@ -242,6 +242,27 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const longShortUsdValue = payUsdValue * leverage;
   const tokenAmount = effectiveOraclePrice > 0 ? longShortUsdValue / effectiveOraclePrice : 0;
 
+  // Calculate liquidation price based on limit price (not current price)
+  const liquidationPrice = useMemo(() => {
+    const triggerPriceNum = limitPrice ? parseFloat(limitPrice) : null;
+    
+    if (!triggerPriceNum || !leverage || leverage <= 0 || !payAmount || parseFloat(payAmount) <= 0) {
+      return null;
+    }
+    
+    // Liquidation happens when loss = collateral
+    // For LONG: liquidationPrice = triggerPrice * (1 - 1/leverage)
+    // For SHORT: liquidationPrice = triggerPrice * (1 + 1/leverage)
+    const liqPercentage = 1 / leverage;
+    
+    if (activeTab === 'long') {
+      return triggerPriceNum * (1 - liqPercentage);
+    } else if (activeTab === 'short') {
+      return triggerPriceNum * (1 + liqPercentage);
+    }
+    return null;
+  }, [limitPrice, leverage, payAmount, activeTab]);
+
   // Handle pay input change
   const handlePayInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -683,73 +704,41 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
           {/* Take Profit */}
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs text-gray-400">Take Profit</label>
-              <button
-                className="text-xs text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
-                onClick={() => setTakeProfitPrice('')}
-              >
-                + Add
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                <span className="text-xs text-gray-400 mr-2">$</span>
-                <input
-                  type="text"
-                  placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
-                  value={takeProfitPrice}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                      setTakeProfitPrice(value);
-                    }
-                  }}
-                  className="bg-transparent text-sm text-white outline-none w-full"
-                />
-              </div>
-              <button
-                onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
-                className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
-              >
-                {tpSlUnit === 'price' ? 'Price' : '%'}
-              </button>
+            <label className="text-xs text-gray-400 mb-2 block">Take Profit</label>
+            <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+              <span className="text-xs text-gray-400 mr-2">$</span>
+              <input
+                type="text"
+                placeholder="Price"
+                value={takeProfitPrice}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setTakeProfitPrice(value);
+                  }
+                }}
+                className="bg-transparent text-sm text-white outline-none w-full"
+              />
             </div>
           </div>
 
           {/* Stop Loss */}
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs text-gray-400">Stop Loss</label>
-              <button
-                className="text-xs text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
-                onClick={() => setStopLossPrice('')}
-              >
-                + Add
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1 bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                <span className="text-xs text-gray-400 mr-2">$</span>
-                <input
-                  type="text"
-                  placeholder={tpSlUnit === 'price' ? 'Price' : '100'}
-                  value={stopLossPrice}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                      setStopLossPrice(value);
-                    }
-                  }}
-                  className="bg-transparent text-sm text-white outline-none w-full"
-                />
-              </div>
-              <button
-                onClick={() => setTpSlUnit(tpSlUnit === 'price' ? 'percentage' : 'price')}
-                className="bg-[#0F1419] rounded-lg px-3 py-2 text-xs text-white hover:bg-[#1A2332] transition-colors min-w-[60px]"
-              >
-                {tpSlUnit === 'price' ? 'Price' : '%'}
-              </button>
+            <label className="text-xs text-gray-400 mb-2 block">Stop Loss</label>
+            <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+              <span className="text-xs text-gray-400 mr-2">$</span>
+              <input
+                type="text"
+                placeholder="Price"
+                value={stopLossPrice}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setStopLossPrice(value);
+                  }
+                }}
+                className="bg-transparent text-sm text-white outline-none w-full"
+              />
             </div>
           </div>
         </div>
@@ -860,7 +849,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         </button>
       </div>
 
-      {/* Collapsible sections */}
+      {/* Info sections */}
       <div className="space-y-2 text-sm border-t border-[#1A202C] pt-3">
         <div className="flex justify-between">
           <span className="text-gray-400">Oracle Price</span>
@@ -868,47 +857,19 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Liquidation Price</span>
-          <span className="text-white">-</span>
+          <span className="text-white">
+            {liquidationPrice ? formatPrice(liquidationPrice) : '-'}
+          </span>
         </div>
-        {activeTab !== 'swap' && (
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1">
-              <span className="text-gray-400">Execution Fee</span>
-              <Info size={12} className="text-gray-500" />
-            </div>
-            <span className={`${executionFeeError ? 'text-red-400' : 'text-white'}`}>
-              {executionFeeError ? 'Failed to load' : `$${executionFee} USDC`}
-            </span>
-          </div>
-        )}
         <div className="flex justify-between">
-          <span className="text-gray-400">Price Impact / Fees</span>
-          <span className="text-white">0.000% / 0.000%</span>
+          <span className="text-gray-400">Trading Fee</span>
+          <span className="text-white">
+            {payAmount && leverage > 0
+              ? `$${(parseFloat(payAmount) * leverage * 0.0005).toFixed(6)} (0.05%)`
+              : '0.05%'
+            }
+          </span>
         </div>
-
-        {/* Execution Details - Collapsible */}
-        <details className="cursor-pointer">
-          <summary className="flex justify-between items-center">
-            <span className="text-gray-400">Execution Details</span>
-          </summary>
-          <div className="mt-2 ml-4 space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Fees</span>
-              <span className="text-white">-</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Network Fee</span>
-                <Info size={10} className="text-gray-600" />
-              </div>
-              <span className="text-white">-$0.96</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Available Liquidity</span>
-              <span className="text-white">$92,331,790.01</span>
-            </div>
-          </div>
-        </details>
       </div>
     </div>
   );

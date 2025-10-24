@@ -395,9 +395,9 @@ const BottomTrading = () => {
   const isLoading = isLoadingIds;
 
   // Mobile tabs: Orders instead of 3 separate tabs
-  const mobileTabs = ['Positions', 'Orders', 'Trades', 'Claims'];
+  const mobileTabs = ['Positions', 'Orders'];
   // Desktop tabs: 3 separate order tabs
-  const desktopTabs = ['Positions', 'Pending Orders', 'Tap to Trade Orders', 'Binary Orders', 'Trades', 'Claims'];
+  const desktopTabs = ['Positions', 'Pending Orders', 'Tap to Trade Orders', 'Binary Orders'];
 
   const renderContent = () => {
     switch (activeTab) {

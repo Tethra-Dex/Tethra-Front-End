@@ -2,8 +2,9 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { keccak256, encodePacked, encodeFunctionData } from 'viem';
+import { keccak256, encodePacked, encodeFunctionData, toHex } from 'viem';
 import { useSessionKey } from '@/hooks/useSessionKey';
+import { TAP_TO_TRADE_EXECUTOR_ADDRESS, MARKET_EXECUTOR_ADDRESS } from '@/config/contracts';
 
 interface GridSession {
   id: string;
@@ -72,8 +73,6 @@ interface TapToTradeContextType {
 const TapToTradeContext = createContext<TapToTradeContextType | undefined>(undefined);
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
-const TAP_TO_TRADE_EXECUTOR_ADDRESS = process.env.NEXT_PUBLIC_TAP_TO_TRADE_EXECUTOR_ADDRESS || '0x841f70066ba831650c4D97BD59cc001c890cf6b6';
-const MARKET_EXECUTOR_ADDRESS = process.env.NEXT_PUBLIC_MARKET_EXECUTOR_ADDRESS || '0xA1badd2cea74931d668B7aB99015ede28735B3EF';
 const EXPECTED_CHAIN_ID = BigInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532');
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
 
@@ -490,35 +489,146 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
 
         console.log('✅ Grid session created:', session.id);
 
-        // Create session key for signature-less trading (100% GASLESS!)
-        try {
-          const walletClient = await embeddedWallet.getEthereumProvider();
-          if (!walletClient) {
-            throw new Error('Could not get wallet client');
+        // Create session key ONLY for open-position mode (tap-to-trade)
+        // One Tap Profit mode doesn't need session key (signs each trade)
+        if (tradeMode === 'open-position') {
+          try {
+            const walletClient = await embeddedWallet.getEthereumProvider();
+            if (!walletClient) {
+              throw new Error('Could not get wallet client');
+            }
+
+            console.log('🔑 Step 1: Creating ephemeral session key for Tap-to-Trade...');
+            const newSession = await createSession(
+              traderAddress,
+              walletClient,
+              30 * 60 * 1000 // 30 minutes
+            );
+
+            if (!newSession) {
+              throw new Error('Failed to create session key');
+            }
+
+            console.log('✅ Session key created:', newSession.address);
+
+          // Step 2: Register session key with backend (NO ON-CHAIN TX!)
+          console.log('🔑 Step 2: Registering session key with backend (100% GASLESS!)...');
+          console.log('⚡ No transaction needed - backend validates session off-chain!');
+          
+          try {
+            // We skip on-chain authorization for 100% gasless experience
+            // Backend will validate session signature for each order
+            const sessionDurationSeconds = 30 * 60; // 30 minutes in seconds
+            const expiresAtSeconds = Math.floor(newSession.expiresAt / 1000);
+            
+            // Create authorization message EXACTLY matching smart contract format
+            // Smart contract uses: keccak256(abi.encodePacked("Authorize session key ", address, " for Tethra Tap-to-Trade until ", uint256))
+            // We need to encode address and uint256 as bytes, not as string!
+            
+            // IMPORTANT: Convert address to checksum format
+            const sessionAddressChecksum = newSession.address as `0x${string}`;
+            
+            console.log('🔍 DEBUG: Authorization encoding:');
+            console.log('   Session address (raw):', newSession.address);
+            console.log('   Session address (checksum):', sessionAddressChecksum);
+            console.log('   Expires at (ms):', newSession.expiresAt);
+            console.log('   Expires at (seconds):', expiresAtSeconds);
+            console.log('   Duration (seconds):', sessionDurationSeconds);
+            
+            const authMessageHash = keccak256(
+              encodePacked(
+                ['string', 'address', 'string', 'uint256'],
+                [
+                  'Authorize session key ',
+                  sessionAddressChecksum,
+                  ' for Tethra Tap-to-Trade until ',
+                  BigInt(expiresAtSeconds)
+                ]
+              )
+            );
+
+            console.log('📝 Authorization message hash:', authMessageHash);
+            console.log('📝 Session authSignature (from useSessionKey):', newSession.authSignature);
+            
+            // IMPORTANT: Use the authSignature that was already created in createSession()
+            // Don't sign again here - it will create different signature!
+            const authSignature = newSession.authSignature;
+            
+            console.log('✅ Using authorization signature from session:', authSignature);
+            
+            // DEBUG: Verify signature locally before sending to contract
+            try {
+              const { recoverMessageAddress } = await import('viem');
+              const recovered = await recoverMessageAddress({
+                message: { raw: authMessageHash },
+                signature: authSignature as `0x${string}`,
+              });
+              console.log('🔍 Local signature verification:');
+              console.log('   Recovered signer:', recovered);
+              console.log('   Expected signer (trader):', traderAddress);
+              console.log('   Match?', recovered.toLowerCase() === traderAddress.toLowerCase());
+              
+              if (recovered.toLowerCase() !== traderAddress.toLowerCase()) {
+                throw new Error(`Signature mismatch! Recovered: ${recovered}, Expected: ${traderAddress}`);
+              }
+            } catch (verifyErr: any) {
+              console.error('❌ Local verification failed:', verifyErr);
+              throw verifyErr;
+            }
+
+            // Call authorizeSessionKey on TapToTradeExecutor contract
+            const TapToTradeExecutorABI = [
+              {
+                inputs: [
+                  { name: 'sessionKeyAddress', type: 'address' },
+                  { name: 'duration', type: 'uint256' },
+                  { name: 'authSignature', type: 'bytes' }
+                ],
+                name: 'authorizeSessionKey',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+              },
+            ];
+
+            const authData = encodeFunctionData({
+              abi: TapToTradeExecutorABI,
+              functionName: 'authorizeSessionKey',
+              args: [
+                newSession.address as `0x${string}`,
+                BigInt(sessionDurationSeconds),
+                authSignature as `0x${string}`
+              ],
+            });
+
+            // Send authorization request to backend
+            // Backend will call authorizeSessionKey() on contract and pay gas!
+            // Skip backend authorization - we only need local session storage!
+            // Backend will validate session signature when orders are executed
+            console.log('✅ Session key registered locally!');
+            console.log('🔐 Backend will validate session off-chain (no on-chain registration needed)');
+            console.log('⚡ This is 100% GASLESS - no transactions, no gas fees!');
+            
+            // No need to call backend for authorization
+            // Session is stored in localStorage and validated by backend on each order
+
+            console.log('🎉 SUCCESS! Session ready - you can trade without popups for 30 minutes!');
+            console.log('⚡ Just tap grid cells to place orders - NO MORE POPUPS!');
+          } catch (authErr: any) {
+            console.error('❌ Failed to setup session key:', authErr);
+            clearSession();
+            throw new Error(`Session setup failed: ${authErr.message}. Please try again.`);
           }
-
-          console.log('🔑 Creating session key for 30 minutes (100% GASLESS)...');
-          const newSession = await createSession(
-            traderAddress,
-            walletClient,
-            30 * 60 * 1000 // 30 minutes
-          );
-
-          if (!newSession) {
-            throw new Error('Failed to create session key');
+          } catch (sessionErr: any) {
+            console.error('❌ Failed to setup session key:', sessionErr);
+            // Don't fail the entire enable if session creation fails
+            // User can still use with regular signatures
+            setError(`Session setup failed: ${sessionErr.message}`);
           }
-
-          console.log('✅ Session key created! No more signatures needed for 30 minutes.');
-          console.log('⚡ 100% GASLESS - No on-chain transaction needed!');
-          console.log('🔐 Session validated by backend only (off-chain)');
-
-          // NOTE: We DON'T call authorizeSessionKeyOnChain() for gasless experience
-          // Backend will validate the session using authSignature only
-          // Contract execution happens via keeper role (backend pays gas)
-        } catch (sessionErr: any) {
-          console.error('❌ Failed to setup session key:', sessionErr);
-          // Don't fail the entire enable if session creation fails
-          // User can still use with regular signatures
+        } else {
+          // One Tap Profit mode - skip session key setup
+          console.log('⚡ One Tap Profit mode: No session key needed');
+          console.log('✅ Each trade will be signed individually (more secure)');
         }
 
         console.log(`🎯 Tap to Trade mode: ENABLED`);
@@ -664,23 +774,32 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         now: Date.now(),
       });
 
+      // Use session key if available and valid (NO POPUP!)
       if (isSessionValid()) {
         console.log('✍️ Signing with session key (NO USER PROMPT!)...');
         console.log('📝 Message hash to sign:', messageHash);
         const sessionSignature = await signWithSession(messageHash);
 
         if (!sessionSignature) {
-          throw new Error('Session key expired or invalid. Please re-enable tap-to-trade.');
+          console.warn('⚠️ Session signature failed, falling back to traditional signature...');
+          // Fallback to traditional signature if session fails
+          const userSignature = await walletClient.request({
+            method: 'personal_sign',
+            params: [messageHash, traderAddress],
+          });
+          signature = userSignature as string;
+          usedSessionKey = false;
+        } else {
+          signature = sessionSignature;
+          usedSessionKey = true; // Mark that we used session key
+          console.log('✅ Signature obtained (automatically with session key!)');
+          console.log('🔑 Session signature:', sessionSignature);
+          console.log('⚡ No popup, no waiting - instant signing!');
         }
-
-        signature = sessionSignature;
-        usedSessionKey = true; // Mark that we used session key
-        console.log('✅ Signature obtained (automatically with session key!)');
-        console.log('🔑 Session signature:', sessionSignature);
-        console.log('⚡ No popup, no waiting - instant signing!');
       } else {
         // Fallback: request signature from user (with popup)
         console.log('⚠️ No valid session key, requesting signature from user...');
+        console.log('💡 TIP: Enable Tap-to-Trade mode to avoid signature popups!');
         console.log('📝 Message hash to sign:', messageHash);
         const userSignature = await walletClient.request({
           method: 'personal_sign',

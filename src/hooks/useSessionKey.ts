@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { keccak256, toHex, hashMessage, recoverMessageAddress } from 'viem';
+import { keccak256, toHex, hashMessage, recoverMessageAddress, encodePacked } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 export interface SessionKey {
@@ -78,12 +78,22 @@ export function useSessionKey() {
       console.log('🔑 Generated session key:', sessionAddress);
       console.log('⏰ Expires at:', new Date(expiresAt).toLocaleString());
 
-      // Create authorization message
-      // Format: "Authorize session key {address} for Tethra Tap-to-Trade until {timestamp}"
-      const authMessage = `Authorize session key ${sessionAddress} for Tethra Tap-to-Trade until ${expiresAtSeconds}`;
-      const authMessageHash = keccak256(toHex(authMessage));
+      // Create authorization message EXACTLY matching smart contract format
+      // Smart contract: keccak256(abi.encodePacked("Authorize session key ", address, " for Tethra Tap-to-Trade until ", uint256))
+      const authMessageHash = keccak256(
+        encodePacked(
+          ['string', 'address', 'string', 'uint256'],
+          [
+            'Authorize session key ',
+            sessionAddress as `0x${string}`,
+            ' for Tethra Tap-to-Trade until ',
+            BigInt(expiresAtSeconds)
+          ]
+        )
+      );
 
       console.log('✍️ Requesting user signature to authorize session...');
+      console.log('📝 Auth message hash:', authMessageHash);
 
       // User signs authorization (this is the ONLY signature needed!)
       const authSignature = await walletClient.request({
