@@ -13,6 +13,7 @@ interface OneTapProfitModalProps {
   targetTime: number;
   entryPrice: string;
   entryTime: number;
+  isBinaryTradingEnabled: boolean; // New: check if binary trading is enabled
 }
 
 const OneTapProfitModal: React.FC<OneTapProfitModalProps> = ({
@@ -23,8 +24,9 @@ const OneTapProfitModal: React.FC<OneTapProfitModalProps> = ({
   targetTime,
   entryPrice,
   entryTime,
+  isBinaryTradingEnabled,
 }) => {
-  const { placeBet, calculateMultiplier, isPlacingBet } = useOneTapProfit();
+  const { placeBet, placeBetWithSession, calculateMultiplier, isPlacingBet, sessionKey, createSession, isSessionValid } = useOneTapProfit();
   const { usdcBalance } = useUSDCBalance();
   
   const [betAmount, setBetAmount] = useState('10');
@@ -57,6 +59,11 @@ const OneTapProfitModal: React.FC<OneTapProfitModalProps> = ({
   };
 
   const handlePlaceBet = async () => {
+    if (!isBinaryTradingEnabled) {
+      setError('Please enable Binary Trading first');
+      return;
+    }
+
     if (!betAmount || parseFloat(betAmount) <= 0) {
       setError('Please enter a valid bet amount');
       return;
@@ -70,7 +77,8 @@ const OneTapProfitModal: React.FC<OneTapProfitModalProps> = ({
     setError('');
 
     try {
-      await placeBet({
+      // Use session key for fully gasless betting
+      await placeBetWithSession({
         symbol,
         betAmount,
         targetPrice,

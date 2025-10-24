@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { encodeFunctionData, parseUnits, createWalletClient, custom, keccak256, encodePacked } from 'viem';
 import { baseSepolia } from 'viem/chains';
+import { useSessionKey } from '@/hooks/useSessionKey';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -71,6 +72,16 @@ export const useOneTapProfit = () => {
   const [isLoadingBets, setIsLoadingBets] = useState(false);
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+  
+  // Session key hook for gasless trading
+  const {
+    sessionKey,
+    isSessionValid,
+    createSession,
+    signWithSession,
+    clearSession,
+    getTimeRemaining,
+  } = useSessionKey();
 
   /**
    * Calculate multiplier for given parameters
@@ -97,7 +108,68 @@ export const useOneTapProfit = () => {
   }, []);
 
   /**
-   * Place a bet
+   * Place bet with session key (fully gasless)
+   */
+  const placeBetWithSession = useCallback(async (params: PlaceBetParams) => {
+    if (!authenticated || !user || !embeddedWallet) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Create session if not exists or expired
+    if (!isSessionValid()) {
+      console.log('Creating new session key...');
+      await createSession();
+    }
+
+    setIsPlacingBet(true);
+
+    try {
+      const userAddress = embeddedWallet.address;
+
+      // Sign bet parameters with session key
+      const messageHash = keccak256(
+        encodePacked(
+          ['address', 'string', 'uint256', 'uint256', 'uint256'],
+          [
+            userAddress as `0x${string}`,
+            params.symbol,
+            parseUnits(params.betAmount, 6),
+            parseUnits(params.targetPrice, 8),
+            BigInt(Math.floor(params.targetTime)),
+          ]
+        )
+      );
+
+      const sessionSignature = await signWithSession(messageHash);
+
+      // Call backend endpoint (session validation happens off-chain)
+      const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet-with-session`, {
+        trader: userAddress,
+        symbol: params.symbol,
+        betAmount: params.betAmount,
+        targetPrice: params.targetPrice,
+        targetTime: params.targetTime,
+        entryPrice: params.entryPrice,
+        entryTime: params.entryTime,
+        sessionSignature,
+      });
+
+      console.log('✅ Bet placed successfully via keeper (gasless!):', response.data);
+
+      // Refresh active bets
+      await fetchActiveBets();
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to place bet with session:', error);
+      throw error;
+    } finally {
+      setIsPlacingBet(false);
+    }
+  }, [authenticated, user, embeddedWallet, isSessionValid, createSession, signWithSession]);
+
+  /**
+   * Place a bet (legacy method with user signature)
    */
   const placeBet = useCallback(async (params: PlaceBetParams) => {
     if (!authenticated || !user || !embeddedWallet) {
@@ -299,6 +371,7 @@ export const useOneTapProfit = () => {
 
   return {
     placeBet,
+    placeBetWithSession, // New: fully gasless method
     calculateMultiplier,
     fetchActiveBets,
     fetchBetHistory,
@@ -306,5 +379,11 @@ export const useOneTapProfit = () => {
     activeBets,
     isPlacingBet,
     isLoadingBets,
+    // Session key info
+    sessionKey,
+    isSessionValid,
+    createSession,
+    clearSession,
+    sessionTimeRemaining: getTimeRemaining(),
   };
 };

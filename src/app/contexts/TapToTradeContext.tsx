@@ -45,6 +45,10 @@ interface TapToTradeContextType {
     timeframe: string;
     currentPrice: number;
   }) => Promise<void>;
+  
+  // Binary trading state (for OneTapProfit mode)
+  isBinaryTradingEnabled: boolean;
+  setIsBinaryTradingEnabled: (enabled: boolean) => void;
 
   // Grid settings
   gridSizeX: number; // Number of candles per grid column
@@ -85,6 +89,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const [gridSizeY, setGridSizeY] = useState(0.5); // 0.5% per row by default
   const [cellOrders, setCellOrders] = useState<Map<string, CellOrderInfo>>(new Map());
   const [betAmount, setBetAmount] = useState('10'); // Default 10 USDC for OneTapProfit
+  const [isBinaryTradingEnabled, setIsBinaryTradingEnabled] = useState(false); // Binary trading toggle
 
   // Backend integration state
   const [gridSession, setGridSession] = useState<GridSession | null>(null);
@@ -915,6 +920,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         gridSession,
         isLoading,
         error,
+        isBinaryTradingEnabled,
+        setIsBinaryTradingEnabled,
       }}
     >
       {children}

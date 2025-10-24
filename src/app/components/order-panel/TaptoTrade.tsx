@@ -6,7 +6,10 @@ import { useGridTradingContext } from '../../contexts/GridTradingContext';
 import { useTapToTrade } from '../../contexts/TapToTradeContext';
 import { useUSDCBalance } from '@/hooks/useUSDCBalance';
 import { useTapToTradeApproval } from '@/hooks/useTapToTradeApproval';
-import { usePrivy } from '@privy-io/react-auth';
+import { useOneTapProfitApproval } from '@/hooks/useOneTapProfitApproval';
+import { useOneTapProfit } from '../../hooks/useOneTapProfit';
+import { useSessionKey } from '@/hooks/useSessionKey';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { parseUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 
@@ -168,6 +171,7 @@ const TapToTrade: React.FC = () => {
   const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const { authenticated } = usePrivy();
+  const { wallets } = useWallets();
   const [leverage, setLeverage] = useState(10);
   const [leverageInput, setLeverageInput] = useState<string>('10.0');
   const [marginAmount, setMarginAmount] = useState<string>('');
@@ -184,6 +188,20 @@ const TapToTrade: React.FC = () => {
 
   // Approval hook for USDC (TapToTradeExecutor-specific)
   const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending } = useTapToTradeApproval();
+
+  // Approval hook for USDC (OneTapProfit-specific)
+  const { 
+    approve: approveOneTapProfit, 
+    hasAllowance: hasOneTapProfitAllowance, 
+    allowance: oneTapProfitAllowance, 
+    isPending: isOneTapProfitApprovalPending 
+  } = useOneTapProfitApproval();
+
+  // Hook for OneTapProfit session key management
+  const { isSessionValid: isBinarySessionValid } = useOneTapProfit();
+  
+  // Session key hook for binary trading
+  const binarySessionKey = useSessionKey();
 
   // Grid Trading dari Context
   const gridTrading = useGridTradingContext();
@@ -202,6 +220,11 @@ const TapToTrade: React.FC = () => {
     return Boolean(allowance && allowance > parseUnits('10000', 6));
   }, [allowance]);
 
+  // Check if OneTapProfit has large allowance
+  const hasLargeOneTapProfitAllowance = useMemo(() => {
+    return Boolean(oneTapProfitAllowance && oneTapProfitAllowance > parseUnits('10000', 6));
+  }, [oneTapProfitAllowance]);
+
   // Handler for pre-approve USDC in large amount
   const handlePreApprove = async () => {
     try {
@@ -216,6 +239,23 @@ const TapToTrade: React.FC = () => {
     } catch (error) {
       console.error('Pre-approve error:', error);
       toast.error('Failed to approve USDC. Please try again.', { id: 'pre-approve' });
+    }
+  };
+
+  // Handler for pre-approve USDC for OneTapProfit
+  const handlePreApproveOneTapProfit = async () => {
+    try {
+      toast.loading('Approving unlimited USDC for Binary Trading...', { id: 'binary-pre-approve' });
+      // Approve 1 million USDC (enough for many bets)
+      const maxAmount = parseUnits('1000000', 6).toString();
+      await approveOneTapProfit(maxAmount);
+      toast.success('✅ Pre-approved! You can now enable Binary Trading', { 
+        id: 'binary-pre-approve',
+        duration: 5000
+      });
+    } catch (error) {
+      console.error('OneTapProfit pre-approve error:', error);
+      toast.error('Failed to approve USDC. Please try again.', { id: 'binary-pre-approve' });
     }
   };
 
@@ -361,6 +401,34 @@ const TapToTrade: React.FC = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(price);
+  };
+
+  // Handler for enabling/disabling binary trading
+  const handleToggleBinaryTrading = async () => {
+    if (tapToTrade.isBinaryTradingEnabled) {
+      // Disable binary trading
+      tapToTrade.setIsBinaryTradingEnabled(false);
+      toast.success('Binary Trading disabled');
+    } else {
+      // Enable binary trading - create session key
+      try {
+        toast.loading('Creating session key for gasless binary trading...', { id: 'binary-session' });
+        await createBinarySession();
+        
+        if (isBinarySessionValid()) {
+          tapToTrade.setIsBinaryTradingEnabled(true);
+          toast.success('✅ Binary Trading enabled! Tap grid to place bets without signatures', { 
+            id: 'binary-session',
+            duration: 5000
+          });
+        } else {
+          throw new Error('Session creation failed');
+        }
+      } catch (error) {
+        console.error('Failed to enable binary trading:', error);
+        toast.error('Failed to enable binary trading. Please try again.', { id: 'binary-session' });
+      }
+    }
   };
 
   return (
@@ -833,8 +901,8 @@ const TapToTrade: React.FC = () => {
         </div>
       )}
 
-      {/* Pre-Approve Section */}
-      {authenticated && !hasLargeAllowance && (
+      {/* Pre-Approve Section for Tap to Trade */}
+      {tradeMode === 'open-position' && authenticated && !hasLargeAllowance && (
         <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-300/30">
           <div className="flex items-start gap-2">
             <Info size={16} className="text-blue-300 mt-0.5 flex-shrink-0" />
@@ -855,16 +923,47 @@ const TapToTrade: React.FC = () => {
         </div>
       )}
 
-      {/* Large Allowance Indicator */}
-      {authenticated && hasLargeAllowance && (
+      {/* Pre-Approve Section for Binary Trading */}
+      {tradeMode === 'one-tap-profit' && authenticated && !hasLargeOneTapProfitAllowance && (
+        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-300/30">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-blue-300 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-300 font-medium mb-1">⚡ Enable One-Click Binary Trading</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Approve USDC once → Place bets with 1 click. Required before enabling Binary Trading.
+              </p>
+              <button
+                onClick={handlePreApproveOneTapProfit}
+                disabled={isOneTapProfitApprovalPending}
+                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors cursor-pointer"
+              >
+                {isOneTapProfitApprovalPending ? 'Approving...' : '⚡ Approve USDC for Binary Trading'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Large Allowance Indicator for Tap to Trade */}
+      {tradeMode === 'open-position' && authenticated && hasLargeAllowance && (
         <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
           <div className="flex items-center gap-2">
             <span className="text-green-400">✅</span>
             <div className="flex-1">
               <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
-              {/* <p className="text-xs text-gray-400 mt-0.5">
-                USDC pre-approved! Just 1 confirmation per trade (for your security).
-              </p> */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Large Allowance Indicator for Binary Trading */}
+      {tradeMode === 'one-tap-profit' && authenticated && hasLargeOneTapProfitAllowance && (
+        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
+          <div className="flex items-center gap-2">
+            <span className="text-green-400">✅</span>
+            <div className="flex-1">
+              <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
             </div>
           </div>
         </div>
@@ -934,10 +1033,19 @@ const TapToTrade: React.FC = () => {
             </button>
           )}
 
-          {/* One Tap Profit Mode - No Session Key, Just Save Config */}
+          {/* One Tap Profit Mode - With Session Key for Gasless Trading */}
           {tradeMode === 'one-tap-profit' && (
             <button
               onClick={async () => {
+                // Check if USDC is approved first
+                if (!hasLargeOneTapProfitAllowance) {
+                  toast.error('Please approve USDC first by clicking "Approve USDC for Binary Trading"', {
+                    duration: 4000,
+                    icon: '⚠️'
+                  });
+                  return;
+                }
+
                 // Validate inputs
                 if (!marginAmount || parseFloat(marginAmount) === 0) {
                   toast.error('Please enter bet amount', {
@@ -947,18 +1055,59 @@ const TapToTrade: React.FC = () => {
                   return;
                 }
 
-                // Just enable mode without session key setup
-                await tapToTrade.toggleMode({
-                  symbol: activeMarket?.symbol || 'BTC',
-                  margin: marginAmount,
-                  leverage: 1, // Not used in binary trading but required
-                  timeframe: '1', // Fixed 1 second for binary
-                  currentPrice: Number(currentPrice) || 0,
-                });
+                try {
+                  toast.loading('Creating session key for gasless binary trading...', { id: 'binary-session' });
+                  
+                  // Step 1: Get embedded wallet
+                  const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+                  
+                  if (!embeddedWallet) {
+                    throw new Error('Privy wallet not found');
+                  }
+                  
+                  const traderAddress = embeddedWallet.address;
+                  const walletClient = await embeddedWallet.getEthereumProvider();
+                  
+                  if (!walletClient) {
+                    throw new Error('Could not get wallet client');
+                  }
+                  
+                  // Step 2: Create session key (user signs once)
+                  await binarySessionKey.createSession(
+                    traderAddress,
+                    walletClient,
+                    30 * 60 * 1000 // 30 minutes
+                  );
+                  
+                  if (!binarySessionKey.isSessionValid()) {
+                    throw new Error('Session creation failed');
+                  }
+                  
+                  // Step 2: Enable tap-to-trade mode (opens chart)
+                  await tapToTrade.toggleMode({
+                    symbol: activeMarket?.symbol || 'BTC',
+                    margin: marginAmount,
+                    leverage: 1, // Not used in binary trading
+                    timeframe: '1', // Fixed 1 second for binary
+                    currentPrice: Number(currentPrice) || 0,
+                  });
+                  
+                  // Step 3: Mark binary trading as enabled
+                  tapToTrade.setIsBinaryTradingEnabled(true);
+                  
+                  toast.success('✅ Binary Trading enabled! Tap grid without signatures', { 
+                    id: 'binary-session',
+                    duration: 5000
+                  });
+                } catch (error) {
+                  console.error('Failed to enable binary trading:', error);
+                  toast.error('Failed to enable binary trading. Please try again.', { id: 'binary-session' });
+                }
               }}
               disabled={
                 tapToTrade.isLoading || 
-                !marginAmount
+                !marginAmount ||
+                !hasLargeOneTapProfitAllowance
               }
               className="mt-2 py-3 rounded-lg font-bold text-white bg-blue-300 hover:bg-blue-400 transition-all shadow-lg shadow-blue-300/30 hover:cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -968,19 +1117,31 @@ const TapToTrade: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Enabling...
+                  Setting up session key...
                 </>
               ) : (
-                <>
-                  {/* <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-                  </svg> */}
-                  Enable Binary Trade
-                </>
+                'Enable Binary Trade'
               )}
             </button>
           )}
         </>
+      ) : tradeMode === 'one-tap-profit' ? (
+        // Binary Trading Stop Button
+        <button
+          onClick={async () => {
+            // Disable binary trading
+            tapToTrade.setIsBinaryTradingEnabled(false);
+            
+            // Disable mode
+            await tapToTrade.toggleMode();
+            
+            toast.success('Binary Trading stopped');
+          }}
+          className="mt-2 py-3 rounded-lg font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-500/30 hover:cursor-pointer flex items-center justify-center gap-2"
+        >
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          <span>Stop Binary Trading</span>
+        </button>
       ) : (
         <button
           onClick={async () => {

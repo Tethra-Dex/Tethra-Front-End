@@ -9,6 +9,7 @@ interface PerSecondChartProps {
   symbol: string;
   currentPrice: number;
   betAmount?: string; // Bet amount from sidebar (optional, default 10)
+  isBinaryTradingEnabled?: boolean; // Whether binary trading is enabled with session key
 }
 
 // Market logos mapping (from TradingChart)
@@ -39,8 +40,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   symbol,
   currentPrice,
   betAmount: propBetAmount = '10', // Default 10 USDC if not provided
+  isBinaryTradingEnabled = false,
 }) => {
-  const { placeBet, isPlacingBet } = useOneTapProfit();
+  const { placeBet, placeBetWithSession, isPlacingBet } = useOneTapProfit();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | undefined>(undefined);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
@@ -704,14 +706,23 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         return newSet;
       });
 
+      // Check if binary trading is enabled
+      if (!isBinaryTradingEnabled) {
+        toast.error('Please enable Binary Trading first by clicking "Enable Binary Trading" button', { 
+          duration: 4000,
+          icon: '⚠️'
+        });
+        return;
+      }
+
       // Use bet amount from props (set by sidebar)
       const betAmount = propBetAmount || '10';
       
-      // Place bet directly (Privy will handle sign-in)
+      // Place bet with session key (gasless, no signature popup)
       toast.loading('Placing bet...', { id: 'place-bet' });
 
       try {
-        await placeBet({
+        await placeBetWithSession({
           symbol,
           betAmount: betAmount,
           targetPrice: targetPrice.toString(),
@@ -720,7 +731,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           entryTime: entryTime,
         });
 
-        toast.success('Bet placed successfully!', { id: 'place-bet' });
+        toast.success('✅ Bet placed successfully (gasless!))', { id: 'place-bet' });
       } catch (error: any) {
         console.error('Failed to place bet:', error);
         toast.error(error.message || 'Failed to place bet', { id: 'place-bet' });

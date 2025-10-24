@@ -1122,6 +1122,7 @@ const TradingChart: React.FC = () => {
                       "0"
                   )}
                   betAmount={tapToTrade.betAmount}
+                  isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
                 />
               ) : (
                 <SimpleLineChart
