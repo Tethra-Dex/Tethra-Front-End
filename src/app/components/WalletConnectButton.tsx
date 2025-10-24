@@ -1,24 +1,31 @@
-'use client';
+/* eslint-disable @next/next/no-img-element */
+"use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useSwitchChain, useChainId } from 'wagmi';
-import { baseSepolia } from 'wagmi/chains';
-import { toast } from 'react-hot-toast';
-import { Copy, ExternalLink, LogOut, ChevronDown, Wallet, Key } from 'lucide-react';
-import { createPublicClient, http, formatUnits } from 'viem';
-import { USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
+import React, { useEffect, useState, useRef } from "react";
+import { usePrivy } from "@privy-io/react-auth";
+import { useSwitchChain, useChainId } from "wagmi";
+import { baseSepolia } from "wagmi/chains";
+import { toast } from "react-hot-toast";
+import { Copy, ExternalLink, LogOut, Wallet, Key } from "lucide-react";
+import { createPublicClient, http, formatUnits } from "viem";
+import { USDC_ADDRESS, USDC_DECIMALS } from "@/config/contracts";
 
 const WalletConnectButton: React.FC = () => {
-  const { ready, authenticated, login, logout, user, exportWallet, createWallet } = usePrivy();
+  const {
+    ready,
+    authenticated,
+    login,
+    logout,
+    user,
+    exportWallet,
+    createWallet,
+  } = usePrivy();
   const { switchChain } = useSwitchChain();
   const chainId = useChainId();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const buttonClasses = "flex items-center justify-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl whitespace-nowrap hover:cursor-pointer";
 
   // Auto-create embedded wallet when user connects with external wallet
   useEffect(() => {
@@ -28,31 +35,33 @@ const WalletConnectButton: React.FC = () => {
       // Check if user has embedded wallet
       const embeddedWallets = user.linkedAccounts?.filter(
         (account: any) =>
-          account.type === 'wallet' &&
+          account.type === "wallet" &&
           account.imported === false &&
           account.id !== undefined
       );
 
       // If no embedded wallet exists, create one automatically
       if (!embeddedWallets || embeddedWallets.length === 0) {
-        console.log('No embedded wallet found, auto-creating...');
-        toast.loading('Setting up your embedded wallet...', { id: 'auto-create' });
+        console.log("No embedded wallet found, auto-creating...");
+        toast.loading("Setting up your embedded wallet...", {
+          id: "auto-create",
+        });
 
         try {
           await createWallet();
-          toast.success('Embedded wallet created successfully!', {
-            id: 'auto-create',
-            duration: 3000
+          toast.success("Embedded wallet created successfully!", {
+            id: "auto-create",
+            duration: 3000,
           });
         } catch (error: any) {
-          console.error('Auto-create wallet error:', error);
+          console.error("Auto-create wallet error:", error);
 
           // Ignore error if wallet already exists
-          if (error?.message?.includes('already has')) {
-            toast.dismiss('auto-create');
+          if (error?.message?.includes("already has")) {
+            toast.dismiss("auto-create");
           } else {
-            toast.error('Failed to create embedded wallet', {
-              id: 'auto-create'
+            toast.error("Failed to create embedded wallet", {
+              id: "auto-create",
             });
           }
         }
@@ -66,7 +75,7 @@ const WalletConnectButton: React.FC = () => {
   useEffect(() => {
     if (authenticated && chainId !== baseSepolia.id) {
       switchChain({ chainId: baseSepolia.id });
-      toast.success('Switching to Base Sepolia network...');
+      toast.success("Switching to Base Sepolia network...");
     }
   }, [authenticated, chainId, switchChain]);
 
@@ -78,12 +87,13 @@ const WalletConnectButton: React.FC = () => {
       // Get embedded wallet address
       const embeddedWallets = user.linkedAccounts?.filter(
         (account: any) =>
-          account.type === 'wallet' &&
+          account.type === "wallet" &&
           account.imported === false &&
           account.id !== undefined
       ) as any[];
 
-      const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
+      const embeddedWalletAddress =
+        embeddedWallets?.[0]?.address || user?.wallet?.address;
 
       if (!embeddedWalletAddress) return;
 
@@ -94,27 +104,27 @@ const WalletConnectButton: React.FC = () => {
           transport: http(),
         });
 
-        const balance = await publicClient.readContract({
+        const balance = (await publicClient.readContract({
           address: USDC_ADDRESS,
           abi: [
             {
               constant: true,
-              inputs: [{ name: '_owner', type: 'address' }],
-              name: 'balanceOf',
-              outputs: [{ name: 'balance', type: 'uint256' }],
-              type: 'function',
+              inputs: [{ name: "_owner", type: "address" }],
+              name: "balanceOf",
+              outputs: [{ name: "balance", type: "uint256" }],
+              type: "function",
             },
           ],
-          functionName: 'balanceOf',
+          functionName: "balanceOf",
           args: [embeddedWalletAddress as `0x${string}`],
-        }) as bigint;
+        })) as bigint;
 
         // Format USDC balance using configured decimals
         const formattedBalance = formatUnits(balance, USDC_DECIMALS);
         setUsdcBalance(parseFloat(formattedBalance).toFixed(2));
       } catch (error) {
-        console.error('Error fetching USDC balance:', error);
-        setUsdcBalance('0.00');
+        console.error("Error fetching USDC balance:", error);
+        setUsdcBalance("0.00");
       } finally {
         setIsLoadingBalance(false);
       }
@@ -131,9 +141,10 @@ const WalletConnectButton: React.FC = () => {
       const target = event.target as HTMLElement;
 
       // Check if click is inside Privy modal (Privy modals have specific classes/attributes)
-      const isPrivyModal = target.closest('[role="dialog"]') ||
-                          target.closest('.privy-modal') ||
-                          target.closest('#privy-modal-content');
+      const isPrivyModal =
+        target.closest('[role="dialog"]') ||
+        target.closest(".privy-modal") ||
+        target.closest("#privy-modal-content");
 
       // Don't close if clicking inside Privy modal
       if (isPrivyModal) {
@@ -147,18 +158,18 @@ const WalletConnectButton: React.FC = () => {
     };
 
     if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isDropdownOpen]);
 
   const getEmbeddedWalletAddress = () => {
     const embeddedWallets = user?.linkedAccounts?.filter(
       (account: any) =>
-        account.type === 'wallet' &&
+        account.type === "wallet" &&
         account.imported === false &&
         account.id !== undefined
     ) as any[];
@@ -169,7 +180,7 @@ const WalletConnectButton: React.FC = () => {
     const address = getEmbeddedWalletAddress();
     if (address) {
       navigator.clipboard.writeText(address);
-      toast.success('Address copied!');
+      toast.success("Address copied!");
       // Don't close the dropdown - keep it open for user convenience
     }
   };
@@ -177,7 +188,7 @@ const WalletConnectButton: React.FC = () => {
   const handleViewExplorer = () => {
     const address = getEmbeddedWalletAddress();
     if (address) {
-      window.open(`https://sepolia.basescan.org/address/${address}`, '_blank');
+      window.open(`https://sepolia.basescan.org/address/${address}`, "_blank");
       // Don't close the dropdown - keep it open for user convenience
     }
   };
@@ -187,14 +198,14 @@ const WalletConnectButton: React.FC = () => {
       // Find embedded wallet
       const embeddedWallets = user?.linkedAccounts?.filter(
         (account: any) =>
-          account.type === 'wallet' &&
+          account.type === "wallet" &&
           account.imported === false &&
           account.id !== undefined
       ) as any[];
 
       // Check if user has embedded wallet
       if (!embeddedWallets || embeddedWallets.length === 0) {
-        toast.error('Embedded wallet not found. Please reconnect your wallet.');
+        toast.error("Embedded wallet not found. Please reconnect your wallet.");
         return;
       }
 
@@ -202,7 +213,7 @@ const WalletConnectButton: React.FC = () => {
       const embeddedWalletAddress = embeddedWallets[0]?.address;
 
       if (!embeddedWalletAddress) {
-        toast.error('Embedded wallet address not found');
+        toast.error("Embedded wallet address not found");
         return;
       }
 
@@ -212,17 +223,17 @@ const WalletConnectButton: React.FC = () => {
 
       // Don't close the dropdown - keep wallet popup open after Privy modal closes
       // User might want to do other actions
-      toast.success('Private key exported successfully!');
+      toast.success("Private key exported successfully!");
     } catch (error: any) {
-      console.error('Error exporting wallet:', error);
-      toast.error(error?.message || 'Failed to export private key');
+      console.error("Error exporting wallet:", error);
+      toast.error(error?.message || "Failed to export private key");
     }
   };
 
   const handleDisconnect = () => {
     logout();
     setIsDropdownOpen(false);
-    toast.success('Wallet disconnected');
+    toast.success("Wallet disconnected");
   };
 
   if (!ready) {
@@ -233,15 +244,21 @@ const WalletConnectButton: React.FC = () => {
     // Get embedded wallet address
     const embeddedWallets = user?.linkedAccounts?.filter(
       (account: any) =>
-        account.type === 'wallet' &&
+        account.type === "wallet" &&
         account.imported === false &&
         account.id !== undefined
     ) as any[];
 
-    const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
+    const embeddedWalletAddress =
+      embeddedWallets?.[0]?.address || user?.wallet?.address;
     const shortAddress = embeddedWalletAddress
-      ? `${embeddedWalletAddress.substring(0, 6)}...${embeddedWalletAddress.substring(embeddedWalletAddress.length - 4)}`
-      : 'Connected';
+      ? `${embeddedWalletAddress.substring(
+          0,
+          6
+        )}...${embeddedWalletAddress.substring(
+          embeddedWalletAddress.length - 4
+        )}`
+      : "Connected";
 
     return (
       <div className="flex items-center">
@@ -260,8 +277,8 @@ const WalletConnectButton: React.FC = () => {
             className="flex items-center justify-center w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             title="Sepolia Base"
           >
-            <img 
-              src="data:image/svg+xml,%3Csvg width='111' height='111' viewBox='0 0 111 111' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z' fill='%230052FF'/%3E%3C/svg%3E" 
+            <img
+              src="data:image/svg+xml,%3Csvg width='111' height='111' viewBox='0 0 111 111' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z' fill='%230052FF'/%3E%3C/svg%3E"
               alt="Base"
               className="w-6 h-6"
             />
@@ -271,7 +288,7 @@ const WalletConnectButton: React.FC = () => {
             Sepolia Base
           </div>
         </div>
-        
+
         {/* Modal Overlay */}
         {isDropdownOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -289,13 +306,25 @@ const WalletConnectButton: React.FC = () => {
               {/* Header Section */}
               <div className="px-6 py-5 border-b border-slate-700/50">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-slate-100">Tethra Wallet</h2>
+                  <h2 className="text-lg font-bold text-slate-100">
+                    Tethra Wallet
+                  </h2>
                   <button
                     onClick={() => setIsDropdownOpen(false)}
                     className="text-slate-400 hover:text-slate-200 transition-colors"
                   >
-                    <svg className="w-5 h-5 hover:cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-5 h-5 hover:cursor-pointer"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -307,7 +336,9 @@ const WalletConnectButton: React.FC = () => {
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                       <Wallet className="w-3.5 h-3.5 text-white" />
                     </div>
-                    <span className="text-slate-100 font-medium text-sm">{shortAddress}</span>
+                    <span className="text-slate-100 font-medium text-sm">
+                      {shortAddress}
+                    </span>
                     <button
                       onClick={handleCopyAddress}
                       className="p-1 hover:bg-slate-700/50 rounded-md transition-colors ml-auto cursor-pointer"
@@ -349,17 +380,41 @@ const WalletConnectButton: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-2 text-slate-400 text-sm">
                     <span>Balance</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-lg">
                     <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                      <span className="text-white text-[10px] font-bold">$</span>
+                      <span className="text-white text-[10px] font-bold">
+                        $
+                      </span>
                     </div>
-                    <span className="text-slate-100 text-sm font-medium">USDC</span>
-                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <span className="text-slate-100 text-sm font-medium">
+                      USDC
+                    </span>
+                    <svg
+                      className="w-3.5 h-3.5 text-slate-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -368,7 +423,7 @@ const WalletConnectButton: React.FC = () => {
                   {isLoadingBalance ? (
                     <span className="text-slate-400 text-2xl">Loading...</span>
                   ) : (
-                    <span>${usdcBalance || '0.00'}</span>
+                    <span>${usdcBalance || "0.00"}</span>
                   )}
                 </div>
 
@@ -385,7 +440,9 @@ const WalletConnectButton: React.FC = () => {
 
               {/* Funding Activity Section */}
               <div className="px-6 py-4">
-                <h3 className="text-sm font-semibold text-slate-100 mb-3">Funding Activity</h3>
+                <h3 className="text-sm font-semibold text-slate-100 mb-3">
+                  Funding Activity
+                </h3>
 
                 {/* Search Bar */}
                 <div className="relative">
@@ -400,13 +457,20 @@ const WalletConnectButton: React.FC = () => {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                 </div>
 
                 {/* Empty State */}
                 <div className="py-8 text-center">
-                  <p className="text-slate-500 text-sm">No funding activity yet</p>
+                  <p className="text-slate-500 text-sm">
+                    No funding activity yet
+                  </p>
                 </div>
               </div>
             </div>
@@ -417,11 +481,11 @@ const WalletConnectButton: React.FC = () => {
   }
 
   return (
-    <>
+    <div className="flex gap-2">
       {/* Connect Wallet Button with Wallet Icon */}
       <button
         onClick={login}
-        className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-3 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
+        className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg md:px-5 px-3 md:py-3 py-1 text-base font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer"
       >
         <Wallet className="w-5 h-5" />
         Connect wallet
@@ -433,8 +497,8 @@ const WalletConnectButton: React.FC = () => {
           className="flex items-center justify-center w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
           title="Sepolia Base"
         >
-          <img 
-            src="data:image/svg+xml,%3Csvg width='111' height='111' viewBox='0 0 111 111' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z' fill='%230052FF'/%3E%3C/svg%3E" 
+          <img
+            src="data:image/svg+xml,%3Csvg width='111' height='111' viewBox='0 0 111 111' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z' fill='%230052FF'/%3E%3C/svg%3E"
             alt="Base"
             className="w-6 h-6"
           />
@@ -444,7 +508,7 @@ const WalletConnectButton: React.FC = () => {
           Sepolia Base
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
