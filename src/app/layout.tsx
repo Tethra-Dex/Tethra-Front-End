@@ -45,6 +45,24 @@ export const metadata: Metadata = {
     images: ['/images/og-banner.png'],
     creator: '@tethradex',
   },
+  other: {
+    'fc:frame': 'vNext',
+    'fc:frame:image': 'https://tethradex.vercel.app/api/frame/image?view=main',
+    'fc:frame:image:aspect_ratio': '1.91:1',
+    'fc:frame:post_url': 'https://tethradex.vercel.app/api/frame',
+    'fc:frame:button:1': '📊 Chart',
+    'fc:frame:button:1:action': 'post',
+    'fc:frame:button:1:target': 'https://tethradex.vercel.app/api/frame?action=chart',
+    'fc:frame:button:2': '🔗 Connect',
+    'fc:frame:button:2:action': 'post',
+    'fc:frame:button:2:target': 'https://tethradex.vercel.app/api/frame?action=connect',
+    'fc:frame:button:3': '💰 Claim USDC',
+    'fc:frame:button:3:action': 'post',
+    'fc:frame:button:3:target': 'https://tethradex.vercel.app/api/frame?action=claim',
+    'fc:frame:button:4': '🪙 Coins',
+    'fc:frame:button:4:action': 'post',
+    'fc:frame:button:4:target': 'https://tethradex.vercel.app/api/frame?action=coins',
+  },
 };
 
 export const viewport: Viewport = {
