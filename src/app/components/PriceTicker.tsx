@@ -189,7 +189,7 @@ const PriceTicker: React.FC = () => {
   const duplicatedData = [...tickerData, ...tickerData];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-slate-800 overflow-hidden z-50 h-10">
+    <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-slate-800 overflow-hidden z-50 h-10 hidden lg:block">
       <div className="flex animate-scroll-left">
         {duplicatedData.map((item, index) => (
           <div
