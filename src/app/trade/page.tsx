@@ -267,7 +267,7 @@ function TradePageContent() {
               {!isBottomPanelOpen && (
                 <button
                   onClick={() => setIsBottomPanelOpen(true)}
-                  className="hidden lg:flex absolute bottom-0 left-1/2 -translate-x-1/2 z-50 bg-[#0B1017] border border-gray-700/50 rounded-t-lg px-4 py-2 items-center gap-2 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                  className="hidden lg:flex absolute bottom-10 left-1/2 -translate-x-1/2 z-50 bg-[#0B1017] border border-gray-700/50 rounded-t-lg px-4 py-2 items-center gap-2 hover:bg-gray-800/50 transition-colors cursor-pointer"
                 >
                   <ChevronUp size={16} className="text-gray-400" />
                   <span className="text-xs text-gray-400 font-medium">
