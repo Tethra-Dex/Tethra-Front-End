@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
 // Farcaster Frame metadata
-const FRAME_VERSION = 'vNext';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tethradex.vercel.app';
 
 // Generate frame HTML with meta tags
@@ -19,10 +18,11 @@ function generateFrameHTML() {
 
   // Generate meta tags untuk Farcaster Frame
   const metaTags = [
-    `<meta property="fc:frame" content="${FRAME_VERSION}" />`,
+    `<meta property="fc:frame" content="vNext" />`,
     `<meta property="fc:frame:image" content="${imageUrl}" />`,
     `<meta property="fc:frame:image:aspect_ratio" content="1.91:1" />`,
     `<meta property="fc:frame:post_url" content="${postUrl}" />`,
+    `<meta name="fc:frame" content="vNext" />`,
   ];
 
   // Add button meta tags (max 4 buttons)
