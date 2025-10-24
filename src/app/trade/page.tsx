@@ -14,6 +14,8 @@ import {
   TapToTradeProvider,
   useTapToTrade,
 } from "../contexts/TapToTradeContext";
+import { useDynamicTitle } from "@/hooks/useDynamicTitle";
+import PriceTicker from "../components/PriceTicker";
 
 function TradePageContent() {
   const { isEnabled, toggleMode } = useTapToTrade();
@@ -29,6 +31,11 @@ function TradePageContent() {
 
   // Check if we're in Tap to Trade mode (any mode) and enabled
   const isTapToTradeActive = isEnabled;
+
+  // Dynamic title with price and pair
+  const priceValue = currentPrice ? parseFloat(currentPrice) : null;
+  const pairName = activeMarket?.symbol || "BTC/USDT";
+  useDynamicTitle(priceValue, pairName);
 
   // Listen for mobile coin info toggle event
   useEffect(() => {
@@ -433,6 +440,9 @@ function TradePageContent() {
           )}
         </div>
       </div>
+
+      {/* Price Ticker at bottom */}
+      <PriceTicker />
     </main>
   );
 }

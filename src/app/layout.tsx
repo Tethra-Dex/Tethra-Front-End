@@ -38,6 +38,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexMono.variable}`}>
+      <head>
+        <link rel="icon" href="/images/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
           <SidebarProvider>
