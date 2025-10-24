@@ -44,10 +44,6 @@ function generateFrameHTML() {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TethraDEX - Decentralized Trading Platform</title>
 
-    <!-- Auto-redirect for non-Farcaster browsers -->
-    <meta http-equiv="refresh" content="0; url=${APP_URL}/trade" />
-    <script>window.location.href = '${APP_URL}/trade';</script>
-
     <!-- Open Graph -->
     <meta property="og:title" content="TethraDEX - Trade Crypto with Ease" />
     <meta property="og:description" content="Professional trading platform with advanced charting and instant USDC claiming" />
@@ -58,15 +54,20 @@ function generateFrameHTML() {
   </head>
   <body>
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #0B1017; color: white; font-family: system-ui, -apple-system, sans-serif; padding: 20px;">
-      <h1 style="font-size: 2rem; margin-bottom: 1rem; color: #60a5fa;">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #60a5fa;">
         TethraDEX
       </h1>
-      <p style="font-size: 1rem; color: #94a3b8; margin-bottom: 2rem; text-align: center;">
-        Redirecting to trading platform...
+      <p style="font-size: 1.2rem; color: #94a3b8; margin-bottom: 2rem; text-align: center; max-width: 600px;">
+        Professional decentralized trading platform with advanced charting, instant wallet connection, and USDC faucet
       </p>
-      <p style="font-size: 0.9rem; color: #64748b;">
-        If not redirected, <a href="${APP_URL}/trade" style="color: #60a5fa; text-decoration: underline;">click here</a>
-      </p>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+        <a href="${APP_URL}/trade" style="padding: 12px 24px; background: #3b82f6; border-radius: 8px; text-decoration: none; color: white; font-weight: 600;">
+          🚀 Launch App
+        </a>
+        <a href="${APP_URL}" style="padding: 12px 24px; background: #64748b; border-radius: 8px; text-decoration: none; color: white; font-weight: 600;">
+          ℹ️ About
+        </a>
+      </div>
     </div>
   </body>
 </html>
