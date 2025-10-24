@@ -72,7 +72,7 @@ interface TapToTradeContextType {
 
 const TapToTradeContext = createContext<TapToTradeContextType | undefined>(undefined);
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 const EXPECTED_CHAIN_ID = BigInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532');
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
 

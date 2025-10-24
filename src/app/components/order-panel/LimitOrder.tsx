@@ -336,7 +336,8 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
   // Fetch Pyth Oracle price via WebSocket
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3001/ws/price');
+    const wsUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001').replace(/^http/, 'ws') + '/ws/price';
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('✅ Limit Order connected to Pyth Oracle');

@@ -8,8 +8,8 @@ export interface Candle {
 }
 
 export class PythDataFeed {
-    private baseUrl = 'http://localhost:3001/api'; // Your backend URL
-    private wsUrl = 'ws://localhost:3001/ws'; // WebSocket URL
+    private baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001') + '/api'; // Your backend URL
+    private wsUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'ws://localhost:3001').replace(/^http/, 'ws') + '/ws'; // WebSocket URL
 
     /**
      * Convert timeframe to backend interval format

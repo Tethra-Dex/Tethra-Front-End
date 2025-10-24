@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTapToTrade } from '../contexts/TapToTradeContext';
 import { useEmbeddedWallet } from '@/hooks/useEmbeddedWallet';
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 interface TapToTradeOrder {
   id: string;

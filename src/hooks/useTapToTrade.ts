@@ -271,7 +271,8 @@ export function useTapToTrade() {
       }
 
       // Submit to backend
-      const response = await fetch('http://localhost:3001/api/tap-to-trade/batch-create', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/tap-to-trade/batch-create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -310,8 +311,9 @@ export function useTapToTrade() {
     if (!user?.wallet?.address) return;
 
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
       const response = await fetch(
-        `http://localhost:3001/api/tap-to-trade/orders?trader=${user.wallet.address}&status=PENDING`
+        `${backendUrl}/api/tap-to-trade/orders?trader=${user.wallet.address}&status=PENDING`
       );
 
       const result = await response.json();
@@ -331,7 +333,8 @@ export function useTapToTrade() {
     if (!user?.wallet?.address) return false;
 
     try {
-      const response = await fetch('http://localhost:3001/api/tap-to-trade/cancel-order', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/tap-to-trade/cancel-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -365,7 +368,8 @@ export function useTapToTrade() {
     if (!user?.wallet?.address) return false;
 
     try {
-      const response = await fetch('http://localhost:3001/api/tap-to-trade/cancel-cell', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/tap-to-trade/cancel-cell`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

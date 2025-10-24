@@ -56,7 +56,8 @@ export function useGridTrading() {
       // Convert margin to base units (6 decimals for USDC)
       const marginInBaseUnits = (parseFloat(config.margin) * 1000000).toString();
 
-      const response = await fetch('http://localhost:3001/api/grid/create-session', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/grid/create-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,7 +107,8 @@ export function useGridTrading() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/grid/cancel-session', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/grid/cancel-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

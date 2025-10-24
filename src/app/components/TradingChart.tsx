@@ -943,7 +943,8 @@ const TradingChart: React.FC = () => {
 
     const connectWebSocket = () => {
       try {
-        ws = new WebSocket("ws://localhost:3001/ws/price");
+        const wsUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001').replace(/^http/, 'ws') + '/ws/price';
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
           console.log("✅ Pyth Oracle WebSocket connected");

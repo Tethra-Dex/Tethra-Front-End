@@ -35,7 +35,7 @@ export const NETWORK_NAME = process.env.NEXT_PUBLIC_NETWORK_NAME || 'base-sepoli
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
 
 // Backend API Configuration
-export const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
+export const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 // Token Decimals
 export const USDC_DECIMALS = 6;
