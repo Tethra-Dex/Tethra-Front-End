@@ -3,7 +3,8 @@
 import { Star, TrendingUp, Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import DashboardTrade from '../components/DashboardTrade';
-import { useSidebar } from '../contexts/SidebarContext';
+import MobileHeader from '../components/MobileHeader';
+import WalletConnectButton from '../components/WalletConnectButton';
 
 // Mock data untuk traders
 const mockTraders = [
@@ -112,7 +113,6 @@ const mockTraders = [
 ];
 
 export default function CopyTradePage() {
-  const { isExpanded } = useSidebar();
   const [activeTab, setActiveTab] = useState<'portfolio' | 'favorites'>('portfolio');
   const [selectedTimeFilter, setSelectedTimeFilter] = useState<'7D' | '30D' | '90D'>('7D');
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
@@ -185,10 +185,12 @@ export default function CopyTradePage() {
 
   return (
     <main className="h-screen bg-black text-white p-2">
+      {/* Mobile Header */}
+      <MobileHeader rightContent={<WalletConnectButton />} />
+
       <div className="flex flex-col md:flex-row w-full h-full gap-2">
-        <div className={`w-full shrink-0 transition-all duration-300 ${isExpanded ? 'md:w-[180px]' : 'md:w-[70px]'}`}>
-          <DashboardTrade />
-        </div>
+        {/* Sidebar - Responsive */}
+        <DashboardTrade />
 
         <div className="flex-1 overflow-auto bg-[#0a0e14] rounded-lg copy-trade-scrollbar">
           <div className="p-6 space-y-6">

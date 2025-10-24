@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronUp, ChevronDown, Menu, X } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import DashboardTrade from "../components/DashboardTrade";
+import MobileHeader from "../components/MobileHeader";
 import TradingChart from "../components/TradingChart";
 import OrderPanel from "../components/OrderPanel";
 import BottomTrading from "../components/BottomTrading";
@@ -13,15 +14,11 @@ import {
   TapToTradeProvider,
   useTapToTrade,
 } from "../contexts/TapToTradeContext";
-import { useSidebar } from "../contexts/SidebarContext";
-import Image from "next/image";
 
 function TradePageContent() {
-  const { isExpanded } = useSidebar();
   const { isEnabled, toggleMode } = useTapToTrade();
   const { activeMarket, currentPrice } = useMarket();
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobileOrderPanelOpen, setIsMobileOrderPanelOpen] = useState(false);
   const [isMobileCoinInfoOpen, setIsMobileCoinInfoOpen] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<
@@ -58,64 +55,15 @@ function TradePageContent() {
 
   return (
     <main className="bg-black text-white h-screen flex flex-col relative lg:p-2 p-2 lg:overflow-hidden overflow-auto">
-      {/* Mobile Header - Only visible on mobile */}
-      <div className="lg:hidden flex items-center justify-between p-3 bg-[#0B1017] flex-shrink-0 rounded-lg mb-2">
-        {/* Left: Menu Button + Logo + Name */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-            className="p-2 hover:bg-[#1A2332] rounded-lg transition-colors"
-          >
-            <Menu size={24} />
-          </button>
-          <Image
-            src="/images/logo.png"
-            alt="Tethra"
-            width={50}
-            height={50}
-            className="w-12 h-12"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        </div>
-
-        {/* Right: Wallet Connect */}
-        <div>
-          <WalletConnectButton />
-        </div>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobileSidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/80"
-          onClick={() => setIsMobileSidebarOpen(false)}
-        >
-          <div
-            className="absolute left-0 top-0 bottom-0 w-64 bg-[#0B1017]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DashboardTrade />
-          </div>
-        </div>
-      )}
+      {/* Mobile Header */}
+      <MobileHeader rightContent={<WalletConnectButton />} />
 
       <div
         className="flex flex-col lg:flex-row w-full flex-1 lg:gap-2 gap-2 lg:overflow-hidden"
         style={{ minHeight: 0 }}
       >
-        {/* Left Sidebar - Hidden on mobile */}
-        <div
-          className="hidden lg:flex max-w-lg shrink-0 transition-all duration-300 flex-col"
-          style={{
-            width: isExpanded ? "16vw" : "5vw",
-            minWidth: isExpanded ? "120px" : "50px",
-            maxWidth: isExpanded ? "200px" : "80px",
-          }}
-        >
-          <DashboardTrade />
-        </div>
+        {/* Left Sidebar - Responsive (hidden on mobile, overlay on mobile when open) */}
+        <DashboardTrade />
 
         {/* Center - Chart and Bottom Trading */}
         <div

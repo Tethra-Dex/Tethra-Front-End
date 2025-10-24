@@ -2,20 +2,20 @@
 
 import React from 'react';
 import DashboardTrade from '../components/DashboardTrade';
-import { useSidebar } from '../contexts/SidebarContext';
+import MobileHeader from '../components/MobileHeader';
+import WalletConnectButton from '../components/WalletConnectButton';
 import SimpleStaking from '../../components/SimpleStaking';
 import AnalyticsDashboard from '../../components/AnalyticsDashboard';
 
 export default function StakePage() {
-  const { isExpanded } = useSidebar();
-
   return (
     <main className="min-h-screen bg-black text-white p-2">
-      <div className="flex w-full h-screen">
-        {/* Sidebar */}
-        <div className={`w-full shrink-0 transition-all duration-300 ${isExpanded ? 'md:w-[180px]' : 'md:w-[70px]'}`}>
-          <DashboardTrade />
-        </div>
+      {/* Mobile Header */}
+      <MobileHeader rightContent={<WalletConnectButton />} />
+
+      <div className="flex w-full h-screen gap-2">
+        {/* Sidebar - Responsive */}
+        <DashboardTrade />
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-6">

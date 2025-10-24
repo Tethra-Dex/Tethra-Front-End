@@ -1,22 +1,23 @@
-'use client';
+"use client";
 
-import React from 'react';
-import DashboardTrade from '../components/DashboardTrade';
-import { useSidebar } from '../contexts/SidebarContext';
-import usePoolData from '../../hooks/usePoolData';
-import LiquidityProvision from '../../components/LiquidityProvision';
+import React from "react";
+import DashboardTrade from "../components/DashboardTrade";
+import MobileHeader from "../components/MobileHeader";
+import usePoolData from "../../hooks/usePoolData";
+import LiquidityProvision from "../../components/LiquidityProvision";
+import WalletConnectButton from "../components/WalletConnectButton";
 
 export default function PoolsPage() {
-  const { isExpanded } = useSidebar();
   const poolData = usePoolData();
 
   return (
     <main className="min-h-screen bg-black text-white p-2">
-      <div className="flex w-full h-screen">
-        {/* Sidebar */}
-        <div className={`w-full shrink-0 transition-all duration-300 ${isExpanded ? 'md:w-[180px]' : 'md:w-[70px]'}`}>
-          <DashboardTrade />
-        </div>
+      {/* Mobile Header */}
+      <MobileHeader rightContent={<WalletConnectButton />} />
+
+      <div className="flex w-full h-screen gap-2">
+        {/* Sidebar - Responsive */}
+        <DashboardTrade />
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-6">
@@ -31,18 +32,20 @@ export default function PoolsPage() {
             </h1>
             <p className="text-gray-400 text-sm">TVL in vaults and pools.</p>
             {poolData.error && (
-              <p className="text-red-400 text-xs mt-1">Error: {poolData.error}</p>
+              <p className="text-red-400 text-xs mt-1">
+                Error: {poolData.error}
+              </p>
             )}
-            
+
             {/* Time period tabs */}
             <div className="flex gap-2 mt-4">
-              {['Last 30d', 'Last 90d', 'Last 180d', 'Total'].map((period) => (
+              {["Last 30d", "Last 90d", "Last 180d", "Total"].map((period) => (
                 <button
                   key={period}
                   className={`px-4 py-2 rounded-lg text-sm ${
-                    period === 'Last 90d' 
-                      ? 'bg-slate-700 text-white' 
-                      : 'bg-slate-900 text-gray-400 hover:bg-slate-800'
+                    period === "Last 90d"
+                      ? "bg-slate-700 text-white"
+                      : "bg-slate-900 text-gray-400 hover:bg-slate-800"
                   }`}
                 >
                   {period}
@@ -60,7 +63,8 @@ export default function PoolsPage() {
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-2">GM Liquidity Pools</h2>
             <p className="text-gray-400 text-sm mb-4">
-              Provide dual-asset liquidity to earn trading fees + TETH rewards. Protected against impermanent loss with Pyth Oracle pricing.
+              Provide dual-asset liquidity to earn trading fees + TETH rewards.
+              Protected against impermanent loss with Pyth Oracle pricing.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -68,13 +72,20 @@ export default function PoolsPage() {
               <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex -space-x-2">
-                    <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png" 
-                         alt="ETH" className="w-8 h-8 rounded-full border-2 border-slate-700" />
-                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">$</div>
+                    <img
+                      src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
+                      alt="ETH"
+                      className="w-8 h-8 rounded-full border-2 border-slate-700"
+                    />
+                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">
+                      $
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-white">WETH/USDC</h3>
-                    <p className="text-xs text-gray-400">Major pair, deep liquidity</p>
+                    <p className="text-xs text-gray-400">
+                      Major pair, deep liquidity
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -96,13 +107,20 @@ export default function PoolsPage() {
               <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex -space-x-2">
-                    <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png" 
-                         alt="BTC" className="w-8 h-8 rounded-full border-2 border-slate-700" />
-                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">$</div>
+                    <img
+                      src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png"
+                      alt="BTC"
+                      className="w-8 h-8 rounded-full border-2 border-slate-700"
+                    />
+                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">
+                      $
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-white">BTC/USDC</h3>
-                    <p className="text-xs text-gray-400">Bitcoin trading pair</p>
+                    <p className="text-xs text-gray-400">
+                      Bitcoin trading pair
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -124,13 +142,20 @@ export default function PoolsPage() {
               <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex -space-x-2">
-                    <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png" 
-                         alt="LINK" className="w-8 h-8 rounded-full border-2 border-slate-700" />
-                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">$</div>
+                    <img
+                      src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png"
+                      alt="LINK"
+                      className="w-8 h-8 rounded-full border-2 border-slate-700"
+                    />
+                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">
+                      $
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-white">LINK/USDC</h3>
-                    <p className="text-xs text-gray-400">Chainlink oracle token</p>
+                    <p className="text-xs text-gray-400">
+                      Chainlink oracle token
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -152,13 +177,20 @@ export default function PoolsPage() {
               <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex -space-x-2">
-                    <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png" 
-                         alt="SOL" className="w-8 h-8 rounded-full border-2 border-slate-700" />
-                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">$</div>
+                    <img
+                      src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png"
+                      alt="SOL"
+                      className="w-8 h-8 rounded-full border-2 border-slate-700"
+                    />
+                    <div className="w-8 h-8 rounded-full border-2 border-slate-700 bg-green-500 flex items-center justify-center text-xs font-bold text-white">
+                      $
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-white">SOL/USDC</h3>
-                    <p className="text-xs text-gray-400">Solana ecosystem token</p>
+                    <p className="text-xs text-gray-400">
+                      Solana ecosystem token
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -184,8 +216,12 @@ export default function PoolsPage() {
                   <span className="text-white font-bold text-sm">GLV</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-white">GLV Multi-Strategy Vaults</h3>
-                  <p className="text-xs text-gray-400">Auto-diversified yield across multiple GM pools</p>
+                  <h3 className="font-bold text-white">
+                    GLV Multi-Strategy Vaults
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    Auto-diversified yield across multiple GM pools
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -203,8 +239,9 @@ export default function PoolsPage() {
                 </div>
               </div>
               <p className="text-sm text-gray-300 mb-4">
-                Deposit USDC once, earn diversified yield from WETH/USDC, BTC/USDC, LINK/USDC, and SOL/USDC pools. 
-                Automatic rebalancing and compounding powered by Pyth Oracle prices.
+                Deposit USDC once, earn diversified yield from WETH/USDC,
+                BTC/USDC, LINK/USDC, and SOL/USDC pools. Automatic rebalancing
+                and compounding powered by Pyth Oracle prices.
               </p>
               <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2 rounded-lg text-sm transition-all">
                 Notify Me When Available

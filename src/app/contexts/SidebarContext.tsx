@@ -4,13 +4,18 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 interface SidebarContextType {
   isExpanded: boolean;
+  isMobileOpen: boolean;
   toggleSidebar: () => void;
+  openMobileSidebar: () => void;
+  closeMobileSidebar: () => void;
+  toggleMobileSidebar: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Load from localStorage on mount
@@ -33,8 +38,27 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     setIsExpanded(prev => !prev);
   };
 
+  const openMobileSidebar = () => {
+    setIsMobileOpen(true);
+  };
+
+  const closeMobileSidebar = () => {
+    setIsMobileOpen(false);
+  };
+
+  const toggleMobileSidebar = () => {
+    setIsMobileOpen(prev => !prev);
+  };
+
   return (
-    <SidebarContext.Provider value={{ isExpanded, toggleSidebar }}>
+    <SidebarContext.Provider value={{
+      isExpanded,
+      isMobileOpen,
+      toggleSidebar,
+      openMobileSidebar,
+      closeMobileSidebar,
+      toggleMobileSidebar
+    }}>
       {children}
     </SidebarContext.Provider>
   );
