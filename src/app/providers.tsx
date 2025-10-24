@@ -19,7 +19,7 @@ const queryClient = new QueryClient();
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
-      appId="cmggwss0r007okw0cruiaq7ut"
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || 'cmghox4fe01ijib0ccdcmw7j5'}
       config={{
         appearance: {
           theme: 'dark',
