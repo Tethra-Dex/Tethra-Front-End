@@ -15,7 +15,6 @@ import TapToTrade from './order-panel/TaptoTrade';
 import SwapPanel from './order-panel/SwapPanel';
 import { useTapToTrade } from "../contexts/TapToTradeContext";
 import WalletConnectButton from "./WalletConnectButton";
-import ClaimUSDCButton from "./ClaimUSDCButton";
 
 interface OrderPanelProps {
   mobileActiveTab?: "long" | "short" | "swap";
@@ -77,10 +76,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
           borderTopRightRadius: "0.5rem",
         }}
       >
-        <div className="flex items-center gap-3 flex-row">
-          <ClaimUSDCButton />
-          <WalletConnectButton />
-        </div>
+        <WalletConnectButton />
       </div>
 
       {/* Order Panel - Aligned with Trading Chart Header */}
