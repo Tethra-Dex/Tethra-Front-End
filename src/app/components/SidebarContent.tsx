@@ -3,11 +3,12 @@
 import Image from "next/image";
 import {
   CandlestickChart,
-  Database,
+  Vault,
   Copy,
   ChevronLeft,
   ChevronRight,
   Coins,
+  List,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -30,8 +31,9 @@ interface SidebarContentProps {
 export default function SidebarContent({
   navItems = [
     { href: "/trade", icon: CandlestickChart, label: "Trade" },
-    { href: "/pools", icon: Database, label: "Pools" },
+    { href: "/vaults", icon: Vault, label: "Vaults" },
     { href: "/stake", icon: Coins, label: "Stake" },
+    { href: "/positions", icon: List, label: "Positions" },
     { href: "/copy-trade", icon: Copy, label: "Copy Trade" },
   ],
   logoSrc = "/images/logo.png",
