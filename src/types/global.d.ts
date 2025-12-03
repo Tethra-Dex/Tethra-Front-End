@@ -2,7 +2,8 @@
 declare global {
   interface Window {
     ethereum?: {
-      request: (args: { method: string; params?: any[] | undefined; }) => Promise<any>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      request: (args: { method: string; params?: any[] | undefined }) => Promise<any>;
     };
   }
 }
