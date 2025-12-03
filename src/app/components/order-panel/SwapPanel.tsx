@@ -20,12 +20,12 @@ const TOKENS: { [key: string]: Token } = {
   USDC: {
     symbol: 'USDC',
     name: 'USD Coin',
-    logo: '/images/USDC.png',
+    logo: '/icons/usdc.png',
   },
   TETHRA: {
     symbol: 'TETH',
     name: 'Tethra Token',
-    logo: '/images/logo.png',
+    logo: '/tethra-logo.png',
   },
 };
 
@@ -41,10 +41,10 @@ const SwapPanel: React.FC = () => {
   // Calculate exchange amounts
   const toAmount = useMemo(() => {
     if (!fromAmount || parseFloat(fromAmount) === 0) return '';
-    
+
     const amount = parseFloat(fromAmount);
     let result: number;
-    
+
     if (fromToken.symbol === 'USDC') {
       // USDC to TETHRA
       result = amount * EXCHANGE_RATE * (1 - SWAP_FEE);
@@ -52,7 +52,7 @@ const SwapPanel: React.FC = () => {
       // TETHRA to USDC
       result = (amount / EXCHANGE_RATE) * (1 - SWAP_FEE);
     }
-    
+
     return result.toFixed(6);
   }, [fromAmount, fromToken.symbol]);
 
@@ -61,7 +61,7 @@ const SwapPanel: React.FC = () => {
     if (!fromAmount || parseFloat(fromAmount) === 0) return '0.00';
     const amount = parseFloat(fromAmount);
     // Simple mock: larger trades have more impact
-    return (Math.min(amount / 1000, 2)).toFixed(2);
+    return Math.min(amount / 1000, 2).toFixed(2);
   }, [fromAmount]);
 
   // Calculate minimum received with slippage
@@ -92,21 +92,21 @@ const SwapPanel: React.FC = () => {
     const temp = fromToken;
     setFromToken(toToken);
     setToToken(temp);
-    
+
     // Clear amounts
     setFromAmount('');
   };
 
   const handleSwap = async () => {
     if (!authenticated) return;
-    
+
     setIsSwapping(true);
-    
+
     // Mock swap execution
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     alert(`Swapped ${fromAmount} ${fromToken.symbol} for ${toAmount} ${toToken.symbol}`);
-    
+
     setIsSwapping(false);
     setFromAmount('');
   };
@@ -116,11 +116,12 @@ const SwapPanel: React.FC = () => {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 6
+      maximumFractionDigits: 6,
     }).format(price);
   };
 
-  const isSwapDisabled = !authenticated || !fromAmount || parseFloat(fromAmount) === 0 || isSwapping;
+  const isSwapDisabled =
+    !authenticated || !fromAmount || parseFloat(fromAmount) === 0 || isSwapping;
 
   return (
     <div className="flex flex-col gap-3 md:px-4 px-3 md:py-4 py-3 bg-[#0F1419]">
@@ -130,13 +131,15 @@ const SwapPanel: React.FC = () => {
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs text-gray-400">From</label>
             <span className="text-xs text-gray-400">
-              Balance: {fromToken.symbol === 'USDC' 
-                ? (isLoadingBalance ? 'Loading...' : `${usdcBalance} ${fromToken.symbol}`)
-                : '0.00 TETH'
-              }
+              Balance:{' '}
+              {fromToken.symbol === 'USDC'
+                ? isLoadingBalance
+                  ? 'Loading...'
+                  : `${usdcBalance} ${fromToken.symbol}`
+                : '0.00 TETH'}
             </span>
           </div>
-          
+
           <div className="flex justify-between items-center mb-2 gap-2">
             <input
               type="text"
@@ -162,18 +165,19 @@ const SwapPanel: React.FC = () => {
                     target.style.display = 'none';
                   }}
                 />
-                <span className="font-medium text-white text-sm whitespace-nowrap">{fromToken.symbol}</span>
+                <span className="font-medium text-white text-sm whitespace-nowrap">
+                  {fromToken.symbol}
+                </span>
               </div>
             </div>
           </div>
-          
+
           <div className="text-xs text-gray-500">
             {fromAmount && parseFloat(fromAmount) > 0
-              ? fromToken.symbol === 'USDC' 
+              ? fromToken.symbol === 'USDC'
                 ? formatPrice(parseFloat(fromAmount))
                 : formatPrice(parseFloat(fromAmount) / EXCHANGE_RATE)
-              : '$0.00'
-            }
+              : '$0.00'}
           </div>
         </div>
       </div>
@@ -194,13 +198,15 @@ const SwapPanel: React.FC = () => {
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs text-gray-400">To</label>
             <span className="text-xs text-gray-400">
-              Balance: {toToken.symbol === 'USDC'
-                ? (isLoadingBalance ? 'Loading...' : `${usdcBalance} ${toToken.symbol}`)
-                : '0.00 TETH'
-              }
+              Balance:{' '}
+              {toToken.symbol === 'USDC'
+                ? isLoadingBalance
+                  ? 'Loading...'
+                  : `${usdcBalance} ${toToken.symbol}`
+                : '0.00 TETH'}
             </span>
           </div>
-          
+
           <div className="flex justify-between items-center mb-2 gap-2">
             <input
               type="text"
@@ -219,17 +225,18 @@ const SwapPanel: React.FC = () => {
                   target.style.display = 'none';
                 }}
               />
-              <span className="font-medium text-white text-sm whitespace-nowrap">{toToken.symbol}</span>
+              <span className="font-medium text-white text-sm whitespace-nowrap">
+                {toToken.symbol}
+              </span>
             </div>
           </div>
-          
+
           <div className="text-xs text-gray-500">
             {toAmount && parseFloat(toAmount) > 0
               ? toToken.symbol === 'USDC'
                 ? formatPrice(parseFloat(toAmount))
                 : formatPrice(parseFloat(toAmount) / EXCHANGE_RATE)
-              : '$0.00'
-            }
+              : '$0.00'}
           </div>
         </div>
       </div>
@@ -240,7 +247,10 @@ const SwapPanel: React.FC = () => {
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="text-gray-400">Rate</span>
             <span className="text-white font-medium">
-              1 {fromToken.symbol === 'USDC' ? 'USDC' : 'TETHRA'} = {fromToken.symbol === 'USDC' ? `${EXCHANGE_RATE} TETHRA` : `${(1/EXCHANGE_RATE).toFixed(2)} USDC`}
+              1 {fromToken.symbol === 'USDC' ? 'USDC' : 'TETHRA'} ={' '}
+              {fromToken.symbol === 'USDC'
+                ? `${EXCHANGE_RATE} TETHRA`
+                : `${(1 / EXCHANGE_RATE).toFixed(2)} USDC`}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs mb-2">
@@ -248,7 +258,9 @@ const SwapPanel: React.FC = () => {
               <span className="text-gray-400">Minimum Received</span>
               <Info size={12} className="text-gray-500" />
             </div>
-            <span className="text-white">{minimumReceived} {toToken.symbol}</span>
+            <span className="text-white">
+              {minimumReceived} {toToken.symbol}
+            </span>
           </div>
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="text-gray-400">Price Impact</span>
@@ -279,8 +291,7 @@ const SwapPanel: React.FC = () => {
           ? 'Swapping...'
           : !fromAmount || parseFloat(fromAmount) === 0
           ? 'Enter Amount'
-          : `Swap ${fromToken.symbol} for ${toToken.symbol}`
-        }
+          : `Swap ${fromToken.symbol} for ${toToken.symbol}`}
       </button>
 
       {/* Additional Info */}
