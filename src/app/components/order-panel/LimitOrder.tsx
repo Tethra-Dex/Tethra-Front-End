@@ -18,21 +18,111 @@ interface Market {
 
 // Available markets - sama seperti di MarketOrder
 const ALL_MARKETS: Market[] = [
-  { symbol: 'BTC', tradingViewSymbol: 'BINANCE:BTCUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
-  { symbol: 'ETH', tradingViewSymbol: 'BINANCE:ETHUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
-  { symbol: 'SOL', tradingViewSymbol: 'BINANCE:SOLUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', binanceSymbol: 'SOLUSDT' },
-  { symbol: 'AVAX', tradingViewSymbol: 'BINANCE:AVAXUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png', binanceSymbol: 'AVAXUSDT' },
-  { symbol: 'NEAR', tradingViewSymbol: 'BINANCE:NEARUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png', binanceSymbol: 'NEARUSDT' },
-  { symbol: 'BNB', tradingViewSymbol: 'BINANCE:BNBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png', binanceSymbol: 'BNBUSDT' },
-  { symbol: 'XRP', tradingViewSymbol: 'BINANCE:XRPUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png', binanceSymbol: 'XRPUSDT' },
-  { symbol: 'AAVE', tradingViewSymbol: 'BINANCE:AAVEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9/logo.png', binanceSymbol: 'AAVEUSDT' },
-  { symbol: 'ARB', tradingViewSymbol: 'BINANCE:ARBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png', binanceSymbol: 'ARBUSDT' },
-  { symbol: 'CRV', tradingViewSymbol: 'BINANCE:CRVUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xD533a949740bb3306d119CC777fa900bA034cd52/logo.png', binanceSymbol: 'CRVUSDT' },
-  { symbol: 'DOGE', tradingViewSymbol: 'BINANCE:DOGEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png', binanceSymbol: 'DOGEUSDT' },
-  { symbol: 'ENA', tradingViewSymbol: 'BINANCE:ENAUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x57E114B691Db790C35207b2e685D4A43181e6061/logo.png', binanceSymbol: 'ENAUSDT' },
-  { symbol: 'LINK', tradingViewSymbol: 'BINANCE:LINKUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png', binanceSymbol: 'LINKUSDT' },
-  { symbol: 'MATIC', tradingViewSymbol: 'BINANCE:MATICUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png', binanceSymbol: 'MATICUSDT' },
-  { symbol: 'PEPE', tradingViewSymbol: 'BINANCE:PEPEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6982508145454Ce325dDbE47a25d4ec3d2311933/logo.png', binanceSymbol: 'PEPEUSDT' },
+  {
+    symbol: 'BTC',
+    tradingViewSymbol: 'BINANCE:BTCUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png',
+    binanceSymbol: 'BTCUSDT',
+  },
+  {
+    symbol: 'ETH',
+    tradingViewSymbol: 'BINANCE:ETHUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+    binanceSymbol: 'ETHUSDT',
+  },
+  {
+    symbol: 'SOL',
+    tradingViewSymbol: 'BINANCE:SOLUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png',
+    binanceSymbol: 'SOLUSDT',
+  },
+  {
+    symbol: 'AVAX',
+    tradingViewSymbol: 'BINANCE:AVAXUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png',
+    binanceSymbol: 'AVAXUSDT',
+  },
+  {
+    symbol: 'NEAR',
+    tradingViewSymbol: 'BINANCE:NEARUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png',
+    binanceSymbol: 'NEARUSDT',
+  },
+  {
+    symbol: 'BNB',
+    tradingViewSymbol: 'BINANCE:BNBUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png',
+    binanceSymbol: 'BNBUSDT',
+  },
+  {
+    symbol: 'XRP',
+    tradingViewSymbol: 'BINANCE:XRPUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png',
+    binanceSymbol: 'XRPUSDT',
+  },
+  {
+    symbol: 'AAVE',
+    tradingViewSymbol: 'BINANCE:AAVEUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9/logo.png',
+    binanceSymbol: 'AAVEUSDT',
+  },
+  {
+    symbol: 'ARB',
+    tradingViewSymbol: 'BINANCE:ARBUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png',
+    binanceSymbol: 'ARBUSDT',
+  },
+  {
+    symbol: 'CRV',
+    tradingViewSymbol: 'BINANCE:CRVUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xD533a949740bb3306d119CC777fa900bA034cd52/logo.png',
+    binanceSymbol: 'CRVUSDT',
+  },
+  {
+    symbol: 'DOGE',
+    tradingViewSymbol: 'BINANCE:DOGEUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png',
+    binanceSymbol: 'DOGEUSDT',
+  },
+  {
+    symbol: 'ENA',
+    tradingViewSymbol: 'BINANCE:ENAUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x57E114B691Db790C35207b2e685D4A43181e6061/logo.png',
+    binanceSymbol: 'ENAUSDT',
+  },
+  {
+    symbol: 'LINK',
+    tradingViewSymbol: 'BINANCE:LINKUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png',
+    binanceSymbol: 'LINKUSDT',
+  },
+  {
+    symbol: 'MATIC',
+    tradingViewSymbol: 'BINANCE:MATICUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png',
+    binanceSymbol: 'MATICUSDT',
+  },
+  {
+    symbol: 'PEPE',
+    tradingViewSymbol: 'BINANCE:PEPEUSDT',
+    logoUrl:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6982508145454Ce325dDbE47a25d4ec3d2311933/logo.png',
+    binanceSymbol: 'PEPEUSDT',
+  },
 ];
 
 // Market Selector Component
@@ -43,14 +133,19 @@ interface MarketSelectorProps {
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSelect, triggerRef }) => {
+const MarketSelector: React.FC<MarketSelectorProps> = ({
+  isOpen,
+  onClose,
+  onSelect,
+  triggerRef,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
 
   const toggleFavorite = (symbol: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => {
+    setFavorites((prev) => {
       const newFavorites = new Set(prev);
       if (newFavorites.has(symbol)) {
         newFavorites.delete(symbol);
@@ -61,8 +156,8 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
     });
   };
 
-  const filteredMarkets = ALL_MARKETS.filter(market =>
-    market.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredMarkets = ALL_MARKETS.filter((market) =>
+    market.symbol.toLowerCase().includes(searchTerm.toLowerCase()),
   ).sort((a, b) => {
     const aIsFav = favorites.has(a.symbol);
     const bIsFav = favorites.has(b.symbol);
@@ -107,7 +202,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
         />
       </div>
       <div className="overflow-y-auto max-h-[350px] custom-scrollbar-dark">
-        {filteredMarkets.map(market => {
+        {filteredMarkets.map((market) => {
           const isFavorite = favorites.has(market.symbol);
           return (
             <div
@@ -128,7 +223,9 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
                     target.style.display = 'none';
                   }}
                 />
-                <span className="text-white font-medium whitespace-nowrap">{market.symbol}/USD</span>
+                <span className="text-white font-medium whitespace-nowrap">
+                  {market.symbol}/USD
+                </span>
               </div>
               <button
                 onClick={(e) => toggleFavorite(market.symbol, e)}
@@ -136,7 +233,9 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({ isOpen, onClose, onSele
               >
                 <Star
                   size={14}
-                  className={`${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'} transition-colors`}
+                  className={`${
+                    isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'
+                  } transition-colors`}
                 />
               </button>
             </div>
@@ -172,7 +271,14 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const { submitLimitOrder, isProcessing, executionFee, executionFeeError } = useLimitOrderSubmit();
 
   // Hook for USDC approval (for one-click trading) - using LimitExecutor approval
-  const { approve: approveUSDC, hasAllowance, allowance, isPending: isApprovalPending, refetchAllowance, isSuccess: isApprovalSuccess } = useApproveUSDCForLimitOrders();
+  const {
+    approve: approveUSDC,
+    hasAllowance,
+    allowance,
+    isPending: isApprovalPending,
+    refetchAllowance,
+    isSuccess: isApprovalSuccess,
+  } = useApproveUSDCForLimitOrders();
 
   const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
 
@@ -190,7 +296,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       await approveUSDC(maxAmount);
       toast.success('✅ Pre-approved! You can now trade without approval popups', {
         id: 'pre-approve',
-        duration: 5000
+        duration: 5000,
       });
       // Refetch allowance to update UI immediately
       setTimeout(() => refetchAllowance(), 1000);
@@ -225,7 +331,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       const step = (end - start) / 10;
 
       for (let j = 0; j < 10; j++) {
-        const value = start + (step * j);
+        const value = start + step * j;
         values.push(Number(value.toFixed(2)));
       }
     }
@@ -245,16 +351,22 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   // Calculate liquidation price based on limit price (not current price)
   const liquidationPrice = useMemo(() => {
     const triggerPriceNum = limitPrice ? parseFloat(limitPrice) : null;
-    
-    if (!triggerPriceNum || !leverage || leverage <= 0 || !payAmount || parseFloat(payAmount) <= 0) {
+
+    if (
+      !triggerPriceNum ||
+      !leverage ||
+      leverage <= 0 ||
+      !payAmount ||
+      parseFloat(payAmount) <= 0
+    ) {
       return null;
     }
-    
+
     // Liquidation happens when loss = collateral
     // For LONG: liquidationPrice = triggerPrice * (1 - 1/leverage)
     // For SHORT: liquidationPrice = triggerPrice * (1 + 1/leverage)
     const liqPercentage = 1 / leverage;
-    
+
     if (activeTab === 'long') {
       return triggerPriceNum * (1 - liqPercentage);
     } else if (activeTab === 'short') {
@@ -336,7 +448,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
   // Fetch Pyth Oracle price via WebSocket
   useEffect(() => {
-    const wsUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001').replace(/^http/, 'ws') + '/ws/price';
+    const wsUrl =
+      (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001').replace(/^http/, 'ws') +
+      '/ws/price';
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -346,7 +460,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        
+
         if (message.type === 'price_update' && message.data && activeMarket) {
           const priceData = message.data[activeMarket.symbol];
           if (priceData) {
@@ -375,7 +489,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(price);
   };
 
@@ -404,7 +518,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             />
             <div className="flex items-center gap-2 mr-6">
               <img
-                src="/images/USDC.png"
+                src="/icons/usdc.png"
                 alt="USDC"
                 className="w-7 h-7 rounded-full"
                 onError={(e) => {
@@ -435,12 +549,22 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       {/* Long/Short Section */}
       <div>
         <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 relative">
-          <label className="text-xs text-gray-400 mb-2 block">{activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}</label>
+          <label className="text-xs text-gray-400 mb-2 block">
+            {activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}
+          </label>
           <div className="flex justify-between items-center mb-2 gap-2">
             <input
               type="text"
               placeholder="0.0"
-              value={activeTab === 'swap' ? (payAmount && effectiveOraclePrice > 0 ? formatTokenAmount(payUsdValue / effectiveOraclePrice) : '') : (tokenAmount > 0 ? formatTokenAmount(tokenAmount) : '')}
+              value={
+                activeTab === 'swap'
+                  ? payAmount && effectiveOraclePrice > 0
+                    ? formatTokenAmount(payUsdValue / effectiveOraclePrice)
+                    : ''
+                  : tokenAmount > 0
+                  ? formatTokenAmount(tokenAmount)
+                  : ''
+              }
               readOnly
               className="bg-transparent text-2xl text-white outline-none flex-1 min-w-0"
             />
@@ -458,10 +582,14 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                   target.style.display = 'none';
                 }}
               />
-              <span className="whitespace-nowrap font-medium">{activeTab === 'swap' ? activeMarket.symbol : `${activeMarket.symbol}/USD`}</span>
+              <span className="whitespace-nowrap font-medium">
+                {activeTab === 'swap' ? activeMarket.symbol : `${activeMarket.symbol}/USD`}
+              </span>
               <ChevronDown
                 size={16}
-                className={`flex-shrink-0 transition-transform duration-200 ${isMarketSelectorOpen ? 'rotate-180' : ''}`}
+                className={`flex-shrink-0 transition-transform duration-200 ${
+                  isMarketSelectorOpen ? 'rotate-180' : ''
+                }`}
               />
             </button>
             <MarketSelector
@@ -475,7 +603,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             <span className="text-gray-500">
               {activeTab === 'swap' ? formatPrice(payUsdValue) : formatPrice(longShortUsdValue)}
             </span>
-            {activeTab !== 'swap' && <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>}
+            {activeTab !== 'swap' && (
+              <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>
+            )}
           </div>
         </div>
       </div>
@@ -485,9 +615,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs text-gray-400">Limit Price</label>
-            <span className="text-xs text-blue-300">
-              Mark: {formatPrice(effectiveOraclePrice)}
-            </span>
+            <span className="text-xs text-blue-300">Mark: {formatPrice(effectiveOraclePrice)}</span>
           </div>
           <div className="flex items-center justify-between">
             <input
@@ -505,7 +633,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             {activeTab === 'swap' ? (
               <div className="flex items-center gap-1.5 text-white font-semibold text-sm whitespace-nowrap ml-3">
                 <img
-                  src="/images/USDC.png"
+                  src="/icons/usdc.png"
                   alt="USDC"
                   className="w-5 h-5 rounded-full flex-shrink-0"
                   onError={(e) => {
@@ -536,124 +664,122 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
       {/* Leverage Slider */}
       {activeTab !== 'swap' && (
-      <div>
-        <label className="text-xs text-gray-400 mb-2 block">Leverage</label>
+        <div>
+          <label className="text-xs text-gray-400 mb-2 block">Leverage</label>
 
-        {/* Slider and Value Box in One Row */}
-        <div className="flex items-center gap-3">
-          {/* Slider Container */}
-          <div className="flex-1 relative pt-1 pb-4">
-            <div className="relative h-1 bg-[#2D3748] rounded-full">
-              {/* Blue progress line */}
-              <div
-                className="absolute top-0 left-0 h-full bg-blue-400 rounded-full"
-                style={{
-                  width: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`
-                }}
-              />
-
-              {/* Markers */}
-              {leverageMarkers.map((marker, index) => {
-                const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
-                const position = (markerIndex / maxSliderValue) * 100;
-                const isActive = getCurrentSliderIndex() >= markerIndex;
-                return (
-                  <div
-                    key={index}
-                    className={`absolute w-3 h-3 rounded-full border-2 transition-colors duration-150 ${
-                      isActive ? 'bg-blue-400 border-blue-400' : 'bg-[#1A2332] border-[#4A5568]'
-                    }`}
-                    style={{
-                      left: `${position}%`,
-                      top: '50%',
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                  />
-                );
-              })}
-
-              {/* Slider handle */}
-              <div
-                className="absolute w-5 h-5 bg-white rounded-full shadow-lg cursor-pointer border-2 border-blue-400"
-                style={{
-                  left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)'
-                }}
-              />
-
-              {/* Leverage Tooltip */}
-              {showLeverageTooltip && (
+          {/* Slider and Value Box in One Row */}
+          <div className="flex items-center gap-3">
+            {/* Slider Container */}
+            <div className="flex-1 relative pt-1 pb-4">
+              <div className="relative h-1 bg-[#2D3748] rounded-full">
+                {/* Blue progress line */}
                 <div
-                  className="absolute -top-12 transition-opacity duration-200"
+                  className="absolute top-0 left-0 h-full bg-blue-400 rounded-full"
+                  style={{
+                    width: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                  }}
+                />
+
+                {/* Markers */}
+                {leverageMarkers.map((marker, index) => {
+                  const markerIndex = leverageValues.findIndex((v) => Math.abs(v - marker) < 0.01);
+                  const position = (markerIndex / maxSliderValue) * 100;
+                  const isActive = getCurrentSliderIndex() >= markerIndex;
+                  return (
+                    <div
+                      key={index}
+                      className={`absolute w-3 h-3 rounded-full border-2 transition-colors duration-150 ${
+                        isActive ? 'bg-blue-400 border-blue-400' : 'bg-[#1A2332] border-[#4A5568]'
+                      }`}
+                      style={{
+                        left: `${position}%`,
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    />
+                  );
+                })}
+
+                {/* Slider handle */}
+                <div
+                  className="absolute w-5 h-5 bg-white rounded-full shadow-lg cursor-pointer border-2 border-blue-400"
                   style={{
                     left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
-                    transform: 'translateX(-50%)'
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
                   }}
-                >
-                  <div className="relative bg-blue-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
-                    <span className="text-sm font-bold">{formatLeverage(leverage)}x</span>
-                    {/* Arrow pointing down */}
-                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-400"></div>
-                  </div>
-                </div>
-              )}
-            </div>
+                />
 
-            <input
-              type="range"
-              min="0"
-              max={maxSliderValue}
-              step="1"
-              value={getCurrentSliderIndex()}
-              onChange={handleLeverageChange}
-              onMouseDown={handleLeverageMouseDown}
-              onMouseUp={handleLeverageMouseUp}
-              onTouchStart={handleLeverageMouseDown}
-              onTouchEnd={handleLeverageMouseUp}
-              className="absolute inset-0 w-full opacity-0 cursor-grab active:cursor-grabbing z-10"
-            />
-
-            <div className="absolute top-full mt-2 left-0 right-0">
-              {leverageMarkers.map((marker, index) => {
-                const markerIndex = leverageValues.findIndex(v => Math.abs(v - marker) < 0.01);
-                const position = (markerIndex / maxSliderValue) * 100;
-                return (
-                  <span
-                    key={index}
-                    className="absolute text-xs text-gray-400 font-medium"
+                {/* Leverage Tooltip */}
+                {showLeverageTooltip && (
+                  <div
+                    className="absolute -top-12 transition-opacity duration-200"
                     style={{
-                      left: `${position}%`,
-                      transform: 'translateX(-50%)'
+                      left: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
+                      transform: 'translateX(-50%)',
                     }}
                   >
-                    {marker < 1 ? marker.toFixed(1) : marker}x
-                  </span>
-                );
-              })}
+                    <div className="relative bg-blue-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                      <span className="text-sm font-bold">{formatLeverage(leverage)}x</span>
+                      {/* Arrow pointing down */}
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-400"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <input
+                type="range"
+                min="0"
+                max={maxSliderValue}
+                step="1"
+                value={getCurrentSliderIndex()}
+                onChange={handleLeverageChange}
+                onMouseDown={handleLeverageMouseDown}
+                onMouseUp={handleLeverageMouseUp}
+                onTouchStart={handleLeverageMouseDown}
+                onTouchEnd={handleLeverageMouseUp}
+                className="absolute inset-0 w-full opacity-0 cursor-grab active:cursor-grabbing z-10"
+              />
+
+              <div className="absolute top-full mt-2 left-0 right-0">
+                {leverageMarkers.map((marker, index) => {
+                  const markerIndex = leverageValues.findIndex((v) => Math.abs(v - marker) < 0.01);
+                  const position = (markerIndex / maxSliderValue) * 100;
+                  return (
+                    <span
+                      key={index}
+                      className="absolute text-xs text-gray-400 font-medium"
+                      style={{
+                        left: `${position}%`,
+                        transform: 'translateX(-50%)',
+                      }}
+                    >
+                      {marker < 1 ? marker.toFixed(1) : marker}x
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Leverage Value Box */}
+            <div className="bg-[#2D3748] rounded-lg px-3 py-2 min-w-[70px] flex items-center justify-center gap-1">
+              <input
+                type="text"
+                value={leverageInput}
+                onChange={handleLeverageInputChange}
+                onBlur={handleLeverageInputBlur}
+                className="bg-transparent text-sm font-semibold text-white outline-none w-12 text-right"
+              />
+              <span className="text-sm font-semibold text-white">x</span>
             </div>
           </div>
-
-          {/* Leverage Value Box */}
-          <div className="bg-[#2D3748] rounded-lg px-3 py-2 min-w-[70px] flex items-center justify-center gap-1">
-            <input
-              type="text"
-              value={leverageInput}
-              onChange={handleLeverageInputChange}
-              onBlur={handleLeverageInputBlur}
-              className="bg-transparent text-sm font-semibold text-white outline-none w-12 text-right"
-            />
-            <span className="text-sm font-semibold text-white">x</span>
-          </div>
         </div>
-      </div>
       )}
 
       {/* Select different tokens message - Only show for Swap */}
       {activeTab === 'swap' && (
-        <div className="text-center py-3 text-gray-500 text-sm">
-          Select different tokens
-        </div>
+        <div className="text-center py-3 text-gray-500 text-sm">Select different tokens</div>
       )}
 
       {activeTab !== 'swap' && (
@@ -675,9 +801,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               <span className="text-gray-400">Collateral In</span>
               <Info size={12} className="text-gray-500" />
             </div>
-            <button className="flex items-center gap-1 text-white cursor-pointer">
-              USDC
-            </button>
+            <button className="flex items-center gap-1 text-white cursor-pointer">USDC</button>
           </div>
         </>
       )}
@@ -687,63 +811,71 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         <>
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-400">Take Profit / Stop Loss</span>
-        <label className="relative inline-block w-10 h-5">
-          <input
-            type="checkbox"
-            className="opacity-0 w-0 h-0 peer"
-            checked={isTpSlEnabled}
-            onChange={(e) => setIsTpSlEnabled(e.target.checked)}
-          />
-          <span className={`absolute cursor-pointer inset-0 rounded-full transition-all ${isTpSlEnabled ? 'bg-blue-300' : 'bg-[#2D3748]'}`}>
-            <span className={`absolute left-0.5 top-0.5 h-4 w-4 bg-white rounded-full transition-transform ${isTpSlEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
-          </span>
-        </label>
-      </div>
-
-      {/* Take Profit / Stop Loss Form */}
-      {isTpSlEnabled && (
-        <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
-          {/* Take Profit */}
-          <div>
-            <label className="text-xs text-gray-400 mb-2 block">Take Profit</label>
-            <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-              <span className="text-xs text-gray-400 mr-2">$</span>
+            <label className="relative inline-block w-10 h-5">
               <input
-                type="text"
-                placeholder="Price"
-                value={takeProfitPrice}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setTakeProfitPrice(value);
-                  }
-                }}
-                className="bg-transparent text-sm text-white outline-none w-full"
+                type="checkbox"
+                className="opacity-0 w-0 h-0 peer"
+                checked={isTpSlEnabled}
+                onChange={(e) => setIsTpSlEnabled(e.target.checked)}
               />
-            </div>
+              <span
+                className={`absolute cursor-pointer inset-0 rounded-full transition-all ${
+                  isTpSlEnabled ? 'bg-blue-300' : 'bg-[#2D3748]'
+                }`}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 h-4 w-4 bg-white rounded-full transition-transform ${
+                    isTpSlEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                ></span>
+              </span>
+            </label>
           </div>
 
-          {/* Stop Loss */}
-          <div>
-            <label className="text-xs text-gray-400 mb-2 block">Stop Loss</label>
-            <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-              <span className="text-xs text-gray-400 mr-2">$</span>
-              <input
-                type="text"
-                placeholder="Price"
-                value={stopLossPrice}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    setStopLossPrice(value);
-                  }
-                }}
-                className="bg-transparent text-sm text-white outline-none w-full"
-              />
+          {/* Take Profit / Stop Loss Form */}
+          {isTpSlEnabled && (
+            <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
+              {/* Take Profit */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Take Profit</label>
+                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+                  <span className="text-xs text-gray-400 mr-2">$</span>
+                  <input
+                    type="text"
+                    placeholder="Price"
+                    value={takeProfitPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setTakeProfitPrice(value);
+                      }
+                    }}
+                    className="bg-transparent text-sm text-white outline-none w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Stop Loss */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Stop Loss</label>
+                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
+                  <span className="text-xs text-gray-400 mr-2">$</span>
+                  <input
+                    type="text"
+                    placeholder="Price"
+                    value={stopLossPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setStopLossPrice(value);
+                      }
+                    }}
+                    className="bg-transparent text-sm text-white outline-none w-full"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
         </>
       )}
 
@@ -755,7 +887,8 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             <div className="flex-1">
               <p className="text-sm text-blue-300 font-medium mb-1">⚡ Enable One-Click Trading</p>
               <p className="text-xs text-gray-400 mb-2">
-                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade for security.
+                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade
+                for security.
               </p>
               <button
                 onClick={handlePreApprove}
@@ -791,11 +924,12 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             if (!activeMarket) return;
 
             // Check if USDC is approved first (only for long/short, not swap)
-            const needsApproval = (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance;
+            const needsApproval =
+              (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance;
             if (needsApproval) {
               toast.error('Please enable One-Click Trading first by approving USDC', {
                 duration: 4000,
-                icon: '⚠️'
+                icon: '⚠️',
               });
               return;
             }
@@ -803,7 +937,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             // Convert TP/SL to price format (8 decimals) if enabled
             let tpPrice: string | undefined;
             let slPrice: string | undefined;
-            
+
             if (isTpSlEnabled) {
               if (takeProfitPrice) {
                 // Convert to 8 decimals for backend (price * 10^8)
@@ -831,9 +965,19 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               stopLoss: slPrice,
             });
           }}
-          disabled={!authenticated || !payAmount || !limitPrice || isProcessing || ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)}
+          disabled={
+            !authenticated ||
+            !payAmount ||
+            !limitPrice ||
+            isProcessing ||
+            ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
+          }
           className={`w-full py-4 rounded-lg font-bold text-white transition-all duration-200 ${
-            !authenticated || !payAmount || !limitPrice || isProcessing || ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
+            !authenticated ||
+            !payAmount ||
+            !limitPrice ||
+            isProcessing ||
+            ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
               ? 'bg-gray-600 cursor-not-allowed opacity-50'
               : activeTab === 'long'
               ? 'bg-green-600 hover:bg-green-700'
@@ -867,8 +1011,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
           <span className="text-white">
             {payAmount && leverage > 0
               ? `$${(parseFloat(payAmount) * leverage * 0.0005).toFixed(6)} (0.05%)`
-              : '0.05%'
-            }
+              : '0.05%'}
           </span>
         </div>
       </div>

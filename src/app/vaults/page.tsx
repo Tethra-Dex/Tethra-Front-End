@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import PageLayout from "../components/PageLayout";
-import Image from "next/image";
-import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import PageLayout from '../components/PageLayout';
+import Image from 'next/image';
+import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 
@@ -39,7 +39,7 @@ const usdcABI = [
 export default function VaultsPage() {
   const publicClient = usePublicClient();
   const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [treasuryBalance, setTreasuryBalance] = useState<bigint>(BigInt(0));
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,10 +76,10 @@ export default function VaultsPage() {
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
-      setSortDirection("asc");
+      setSortDirection('asc');
     }
   };
 
@@ -87,7 +87,7 @@ export default function VaultsPage() {
     if (sortColumn !== column) {
       return <ChevronDown className="w-4 h-4 text-gray-500" />;
     }
-    return sortDirection === "asc" ? (
+    return sortDirection === 'asc' ? (
       <ChevronUp className="w-4 h-4 text-blue-400" />
     ) : (
       <ChevronDown className="w-4 h-4 text-blue-400" />
@@ -95,7 +95,7 @@ export default function VaultsPage() {
   };
 
   // Format treasury balance
-  const formattedBalance = Number(formatUnits(treasuryBalance, 6)).toLocaleString("en-US", {
+  const formattedBalance = Number(formatUnits(treasuryBalance, 6)).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -106,32 +106,33 @@ export default function VaultsPage() {
   const vaultData: VaultData[] = [
     {
       collateral: {
-        name: "USD Coin",
-        symbol: "USDC",
-        icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png",
+        name: 'USD Coin',
+        symbol: 'USDC',
+        icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
       },
       balance: formattedBalance,
       balanceUSD: `$${formattedBalance}`,
-      feeAPY: "-",
-      stabilityFunds: "0",
-      stabilityFundsUSD: "$0",
-      yourBalance: "0",
-      yourBalanceUSD: "$0",
-      percentOwned: "0%",
+      feeAPY: '-',
+      stabilityFunds: '0',
+      stabilityFundsUSD: '$0',
+      yourBalance: '0',
+      yourBalanceUSD: '$0',
+      percentOwned: '0%',
     },
   ];
 
   return (
     <PageLayout
       navbar={{
-        title: "Vaults",
-        subtitle: "Vaults back their Stability Funds",
+        title: 'Vaults',
+        subtitle: 'Vaults back their Stability Funds',
       }}
       mobileHeaderContent={
         <div>
           <h1 className="text-3xl font-bold mb-2">Vaults</h1>
           <p className="text-gray-400 text-sm mb-4">
-            Vaults back their Stability Funds. Profits, including traders&apos; losses and trading fees from traders, stream back to them.{" "}
+            Vaults back their Stability Funds. Profits, including traders&apos; losses and trading
+            fees from traders, stream back to them.{' '}
             <a href="#" className="text-blue-400 hover:text-blue-300 underline">
               Read more
             </a>
@@ -143,7 +144,8 @@ export default function VaultsPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Vaults</h1>
         <p className="text-gray-400 text-sm mb-1">
-          Vaults back their Stability Funds. Profits, including traders&apos; losses and trading fees from traders, stream back to them.{" "}
+          Vaults back their Stability Funds. Profits, including traders&apos; losses and trading
+          fees from traders, stream back to them.{' '}
           <a href="#" className="text-blue-400 hover:text-blue-300 underline">
             Read more
           </a>
@@ -181,7 +183,7 @@ export default function VaultsPage() {
             {/* Base Logo */}
             <div className="w-20 h-20 bg-blue-600/10 rounded-2xl flex items-center justify-center">
               <Image
-                src="/images/base-logo.png"
+                src="/icons/base.png"
                 alt="Base Logo"
                 width={64}
                 height={64}
@@ -212,7 +214,7 @@ export default function VaultsPage() {
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("collateral")}
+                    onClick={() => handleSort('collateral')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Collateral
@@ -221,7 +223,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("balance")}
+                    onClick={() => handleSort('balance')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Balance
@@ -230,7 +232,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("feeAPY")}
+                    onClick={() => handleSort('feeAPY')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Fee APY <sup className="text-xs">1</sup>
@@ -239,7 +241,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("stabilityFunds")}
+                    onClick={() => handleSort('stabilityFunds')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Stability Funds <sup className="text-xs">2</sup>
@@ -248,7 +250,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("yourBalance")}
+                    onClick={() => handleSort('yourBalance')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Your Balance
@@ -257,7 +259,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("percentOwned")}
+                    onClick={() => handleSort('percentOwned')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     % Owned
@@ -268,10 +270,7 @@ export default function VaultsPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {vaultData.map((vault, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-slate-800/30 transition-colors cursor-pointer"
-                >
+                <tr key={index} className="hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative w-8 h-8">
@@ -282,23 +281,17 @@ export default function VaultsPage() {
                           height={32}
                           className="rounded-full"
                           onError={(e) => {
-                            e.currentTarget.src = "/images/placeholder-token.png";
+                            e.currentTarget.src = '/images/placeholder-token.png';
                           }}
                         />
                       </div>
-                      <span className="font-medium text-white">
-                        {vault.collateral.symbol}
-                      </span>
+                      <span className="font-medium text-white">{vault.collateral.symbol}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {vault.balance}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {vault.balanceUSD}
-                      </span>
+                      <span className="font-medium text-white">{vault.balance}</span>
+                      <span className="text-sm text-gray-400">{vault.balanceUSD}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -306,22 +299,14 @@ export default function VaultsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {vault.stabilityFunds}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {vault.stabilityFundsUSD}
-                      </span>
+                      <span className="font-medium text-white">{vault.stabilityFunds}</span>
+                      <span className="text-sm text-gray-400">{vault.stabilityFundsUSD}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {vault.yourBalance}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {vault.yourBalanceUSD}
-                      </span>
+                      <span className="font-medium text-white">{vault.yourBalance}</span>
+                      <span className="text-sm text-gray-400">{vault.yourBalanceUSD}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -340,7 +325,9 @@ export default function VaultsPage() {
           <sup>1</sup> Does not include trader wins and losses.
         </p>
         <p>
-          <sup>2</sup> The Stability Funds absorbs traders&apos; losses first and redistributes them to their corresponding vaults. When the Stability Fund has a positive balance, it is prioritized to pay out potential traders&apos; winnings.
+          <sup>2</sup> The Stability Funds absorbs traders&apos; losses first and redistributes them
+          to their corresponding vaults. When the Stability Fund has a positive balance, it is
+          prioritized to pay out potential traders&apos; winnings.
         </p>
       </div>
     </PageLayout>

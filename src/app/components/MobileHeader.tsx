@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Menu } from "lucide-react";
-import Image from "next/image";
-import { useSidebar } from "../contexts/SidebarContext";
+import React from 'react';
+import { Menu } from 'lucide-react';
+import Image from 'next/image';
+import { useSidebar } from '../contexts/SidebarContext';
 
 interface MobileHeaderProps {
   logoSrc?: string;
@@ -13,10 +13,10 @@ interface MobileHeaderProps {
 }
 
 export default function MobileHeader({
-  logoSrc = "/images/logo.png",
-  logoAlt = "Tethra",
+  logoSrc = '/tethra-logo.png',
+  logoAlt = 'Tethra',
   rightContent,
-  className = "",
+  className = '',
 }: MobileHeaderProps) {
   const { toggleMobileSidebar } = useSidebar();
 
@@ -39,7 +39,7 @@ export default function MobileHeader({
           height={50}
           className="w-12 h-12"
           onError={(e) => {
-            e.currentTarget.style.display = "none";
+            e.currentTarget.style.display = 'none';
           }}
         />
       </div>
