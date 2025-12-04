@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/PageLayout';
+import PageLayout from '@/components/layout/PageLayout';
 import Image from 'next/image';
 import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePublicClient } from 'wagmi';

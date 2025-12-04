@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/PageLayout';
+import PageLayout from '@/components/layout/PageLayout';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 import { useWallets } from '@privy-io/react-auth';
-import usePoolData from '../../hooks/usePoolData';
+import usePoolData from '@/hooks/data/usePoolData';
 
 const TETHRA_TOKEN = process.env.NEXT_PUBLIC_TETHRA_TOKEN_ADDRESS as `0x${string}`;
 const TETHRA_STAKING = process.env.NEXT_PUBLIC_TETHRA_STAKING_ADDRESS as `0x${string}`;

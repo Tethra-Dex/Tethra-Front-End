@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePosition } from '@/hooks/usePositions';
-import { usePrice } from '@/hooks/usePrices';
-import { useGaslessClose } from '@/hooks/useGaslessClose';
+import { usePosition } from '@/hooks/data/usePositions';
+import { usePrice } from '@/hooks/data/usePrices';
+import { useGaslessClose } from '@/hooks/trading/useGaslessClose';
 import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
-import PageLayout from '../components/PageLayout';
-import TPSLModal from '../components/TPSLModal';
+import PageLayout from '@/components/layout/PageLayout';
+import TPSLModal from '@/components/trading/modals/TPSLModal';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 import { useReadContract } from 'wagmi';
 import { POSITION_MANAGER_ADDRESS } from '@/config/contracts';

@@ -2,20 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import DashboardTrade from "../components/DashboardTrade";
-import MobileHeader from "../components/MobileHeader";
-import TradingChart from "../components/TradingChart";
-import OrderPanel from "../components/OrderPanel";
-import BottomTrading from "../components/BottomTrading";
-import WalletConnectButton from "../components/WalletConnectButton";
-import { MarketProvider, useMarket } from "../contexts/MarketContext";
-import { GridTradingProvider } from "../contexts/GridTradingContext";
+import DashboardTrade from "@/components/trading/DashboardTrade";
+import MobileHeader from "@/components/layout/MobileHeader";
+import TradingChart from "@/components/trading/charts/TradingChart";
+import OrderPanel from "@/components/trading/orders/OrderPanel";
+import BottomTrading from "@/components/layout/BottomTrading";
+import WalletConnectButton from "@/components/layout/WalletConnectButton";
+import { MarketProvider, useMarket } from "@/contexts/MarketContext";
+import { GridTradingProvider } from "@/contexts/GridTradingContext";
 import {
   TapToTradeProvider,
   useTapToTrade,
-} from "../contexts/TapToTradeContext";
-import { useDynamicTitle } from "@/hooks/useDynamicTitle";
-import PriceTicker from "../components/PriceTicker";
+} from "@/contexts/TapToTradeContext";
+import { useDynamicTitle } from "@/hooks/utils/useDynamicTitle";
+import PriceTicker from "@/components/layout/PriceTicker";
 
 function TradePageContent() {
   const { isEnabled, toggleMode } = useTapToTrade();
@@ -446,6 +446,7 @@ function TradePageContent() {
     </main>
   );
 }
+
 
 export default function TradePage() {
   return (

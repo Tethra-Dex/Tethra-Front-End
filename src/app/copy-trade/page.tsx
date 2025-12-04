@@ -2,7 +2,7 @@
 
 import { Star, TrendingUp, Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import PageLayout from '../components/PageLayout';
+import PageLayout from '@/components/layout/PageLayout';
 
 // Mock data untuk traders
 const mockTraders = [
@@ -184,373 +184,385 @@ export default function CopyTradePage() {
   return (
     <PageLayout
       navbar={{
-        title: "Copy Trade",
+        title: 'Copy Trade',
         subtitle: "Follow the world's top crypto traders",
-        variant: "transparent",
+        variant: 'transparent',
       }}
       contentClassName="!p-0"
     >
       <div className="h-full overflow-auto bg-[#0a0e14] rounded-lg copy-trade-scrollbar">
         <div className="p-6 space-y-6">
-
-            {/* Banner and Growth Plan Card */}
-            <div className="flex gap-4 flex-col lg:flex-row">
-              {/* Banner */}
-              <div className="flex-1 bg-[#151B26] rounded-lg p-6 flex items-center justify-between border border-[#1e2735] hover:border-[#2a3441] transition-all cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
-                    <TrendingUp size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-medium text-sm">
-                      Tethra Futures Copy Trading Lead Trader Growth Plan
-                    </h3>
-                  </div>
+          {/* Banner and Growth Plan Card */}
+          <div className="flex gap-4 flex-col lg:flex-row">
+            {/* Banner */}
+            <div className="flex-1 bg-[#151B26] rounded-lg p-6 flex items-center justify-between border border-[#1e2735] hover:border-[#2a3441] transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
+                  <TrendingUp size={20} className="text-white" />
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-transparent hover:bg-[#1e2735] rounded-lg text-sm border border-[#2a3441] transition-all">
-                  <span>Watch Tutorial</span>
-                </button>
-              </div>
-
-              {/* Growth Plan Card */}
-              <div className="lg:w-[380px] bg-[#151B26] rounded-lg p-6 border border-[#1e2735]">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-white font-medium text-base mb-1">
-                      Copy Trading Lead Trader
-                    </h3>
-                    <p className="text-white font-semibold text-lg">Growth Plan</p>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div className="relative w-16 h-20">
-                      <div className="absolute bottom-0 w-3 h-8 bg-blue-500 rounded-sm left-0"></div>
-                      <div className="absolute bottom-0 w-3 h-12 bg-blue-500 rounded-sm left-4"></div>
-                      <div className="absolute bottom-0 w-3 h-16 bg-blue-500 rounded-sm left-8"></div>
-                      <div className="absolute bottom-0 w-3 h-20 bg-blue-500 rounded-sm left-12"></div>
-                      <TrendingUp className="absolute -top-1 right-0 text-blue-500" size={20} />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                  <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                  <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                <div>
+                  <h3 className="text-white font-medium text-sm">
+                    Tethra Futures Copy Trading Lead Trader Growth Plan
+                  </h3>
                 </div>
               </div>
+              <button className="flex items-center gap-2 px-4 py-2 bg-transparent hover:bg-[#1e2735] rounded-lg text-sm border border-[#2a3441] transition-all">
+                <span>Watch Tutorial</span>
+              </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex items-center justify-between border-b border-[#1e2735]">
-              <div className="flex gap-8">
-                <button
-                  onClick={() => setActiveTab('portfolio')}
-                  className={`pb-3 relative transition-colors cursor-pointer ${
-                    activeTab === 'portfolio' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  <span className="font-medium">Portfolio List</span>
-                  {activeTab === 'portfolio' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('favorites')}
-                  className={`pb-3 relative transition-colors cursor-pointer ${
-                    activeTab === 'favorites' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  <span className="font-medium">My Favorites</span>
-                  {activeTab === 'favorites' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
-                  )}
-                </button>
+            {/* Growth Plan Card */}
+            <div className="lg:w-[380px] bg-[#151B26] rounded-lg p-6 border border-[#1e2735]">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-white font-medium text-base mb-1">
+                    Copy Trading Lead Trader
+                  </h3>
+                  <p className="text-white font-semibold text-lg">Growth Plan</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <div className="relative w-16 h-20">
+                    <div className="absolute bottom-0 w-3 h-8 bg-blue-500 rounded-sm left-0"></div>
+                    <div className="absolute bottom-0 w-3 h-12 bg-blue-500 rounded-sm left-4"></div>
+                    <div className="absolute bottom-0 w-3 h-16 bg-blue-500 rounded-sm left-8"></div>
+                    <div className="absolute bottom-0 w-3 h-20 bg-blue-500 rounded-sm left-12"></div>
+                    <TrendingUp className="absolute -top-1 right-0 text-blue-500" size={20} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
               </div>
             </div>
+          </div>
 
-            {/* Filter Bar */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 bg-[#151B26] rounded-lg px-4 py-2 border border-[#1e2735]">
-                  {/* Time Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowTimeDropdown(!showTimeDropdown)}
-                      className="px-3 py-1 rounded transition-colors cursor-pointer bg-[#2a3441] text-white flex items-center gap-2"
+          {/* Tabs */}
+          <div className="flex items-center justify-between border-b border-[#1e2735]">
+            <div className="flex gap-8">
+              <button
+                onClick={() => setActiveTab('portfolio')}
+                className={`pb-3 relative transition-colors cursor-pointer ${
+                  activeTab === 'portfolio' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <span className="font-medium">Portfolio List</span>
+                {activeTab === 'portfolio' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('favorites')}
+                className={`pb-3 relative transition-colors cursor-pointer ${
+                  activeTab === 'favorites' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <span className="font-medium">My Favorites</span>
+                {activeTab === 'favorites' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 bg-[#151B26] rounded-lg px-4 py-2 border border-[#1e2735]">
+                {/* Time Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                    className="px-3 py-1 rounded transition-colors cursor-pointer bg-[#2a3441] text-white flex items-center gap-2"
+                  >
+                    <span>{selectedTimeFilter}</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${
+                        showTimeDropdown ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <span>{selectedTimeFilter}</span>
-                      <svg
-                        className={`w-4 h-4 transition-transform ${showTimeDropdown ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  {showTimeDropdown && (
+                    <div className="absolute top-full left-0 mt-2 bg-[#1e2735] rounded-lg border border-[#2a3441] shadow-lg z-10 min-w-[80px]">
+                      <button
+                        onClick={() => {
+                          setSelectedTimeFilter('7D');
+                          setShowTimeDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 text-sm text-left hover:bg-[#2a3441] transition-colors cursor-pointer rounded-t-lg"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
+                        7D
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedTimeFilter('30D');
+                          setShowTimeDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 text-sm text-left hover:bg-[#2a3441] transition-colors cursor-pointer"
+                      >
+                        30D
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedTimeFilter('90D');
+                          setShowTimeDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 text-sm text-left hover:bg-[#2a3441] transition-colors cursor-pointer rounded-b-lg"
+                      >
+                        90D
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-                    {showTimeDropdown && (
-                      <div className="absolute top-full left-0 mt-2 bg-[#1e2735] rounded-lg border border-[#2a3441] shadow-lg z-10 min-w-[80px]">
-                        <button
-                          onClick={() => {
-                            setSelectedTimeFilter('7D');
-                            setShowTimeDropdown(false);
-                          }}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-[#2a3441] transition-colors cursor-pointer rounded-t-lg"
-                        >
-                          7D
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedTimeFilter('30D');
-                            setShowTimeDropdown(false);
-                          }}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-[#2a3441] transition-colors cursor-pointer"
-                        >
-                          30D
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedTimeFilter('90D');
-                            setShowTimeDropdown(false);
-                          }}
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-[#2a3441] transition-colors cursor-pointer rounded-b-lg"
-                        >
-                          90D
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <span className="text-gray-600">|</span>
 
-                  <span className="text-gray-600">|</span>
-
-                  {/* Category 1: PnL, ROI, MDD, AUM */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        if (selectedMetric === 'PnL') {
-                          setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                        } else {
-                          setSelectedMetric('PnL');
-                          setSortOrder('desc');
-                        }
-                      }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
-                        selectedMetric === 'PnL' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      PnL
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (selectedMetric === 'ROI') {
-                          setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                        } else {
-                          setSelectedMetric('ROI');
-                          setSortOrder('desc');
-                        }
-                      }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
-                        selectedMetric === 'ROI' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      ROI
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (selectedMetric === 'MDD') {
-                          setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                        } else {
-                          setSelectedMetric('MDD');
-                          setSortOrder('desc');
-                        }
-                      }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
-                        selectedMetric === 'MDD' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      MDD
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (selectedMetric === 'AUM') {
-                          setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                        } else {
-                          setSelectedMetric('AUM');
-                          setSortOrder('desc');
-                        }
-                      }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
-                        selectedMetric === 'AUM' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      AUM
-                    </button>
-                  </div>
-
-                  <span className="text-gray-600 lg:block hidden">|</span>
-
-                  {/* Category 2: Copy Traders, Copy Trader PnL */}
-                  <div className="lg:flex hidden items-center gap-3">
-                    <button
-                      onClick={() => {
-                        if (selectedMetric === 'Copy Traders') {
-                          setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                        } else {
-                          setSelectedMetric('Copy Traders');
-                          setSortOrder('desc');
-                        }
-                      }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
-                        selectedMetric === 'Copy Traders' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      Copy Traders
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (selectedMetric === 'Copy Trader PnL') {
-                          setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                        } else {
-                          setSelectedMetric('Copy Trader PnL');
-                          setSortOrder('desc');
-                        }
-                      }}
-                      className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
-                        selectedMetric === 'Copy Trader PnL' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      Copy Trader PnL
-                    </button>
-                  </div>
-
-                  <span className="text-gray-600">|</span>
-
-                  {/* Category 3: Sharpe Ratio */}
+                {/* Category 1: PnL, ROI, MDD, AUM */}
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
-                      if (selectedMetric === 'Sharpe Ratio') {
+                      if (selectedMetric === 'PnL') {
                         setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
                       } else {
-                        setSelectedMetric('Sharpe Ratio');
+                        setSelectedMetric('PnL');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                      selectedMetric === 'PnL'
+                        ? 'bg-[#2a3441] text-white'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    PnL
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedMetric === 'ROI') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSelectedMetric('ROI');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                      selectedMetric === 'ROI'
+                        ? 'bg-[#2a3441] text-white'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    ROI
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedMetric === 'MDD') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSelectedMetric('MDD');
                         setSortOrder('desc');
                       }
                     }}
                     className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
-                      selectedMetric === 'Sharpe Ratio' ? 'bg-[#2a3441] text-white' : 'text-gray-500 hover:text-gray-300'
+                      selectedMetric === 'MDD'
+                        ? 'bg-[#2a3441] text-white'
+                        : 'text-gray-500 hover:text-gray-300'
                     }`}
                   >
-                    Sharpe Ratio
+                    MDD
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedMetric === 'AUM') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSelectedMetric('AUM');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
+                      selectedMetric === 'AUM'
+                        ? 'bg-[#2a3441] text-white'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    AUM
+                  </button>
+                </div>
+
+                <span className="text-gray-600 lg:block hidden">|</span>
+
+                {/* Category 2: Copy Traders, Copy Trader PnL */}
+                <div className="lg:flex hidden items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (selectedMetric === 'Copy Traders') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSelectedMetric('Copy Traders');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                      selectedMetric === 'Copy Traders'
+                        ? 'bg-[#2a3441] text-white'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    Copy Traders
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedMetric === 'Copy Trader PnL') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSelectedMetric('Copy Trader PnL');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer ${
+                      selectedMetric === 'Copy Trader PnL'
+                        ? 'bg-[#2a3441] text-white'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    Copy Trader PnL
+                  </button>
+                </div>
+
+                <span className="text-gray-600">|</span>
+
+                {/* Category 3: Sharpe Ratio */}
+                <button
+                  onClick={() => {
+                    if (selectedMetric === 'Sharpe Ratio') {
+                      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                    } else {
+                      setSelectedMetric('Sharpe Ratio');
+                      setSortOrder('desc');
+                    }
+                  }}
+                  className={`px-3 py-1 text-sm rounded transition-colors cursor-pointer hidden lg:block ${
+                    selectedMetric === 'Sharpe Ratio'
+                      ? 'bg-[#2a3441] text-white'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  Sharpe Ratio
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="p-2 hover:bg-[#1e2735] rounded-lg transition-colors">
+                <Search size={20} className="text-gray-500 hover:text-gray-300" />
+              </button>
+              <button className="p-2 hover:bg-[#1e2735] rounded-lg transition-colors">
+                <SlidersHorizontal size={20} className="text-gray-500 hover:text-gray-300" />
+              </button>
+            </div>
+          </div>
+
+          {/* Trader Cards Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredTraders.map((trader) => (
+              <div
+                key={trader.id}
+                className="bg-[#151B26] rounded-lg p-5 border border-[#1e2735] hover:border-[#2a3441] transition-all cursor-pointer"
+              >
+                {/* Trader Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#1e2735] rounded-full flex items-center justify-center">
+                      <span className="text-xs font-bold text-gray-400">
+                        {trader.name.substring(0, 2)}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-white">{trader.name}</h3>
+                        {trader.badge && (
+                          <span className="text-xs px-2 py-0.5 bg-[#1e2735] rounded text-gray-400">
+                            {trader.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-500 text-sm">{trader.amount}</p>
+                    </div>
+                  </div>
+                  <button className="text-gray-600 hover:text-blue-500 transition-colors">
+                    <Star size={20} />
+                  </button>
+                </div>
+
+                {/* PnL Section */}
+                <div className="mb-4">
+                  <div className="text-gray-500 text-xs mb-1">{selectedTimeFilter} PNL</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-green-400">{getPnL(trader)}</span>
+                  </div>
+                  <div className="text-sm text-green-400 mt-1">ROI {trader.roi}</div>
+                </div>
+
+                {/* Line Chart */}
+                <div className="mb-4 h-16 relative">
+                  <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
+                    {/* Create path for line chart */}
+                    <path
+                      d={trader.chartData
+                        .map((value, idx) => {
+                          const x = (idx / (trader.chartData.length - 1)) * 200;
+                          const y = 60 - (value / 60) * 60;
+                          return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                        })
+                        .join(' ')}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-3 gap-3 mb-4 text-xs">
+                  <div>
+                    <div className="text-gray-500">AUM</div>
+                    <div className="text-white font-medium">{trader.aum}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">7D MDD</div>
+                    <div className="text-white font-medium">{trader.mdd}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Sharpe Ratio</div>
+                    <div className="text-white font-medium">{trader.sharpeRatio}</div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button className="flex-1 py-2 bg-[#0a0e14] hover:bg-[#1e2735] text-white rounded-lg text-sm font-medium border border-[#1e2735] transition-all cursor-pointer">
+                    Mock
+                  </button>
+                  <button className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold transition-all cursor-pointer">
+                    Copy
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-[#1e2735] rounded-lg transition-colors">
-                  <Search size={20} className="text-gray-500 hover:text-gray-300" />
-                </button>
-                <button className="p-2 hover:bg-[#1e2735] rounded-lg transition-colors">
-                  <SlidersHorizontal size={20} className="text-gray-500 hover:text-gray-300" />
-                </button>
-              </div>
-            </div>
-
-            {/* Trader Cards Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredTraders.map((trader) => (
-                <div
-                  key={trader.id}
-                  className="bg-[#151B26] rounded-lg p-5 border border-[#1e2735] hover:border-[#2a3441] transition-all cursor-pointer"
-                >
-                  {/* Trader Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#1e2735] rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold text-gray-400">
-                          {trader.name.substring(0, 2)}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-white">{trader.name}</h3>
-                          {trader.badge && (
-                            <span className="text-xs px-2 py-0.5 bg-[#1e2735] rounded text-gray-400">
-                              {trader.badge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-500 text-sm">{trader.amount}</p>
-                      </div>
-                    </div>
-                    <button className="text-gray-600 hover:text-blue-500 transition-colors">
-                      <Star size={20} />
-                    </button>
-                  </div>
-
-                  {/* PnL Section */}
-                  <div className="mb-4">
-                    <div className="text-gray-500 text-xs mb-1">{selectedTimeFilter} PNL</div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-green-400">
-                        {getPnL(trader)}
-                      </span>
-                    </div>
-                    <div className="text-sm text-green-400 mt-1">
-                      ROI {trader.roi}
-                    </div>
-                  </div>
-
-                  {/* Line Chart */}
-                  <div className="mb-4 h-16 relative">
-                    <svg
-                      className="w-full h-full"
-                      viewBox="0 0 200 60"
-                      preserveAspectRatio="none"
-                    >
-                      {/* Create path for line chart */}
-                      <path
-                        d={trader.chartData
-                          .map((value, idx) => {
-                            const x = (idx / (trader.chartData.length - 1)) * 200;
-                            const y = 60 - (value / 60) * 60;
-                            return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
-                          })
-                          .join(' ')}
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="2"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-3 mb-4 text-xs">
-                    <div>
-                      <div className="text-gray-500">AUM</div>
-                      <div className="text-white font-medium">{trader.aum}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">7D MDD</div>
-                      <div className="text-white font-medium">{trader.mdd}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Sharpe Ratio</div>
-                      <div className="text-white font-medium">{trader.sharpeRatio}</div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <button className="flex-1 py-2 bg-[#0a0e14] hover:bg-[#1e2735] text-white rounded-lg text-sm font-medium border border-[#1e2735] transition-all cursor-pointer">
-                      Mock
-                    </button>
-                    <button className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold transition-all cursor-pointer">
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            ))}
+          </div>
         </div>
       </div>
     </PageLayout>

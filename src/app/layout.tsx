@@ -3,7 +3,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter, IBM_Plex_Mono } from 'next/font/google';
 import { Providers } from './providers';
-import { SidebarProvider } from './contexts/SidebarContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 
 const inter = Inter({
   subsets: ['latin'],
