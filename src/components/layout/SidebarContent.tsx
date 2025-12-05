@@ -26,6 +26,7 @@ interface SidebarContentProps {
   brandName?: string;
   showToggle?: boolean;
   showBaseBadge?: boolean;
+  forceExpanded?: boolean; // Force expanded state (for mobile)
 }
 
 export default function SidebarContent({
@@ -41,9 +42,13 @@ export default function SidebarContent({
   brandName = 'Tethra',
   showToggle = true,
   showBaseBadge = true,
+  forceExpanded = false,
 }: SidebarContentProps) {
   const pathname = usePathname();
-  const { isExpanded, toggleSidebar } = useSidebar();
+  const { isExpanded: contextExpanded, toggleSidebar } = useSidebar();
+
+  // Use forceExpanded on mobile, otherwise use context state
+  const isExpanded = forceExpanded || contextExpanded;
 
   return (
     <aside

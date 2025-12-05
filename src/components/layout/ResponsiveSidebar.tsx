@@ -1,18 +1,15 @@
-"use client";
+'use client';
 
-import React, { ReactNode } from "react";
-import { X } from "lucide-react";
-import { useSidebar } from "@/contexts/SidebarContext";
+import React, { ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 interface ResponsiveSidebarProps {
   children: ReactNode;
   className?: string;
 }
 
-export default function ResponsiveSidebar({
-  children,
-  className = "",
-}: ResponsiveSidebarProps) {
+export default function ResponsiveSidebar({ children, className = '' }: ResponsiveSidebarProps) {
   const { isExpanded, isMobileOpen, closeMobileSidebar } = useSidebar();
 
   return (
@@ -20,9 +17,9 @@ export default function ResponsiveSidebar({
       <div
         className={`hidden lg:flex shrink-0 transition-all duration-300 flex-col ${className}`}
         style={{
-          width: isExpanded ? "16vw" : "5vw",
-          minWidth: isExpanded ? "120px" : "50px",
-          maxWidth: isExpanded ? "200px" : "80px",
+          width: isExpanded ? '16vw' : '5vw',
+          minWidth: isExpanded ? '120px' : '50px',
+          maxWidth: isExpanded ? '200px' : '80px',
         }}
       >
         {children}
@@ -51,8 +48,14 @@ export default function ResponsiveSidebar({
               <X size={20} />
             </button>
 
-            {/* Sidebar Content */}
-            {children}
+            {/* Sidebar Content - Force expanded on mobile */}
+            <div className="w-full">
+              {React.Children.map(children, (child) =>
+                React.isValidElement(child)
+                  ? React.cloneElement(child, { forceExpanded: true } as any)
+                  : child,
+              )}
+            </div>
           </div>
         </div>
       )}

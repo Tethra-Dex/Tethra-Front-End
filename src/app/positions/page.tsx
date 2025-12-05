@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { usePosition } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
-import { useGaslessClose } from '@/hooks/trading/useGaslessClose';
+import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 import PageLayout from '@/components/layout/PageLayout';
-import TPSLModal from '@/components/trading/modals/TPSLModal';
+import TPSLModal from '@/features/trading/components/modals/TPSLModal';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 import { useReadContract } from 'wagmi';
 import { POSITION_MANAGER_ADDRESS } from '@/config/contracts';

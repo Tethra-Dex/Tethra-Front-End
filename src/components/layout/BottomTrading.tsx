@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useUserPositions, usePosition } from '@/hooks/data/usePositions';
-import { useEmbeddedWallet } from '@/hooks/wallet/useEmbeddedWallet';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { usePrice } from '@/hooks/data/usePrices';
-import { useGaslessClose } from '@/hooks/trading/useGaslessClose';
+import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
-import PendingOrdersTable from '@/components/trading/orders/PendingOrdersTable';
-import TapToTradeOrders from '@/components/trading/orders/TapToTradeOrders';
-import BinaryOrders from '@/components/trading/orders/BinaryOrders';
-import { useMarket } from '@/contexts/MarketContext';
-import TPSLModal from '@/components/trading/modals/TPSLModal';
+import PendingOrdersTable from '@/features/trading/components/orders/PendingOrdersTable';
+import TapToTradeOrders from '@/features/trading/components/orders/TapToTradeOrders';
+import BinaryOrders from '@/features/trading/components/orders/BinaryOrders';
+import { useMarket } from '@/features/trading/contexts/MarketContext';
+import TPSLModal from '@/features/trading/components/modals/TPSLModal';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 
 // List of all markets for matching

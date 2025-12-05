@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useMarket } from "@/contexts/MarketContext";
+import { useMarket } from "@/features/trading/contexts/MarketContext";
 
 interface Market {
   symbol: string;

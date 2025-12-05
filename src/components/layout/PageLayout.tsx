@@ -1,7 +1,8 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import DashboardTrade from '@/components/trading/DashboardTrade';
+import ResponsiveSidebar from '@/components/layout/ResponsiveSidebar';
+import SidebarContent from '@/components/layout/SidebarContent';
 import MobileHeader from '@/components/layout/MobileHeader';
 import Navbar from '@/components/layout/Navbar';
 import WalletConnectButton from '@/components/layout/WalletConnectButton';
@@ -57,7 +58,11 @@ export default function PageLayout({
 
       <div className="flex w-full h-screen gap-2">
         {/* Sidebar - Responsive */}
-        {showSidebar && <DashboardTrade />}
+        {showSidebar && (
+          <ResponsiveSidebar>
+            <SidebarContent />
+          </ResponsiveSidebar>
+        )}
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto lg:p-0 p-2 flex flex-col gap-2">

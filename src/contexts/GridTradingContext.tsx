@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useGridTrading as useGridTradingUI } from '@/hooks/trading/useGridTradingUI';
+import { useGridTrading as useGridTradingUI } from '@/features/trading/hooks/useGridTradingUI';
 
 type GridTradingContextType = ReturnType<typeof useGridTradingUI>;
 

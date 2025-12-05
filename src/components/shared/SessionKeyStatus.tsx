@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useTapToTrade } from '@/contexts/TapToTradeContext';
+import { useTapToTrade } from '@/features/trading/contexts/TapToTradeContext';
 
 /**
  * SessionKeyStatus Component

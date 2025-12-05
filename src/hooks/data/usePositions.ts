@@ -5,7 +5,7 @@
 import { useReadContract } from 'wagmi';
 import { POSITION_MANAGER_ADDRESS } from '@/config/contracts';
 import PositionManagerABI from '@/contracts/abis/PositionManager.json';
-import { useEmbeddedWallet } from '../wallet/useEmbeddedWallet';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export interface Position {
   id: bigint;
