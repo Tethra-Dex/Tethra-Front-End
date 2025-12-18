@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
+import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
@@ -180,7 +181,7 @@ const BinaryOrders = () => {
                   <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-lg">
                     {getCryptoIcon(order.symbol)}
                   </div>
-                  <span className="font-semibold text-white">{order.symbol}/USD</span>
+                  <span className="font-semibold text-white">{formatMarketPair(order.symbol)}</span>
                 </div>
               </td>
 

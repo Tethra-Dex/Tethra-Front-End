@@ -4,18 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
 
-interface Market {
-  symbol: string;
-  binanceSymbol: string;
-  logoUrl: string;
-}
-
 interface TickerData {
   symbol: string;
   binanceSymbol: string;
   price: number;
   change: number;
-  logoUrl: string;
+  logoUrl?: string;
 }
 
 const PriceTicker: React.FC = () => {
@@ -23,42 +17,47 @@ const PriceTicker: React.FC = () => {
   const [tickerData, setTickerData] = useState<TickerData[]>([]);
 
   useEffect(() => {
-    const symbols = ALL_MARKETS.map((m) => m.binanceSymbol).join(',');
+    const binanceMarkets = ALL_MARKETS.filter((m) => m.binanceSymbol);
+    if (binanceMarkets.length === 0) return;
+
+    const symbols = binanceMarkets.map((m) => m.binanceSymbol).join(',');
     let ws: WebSocket | null = null;
 
     const connectWebSocket = () => {
       try {
-        const streams = ALL_MARKETS.map((m) => `${m.binanceSymbol.toLowerCase()}@ticker`).join('/');
+        const streams = binanceMarkets
+          .map((m) => `${m.binanceSymbol!.toLowerCase()}@ticker`)
+          .join('/');
 
         ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
 
         ws.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          if (message.data) {
-            const data = message.data;
-            const symbol = data.s;
-            const market = ALL_MARKETS.find((m) => m.binanceSymbol === symbol);
+            const message = JSON.parse(event.data);
+            if (message.data) {
+              const data = message.data;
+              const symbol = data.s;
+              const market = binanceMarkets.find((m) => m.binanceSymbol === symbol);
 
-            if (market) {
-              setTickerData((prev) => {
-                const existing = prev.find((t) => t.binanceSymbol === symbol);
-                const newData = {
-                  symbol: market.symbol,
-                  binanceSymbol: symbol,
-                  price: parseFloat(data.c),
-                  change: parseFloat(data.P),
-                  logoUrl: market.logoUrl,
-                };
+              if (market) {
+                setTickerData((prev) => {
+                  const existing = prev.find((t) => t.binanceSymbol === symbol);
+                  const newData = {
+                    symbol: market.symbol,
+                    binanceSymbol: symbol,
+                    price: parseFloat(data.c),
+                    change: parseFloat(data.P),
+                    logoUrl: market.logoUrl,
+                  };
 
-                if (existing) {
-                  return prev.map((t) => (t.binanceSymbol === symbol ? newData : t));
-                } else {
-                  return [...prev, newData];
-                }
-              });
+                  if (existing) {
+                    return prev.map((t) => (t.binanceSymbol === symbol ? newData : t));
+                  } else {
+                    return [...prev, newData];
+                  }
+                });
+              }
             }
-          }
-        };
+          };
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
@@ -88,9 +87,11 @@ const PriceTicker: React.FC = () => {
     if (fullMarket) {
       setActiveMarket({
         symbol: fullMarket.symbol,
-        tradingViewSymbol: `BINANCE:${fullMarket.binanceSymbol}`,
+        tradingViewSymbol: fullMarket.tradingViewSymbol,
         logoUrl: fullMarket.logoUrl,
         binanceSymbol: fullMarket.binanceSymbol,
+        category: fullMarket.category,
+        maxLeverage: fullMarket.maxLeverage,
       });
     }
   };
@@ -108,7 +109,7 @@ const PriceTicker: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 whitespace-nowrap cursor-pointer hover:bg-slate-800/50 transition-colors min-w-fit"
           >
             <img
-              src={item.logoUrl}
+              src={item.logoUrl || '/icons/usdc.png'}
               alt={item.symbol}
               className="w-5 h-5 rounded-full"
               onError={(e) => {

@@ -5,7 +5,7 @@ import React from "react";
 
 export interface Market {
   symbol: string;
-  logoUrl: string;
+  logoUrl?: string;
 }
 
 export interface MarketData {
@@ -107,7 +107,7 @@ export default function MarketNavbar({
               className="flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 hover:from-slate-700 hover:to-slate-600 hover:border-slate-500 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
             >
               <img
-                src={activeMarket.logoUrl}
+                src={activeMarket.logoUrl || '/icons/usdc.png'}
                 alt={activeMarket.symbol}
                 className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-600"
                 onError={(e) => {

@@ -1,8 +1,10 @@
 export interface Market {
   symbol: string;
   tradingViewSymbol: string;
-  logoUrl: string;
-  binanceSymbol: string;
+  logoUrl?: string;
+  binanceSymbol?: string;
+  category: 'crypto' | 'forex' | 'indices' | 'commodities' | 'stocks';
+  maxLeverage?: number;
 }
 
 export interface MarketData {

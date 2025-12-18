@@ -14,6 +14,7 @@ import { useMarket } from '@/features/trading/contexts/MarketContext';
 import TPSLModal from '@/features/trading/components/modals/TPSLModal';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
+import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 // Component to display individual position
 const PositionRow = ({
   positionId,
@@ -137,19 +138,19 @@ const PositionRow = ({
     >
       {/* Position / Market */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <img
-            src={getMarketLogo(position.symbol)}
-            alt={position.symbol}
-            className="w-8 h-8 rounded-full bg-slate-700"
+          <div className="flex items-center gap-2">
+            <img
+              src={getMarketLogo(position.symbol)}
+              alt={position.symbol}
+              className="w-8 h-8 rounded-full bg-slate-700"
             onError={(e) => {
               const target = e.currentTarget;
               target.onerror = null;
               target.style.visibility = 'hidden';
             }}
-          />
-          <div className="flex flex-col">
-            <span className="font-semibold text-white">{position.symbol}/USD</span>
+            />
+            <div className="flex flex-col">
+              <span className="font-semibold text-white">{formatMarketPair(position.symbol)}</span>
             <div className="flex items-center gap-1">
               <span
                 className={`text-xs font-medium ${

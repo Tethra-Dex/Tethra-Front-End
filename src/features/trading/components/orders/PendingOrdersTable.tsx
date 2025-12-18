@@ -1,6 +1,7 @@
 'use client';
 
 import { useUserPendingOrders, useCancelOrder, OrderType } from '@/features/trading/hooks/useLimitOrder';
+import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 import { formatUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 
@@ -31,7 +32,6 @@ const PendingOrdersTable = () => {
         <table className="w-full text-sm text-left text-gray-400">
           <thead className="text-xs text-gray-500 uppercase">
             <tr className="border-b border-gray-800">
-              <th className="px-4 py-3 text-left font-medium">TYPE</th>
               <th className="px-4 py-3 text-left font-medium">SYMBOL</th>
               <th className="px-4 py-3 text-left font-medium">DIRECTION</th>
               <th className="px-4 py-3 text-left font-medium">TRIGGER PRICE</th>
@@ -57,15 +57,14 @@ const PendingOrdersTable = () => {
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left text-gray-400">
         <thead className="text-xs text-gray-500 uppercase">
-          <tr className="border-b border-gray-800">
-            <th className="px-4 py-3 text-left font-medium">TYPE</th>
-            <th className="px-4 py-3 text-left font-medium">SYMBOL</th>
-            <th className="px-4 py-3 text-left font-medium">DIRECTION</th>
-            <th className="px-4 py-3 text-left font-medium">TRIGGER PRICE</th>
-            <th className="px-4 py-3 text-left font-medium">COLLATERAL</th>
-            <th className="px-4 py-3 text-left font-medium">LEVERAGE</th>
-            <th className="px-4 py-3 text-left font-medium">CREATED</th>
-            <th className="px-4 py-3 text-left font-medium"></th>
+            <tr className="border-b border-gray-800">
+              <th className="px-4 py-3 text-left font-medium">SYMBOL</th>
+              <th className="px-4 py-3 text-left font-medium">DIRECTION</th>
+              <th className="px-4 py-3 text-left font-medium">TRIGGER PRICE</th>
+              <th className="px-4 py-3 text-left font-medium">COLLATERAL</th>
+              <th className="px-4 py-3 text-left font-medium">LEVERAGE</th>
+              <th className="px-4 py-3 text-left font-medium">CREATED</th>
+              <th className="px-4 py-3 text-left font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -98,16 +97,11 @@ const PendingOrdersTable = () => {
 
             return (
               <tr key={order.id.toString()} className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                {/* Type */}
-                <td className="px-4 py-3">
-                  <span className={`font-medium ${orderTypeColor}`}>
-                    {orderTypeLabel}
-                  </span>
-                </td>
-
                 {/* Symbol */}
                 <td className="px-4 py-3">
-                  <span className="text-white font-medium">{order.symbol}/USD</span>
+                  <span className="text-white font-medium">
+                    {formatMarketPair(order.symbol)}
+                  </span>
                 </td>
 
                 {/* Direction */}

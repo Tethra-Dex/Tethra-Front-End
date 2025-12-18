@@ -26,6 +26,35 @@ export function useMarketWebSocket(markets: Market[]): UseMarketWebSocketReturn 
   const [futuresDataMap, setFuturesDataMap] = useState<Record<string, FuturesData>>({});
   const [oraclePrices, setOraclePrices] = useState<Record<string, OraclePrice>>({});
 
+  // Seed oracle prices from REST once (covers new env feeds before WS ticks)
+  useEffect(() => {
+    const seedOracle = async () => {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+        const res = await fetch(`${backendUrl}/api/price/all`);
+        if (!res.ok) return;
+        const body = await res.json();
+        if (body?.data) {
+          const seeded: Record<string, OraclePrice> = {};
+          Object.keys(body.data).forEach((symbol: string) => {
+            const p = body.data[symbol];
+            seeded[symbol.toUpperCase()] = {
+              symbol: p.symbol || symbol.toUpperCase(),
+              price: p.price,
+              confidence: p.confidence,
+              timestamp: p.timestamp,
+              source: p.source || 'pyth',
+            };
+          });
+          setOraclePrices((prev) => ({ ...prev, ...seeded }));
+        }
+      } catch (err) {
+        console.warn('Seed oracle price failed', err);
+      }
+    };
+    seedOracle();
+  }, []);
+
   // Fetch Futures Data (Funding Rate, Open Interest)
   useEffect(() => {
     const fetchFuturesData = async () => {
@@ -166,11 +195,11 @@ export function useMarketWebSocket(markets: Market[]): UseMarketWebSocketReturn 
             const message = JSON.parse(event.data);
 
             if (message.type === 'price_update' && message.data) {
-              const newOraclePrices: Record<string, OraclePrice> = {};
-
+            setOraclePrices((prev) => {
+              const next: Record<string, OraclePrice> = { ...prev };
               Object.keys(message.data).forEach((symbol) => {
                 const priceData = message.data[symbol];
-                newOraclePrices[symbol] = {
+                next[symbol.toUpperCase()] = {
                   symbol: priceData.symbol,
                   price: priceData.price,
                   confidence: priceData.confidence,
@@ -178,13 +207,13 @@ export function useMarketWebSocket(markets: Market[]): UseMarketWebSocketReturn 
                   source: priceData.source,
                 };
               });
-
-              setOraclePrices(newOraclePrices);
-            }
-          } catch (error) {
-            console.error('Error parsing Oracle message:', error);
+              return next;
+            });
           }
-        };
+        } catch (error) {
+          console.error('Error parsing Oracle message:', error);
+        }
+      };
 
         ws.onerror = () => {
           // Silently handle error - backend might not be running

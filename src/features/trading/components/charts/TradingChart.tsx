@@ -10,6 +10,7 @@ import TradingViewWidget from './TradingViewWidget';
 import SimpleLineChart from './SimpleLineChart';
 import PerSecondChart from '@/features/second-chart/components/PerSecondChart';
 import ChartHeader from './ChartHeader';
+import { mergeMarketsWithOracle } from '@/features/trading/lib/marketUtils';
 
 const TradingChart: React.FC = () => {
   const {
@@ -19,16 +20,27 @@ const TradingChart: React.FC = () => {
     timeframe,
   } = useMarket();
 
-  const [markets] = useState<Market[]>(ALL_MARKETS);
+  const baseMarkets = useMemo<Market[]>(() => ALL_MARKETS, []);
   const [activeSymbol, setActiveSymbol] = useState<string>(
-    contextActiveMarket?.symbol || ALL_MARKETS[0].symbol,
+    contextActiveMarket?.symbol || baseMarkets[0].symbol,
   );
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const tapToTrade = useTapToTrade();
 
-  const { allPrices, marketDataMap, futuresDataMap, oraclePrices } = useMarketWebSocket(markets);
+  const { allPrices, marketDataMap, futuresDataMap, oraclePrices } =
+    useMarketWebSocket(baseMarkets);
+
+  const oracleSymbolsKey = useMemo(
+    () => Object.keys(oraclePrices || {}).sort().join('|'),
+    [oraclePrices],
+  );
+
+  const markets = useMemo(
+    () => mergeMarketsWithOracle(baseMarkets, Object.keys(oraclePrices || {})),
+    [baseMarkets, oracleSymbolsKey],
+  );
 
   useEffect(() => {
     if (contextActiveMarket && contextActiveMarket.symbol !== activeSymbol) {
@@ -113,6 +125,7 @@ const TradingChart: React.FC = () => {
           marketDataMap={marketDataMap}
           futuresDataMap={futuresDataMap}
           oraclePrice={currentOraclePrice}
+          oraclePrices={oraclePrices}
           onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
           isMarketSelectorOpen={isMarketSelectorOpen}
           onClose={() => setIsMarketSelectorOpen(false)}
@@ -134,10 +147,10 @@ const TradingChart: React.FC = () => {
       >
         {activeMarket && (
           <>
-            {tapToTrade.isEnabled ? (
+            {tapToTrade.isEnabled && activeMarket?.binanceSymbol ? (
               tapToTrade.tradeMode === 'one-tap-profit' ? (
                 <PerSecondChart
-                  key={`${activeMarket.binanceSymbol}-per-s`}
+                  key={`${activeMarket.symbol}-per-s`}
                   symbol={activeMarket.symbol}
                   currentPrice={parseFloat(
                     currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
@@ -147,7 +160,7 @@ const TradingChart: React.FC = () => {
                 />
               ) : (
                 <SimpleLineChart
-                  key={`${activeMarket.binanceSymbol}-tap`}
+                  key={`${activeMarket.symbol}-tap`}
                   symbol={activeMarket.binanceSymbol || ''}
                   interval={timeframe}
                   currentPrice={parseFloat(
@@ -159,10 +172,7 @@ const TradingChart: React.FC = () => {
                 />
               )
             ) : (
-              <TradingViewWidget
-                key={`${activeMarket.binanceSymbol}`}
-                symbol={activeMarket.binanceSymbol || ''}
-              />
+              <TradingViewWidget key={`${activeMarket.symbol}`} symbol={activeMarket.tradingViewSymbol} />
             )}
           </>
         )}

@@ -11,6 +11,7 @@ import {
 import MarketSelector from './MarketSelector';
 import RealTimeClock from './RealTimeClock';
 import Image from 'next/image';
+import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
 
 interface OraclePrice {
   symbol: string;
@@ -28,6 +29,7 @@ interface ChartHeaderProps {
   marketDataMap: Record<string, MarketData>;
   futuresDataMap: Record<string, FuturesData>;
   oraclePrice: OraclePrice | null;
+  oraclePrices: Record<string, { price: number }>;
   onSymbolChangeClick: () => void;
   isMarketSelectorOpen: boolean;
   onClose: () => void;
@@ -38,14 +40,21 @@ interface ChartHeaderProps {
 
 export default function ChartHeader(props: ChartHeaderProps) {
   // Use Oracle price data if available, otherwise fallback to Binance
-  const displayPrice =
-    props.oraclePrice?.price || (props.marketData?.price ? parseFloat(props.marketData.price) : 0);
+  const oraclePriceValue = props.oraclePrice?.price ?? undefined;
+  const displayPrice = Number.isFinite(oraclePriceValue)
+    ? oraclePriceValue
+    : props.marketData?.price
+    ? parseFloat(props.marketData.price)
+    : NaN;
   const priceChangePercent = props.marketData?.priceChangePercent
     ? parseFloat(props.marketData.priceChangePercent)
     : 0;
   const isPositive = priceChangePercent >= 0;
   const fundingRate = props.futuresData ? parseFloat(props.futuresData.fundingRate) : 0;
   const isFundingPositive = fundingRate >= 0;
+  const isCrypto = props.activeMarket?.category === 'crypto';
+
+  const formatUsd = (value: number) => formatDynamicUsd(value);
 
   return (
     <div
@@ -66,7 +75,7 @@ export default function ChartHeader(props: ChartHeaderProps) {
           >
             {props.activeMarket && (
               <Image
-                src={`${props.activeMarket.logoUrl}`}
+                src={`${props.activeMarket.logoUrl || '/icons/usdc.png'}`}
                 alt={`${props.activeMarket.symbol}`}
                 width={24}
                 height={24}
@@ -78,7 +87,9 @@ export default function ChartHeader(props: ChartHeaderProps) {
                 }}
               />
             )}
-            <span className="text-base">{props.activeMarket?.symbol}/USD</span>
+            <span className="text-base">
+              {props.activeMarket ? formatMarketPair(props.activeMarket.symbol) : ''}
+            </span>
             <svg
               className={`w-4 h-4 transition-transform duration-200 ${
                 props.isMarketSelectorOpen ? 'rotate-180' : ''
@@ -103,85 +114,94 @@ export default function ChartHeader(props: ChartHeaderProps) {
             allPrices={props.allPrices}
             marketDataMap={props.marketDataMap}
             futuresDataMap={props.futuresDataMap}
+            oraclePrices={props.oraclePrices}
             triggerRef={props.triggerRef}
           />
         </div>
 
         <div className="flex flex-col min-w-[100px] md:min-w-[130px]">
           <span className="font-semibold font-mono md:text-lg text-base text-text-primary">
-            {displayPrice ? formatPrice(displayPrice) : '$--'}
+            {Number.isFinite(displayPrice) ? formatUsd(displayPrice as number) : '$--'}
           </span>
-          <span
-            className={`font-semibold font-mono md:text-sm text-xs ${
-              isPositive ? 'text-success' : 'text-error'
-            }`}
-          >
-            {props.marketData?.priceChangePercent
-              ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(
-                  2,
-                )}%`
-              : '--'}
-          </span>
-        </div>
-
-        <div className="md:flex flex-col hidden">
-          <span className="text-xs text-text-secondary">24H HIGH</span>
-          <div className="flex items-center gap-1">
-            <span className="text-success text-xs">▲</span>
-            <span className="font-semibold font-mono text-sm text-text-primary">
-              {props.marketData?.high24h
-                ? formatPrice(parseFloat(props.marketData.high24h))
-                : '$--'}
+          {isCrypto && (
+            <span
+              className={`font-semibold font-mono md:text-sm text-xs ${
+                isPositive ? 'text-success' : 'text-error'
+              }`}
+            >
+              {props.marketData?.priceChangePercent
+                ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(
+                    2,
+                  )}%`
+                : '--'}
             </span>
-          </div>
+          )}
         </div>
 
-        <div className="md:flex flex-col hidden">
-          <span className="text-xs text-text-secondary">24H LOW</span>
-          <div className="flex items-center gap-1">
-            <span className="text-error text-xs">▼</span>
-            <span className="font-semibold font-mono text-sm text-text-primary">
-              {props.marketData?.low24h ? formatPrice(parseFloat(props.marketData.low24h)) : '$--'}
-            </span>
-          </div>
-        </div>
-
-        <div className="md:flex flex-col hidden">
-          <span className="text-xs text-text-secondary">24H VOLUME</span>
-          <span className="font-semibold font-mono text-sm text-text-primary">
-            {props.marketData?.volume24h
-              ? formatVolume(parseFloat(props.marketData.volume24h))
-              : '--'}
-          </span>
-        </div>
-
-        {/* Futures Data */}
-        {props.futuresData && (
+        {isCrypto && (
           <>
             <div className="md:flex flex-col hidden">
-              <span className="text-xs text-text-secondary">FUNDING RATE</span>
+              <span className="text-xs text-text-secondary">24H HIGH</span>
               <div className="flex items-center gap-1">
-                <span
-                  className={`font-semibold font-mono text-sm ${
-                    isFundingPositive ? 'text-success' : 'text-error'
-                  }`}
-                >
-                  {formatFundingRate(fundingRate)}
-                </span>
-                <span className="text-xs text-text-muted font-mono">
-                  / {formatTimeUntil(props.futuresData.nextFundingTime)}
+                <span className="text-success text-xs">▲</span>
+                <span className="font-semibold font-mono text-sm text-text-primary">
+                  {props.marketData?.high24h
+                    ? formatPrice(parseFloat(props.marketData.high24h))
+                    : '$--'}
                 </span>
               </div>
             </div>
+
             <div className="md:flex flex-col hidden">
-              <span className="text-xs text-text-secondary">OPEN INTEREST</span>
+              <span className="text-xs text-text-secondary">24H LOW</span>
+              <div className="flex items-center gap-1">
+                <span className="text-error text-xs">▼</span>
+                <span className="font-semibold font-mono text-sm text-text-primary">
+                  {props.marketData?.low24h
+                    ? formatPrice(parseFloat(props.marketData.low24h))
+                    : '$--'}
+                </span>
+              </div>
+            </div>
+
+            <div className="md:flex flex-col hidden">
+              <span className="text-xs text-text-secondary">24H VOLUME</span>
               <span className="font-semibold font-mono text-sm text-text-primary">
-                {formatVolume(parseFloat(props.futuresData.openInterestValue))}
+                {props.marketData?.volume24h
+                  ? formatVolume(parseFloat(props.marketData.volume24h))
+                  : '--'}
               </span>
             </div>
-            <div className="flex">
-              <RealTimeClock />
-            </div>
+
+            {/* Futures Data */}
+            {props.futuresData && (
+              <>
+                <div className="md:flex flex-col hidden">
+                  <span className="text-xs text-text-secondary">FUNDING RATE</span>
+                  <div className="flex items-center gap-1">
+                    <span
+                      className={`font-semibold font-mono text-sm ${
+                        isFundingPositive ? 'text-success' : 'text-error'
+                      }`}
+                    >
+                      {formatFundingRate(fundingRate)}
+                    </span>
+                    <span className="text-xs text-text-muted font-mono">
+                      / {formatTimeUntil(props.futuresData.nextFundingTime)}
+                    </span>
+                  </div>
+                </div>
+                <div className="md:flex flex-col hidden">
+                  <span className="text-xs text-text-secondary">OPEN INTEREST</span>
+                  <span className="font-semibold font-mono text-sm text-text-primary">
+                    {formatVolume(parseFloat(props.futuresData.openInterestValue))}
+                  </span>
+                </div>
+                <div className="flex">
+                  <RealTimeClock />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
