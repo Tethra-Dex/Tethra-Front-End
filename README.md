@@ -10,6 +10,7 @@ Modern, high-performance frontend for Tethra DEX perpetual futures trading platf
 ## 🌟 Key Features
 
 ### Trading Interface
+
 - 📈 **Real-time TradingView Charts** - Professional charting with Pyth Oracle price overlay
 - ⚡ **Instant Market Orders** - Execute trades immediately at oracle price
 - 🎯 **Advanced Orders** - Limit orders, stop-loss, take-profit, grid trading
@@ -18,12 +19,14 @@ Modern, high-performance frontend for Tethra DEX perpetual futures trading platf
 - 💰 **Multi-Asset Support** - Trade 12+ crypto assets with up to 100x leverage
 
 ### Wallet & Authentication
+
 - 🔐 **Privy Integration** - Email/social login with embedded wallets
 - 🐛 **Wagmi & Viem** - Modern Web3 React hooks
 - 💵 **USDC Gas Payments** - Pay fees in USDC via Account Abstraction
 - 🔗 **Base Network** - Built on Base L2 for low fees and fast transactions
 
 ### User Experience
+
 - 🎨 **Modern UI/UX** - Sleek, responsive design with TailwindCSS
 - 🌌 **3D Graphics** - Three.js powered visual effects
 - 🔔 **Real-time Notifications** - Toast notifications for all actions
@@ -116,6 +119,7 @@ npm run build && npm start
 ```
 
 ### Vaults page notes
+
 - Uses `NEXT_PUBLIC_VAULT_POOL_ADDRESS` and `NEXT_PUBLIC_STABILITY_FUND_ADDRESS`.
 - Shows APY estimated from StabilityFund streams; ensure backend relayer calls `streamToVault()` periodically.
 - `% Owned` uses on-chain shares vs total+virtual supply; deposit via contract to mint shares (avoid raw transfers).
@@ -148,28 +152,33 @@ Tethra-Front-End/
 ## 🛠️ Tech Stack
 
 ### Core Framework
+
 - **Next.js 15** - React framework with App Router
 - **React 19** - Latest React with concurrent features
 - **TypeScript 5** - Type-safe development
 
 ### Web3 Integration
+
 - **Privy** - Authentication & embedded wallets
 - **Wagmi 2** - React hooks for Ethereum
 - **Viem 2** - TypeScript Ethereum library
 - **Ethers 6** - Ethereum interactions
 
 ### UI & Styling
+
 - **TailwindCSS 4** - Utility-first CSS
 - **Headless UI** - Unstyled, accessible components
 - **Lucide React** - Icon library
 - **React Hot Toast** - Notifications
 
 ### Charts & Graphics
+
 - **Lightweight Charts** - TradingView charting library
 - **Three.js** - 3D graphics
 - **React Three Fiber** - React renderer for Three.js
 
 ### Data Fetching
+
 - **TanStack Query** - Server state management
 - **Axios** - HTTP client
 - **WebSocket** - Real-time price updates
@@ -181,6 +190,7 @@ Tethra-Front-End/
 Vercel provides the easiest deployment for Next.js apps:
 
 1. **Push to GitHub**
+
    ```bash
    git init
    git add .
@@ -190,6 +200,7 @@ Vercel provides the easiest deployment for Next.js apps:
    ```
 
 2. **Connect to Vercel**
+
    - Visit [vercel.com/new](https://vercel.com/new)
    - Import your GitHub repository
    - Configure environment variables
@@ -197,6 +208,7 @@ Vercel provides the easiest deployment for Next.js apps:
 
 3. **Environment Variables**
    Add these in Vercel dashboard:
+
    ```
    NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
    NEXT_PUBLIC_BACKEND_URL=https://api.yourdomain.com
@@ -212,6 +224,7 @@ Vercel provides the easiest deployment for Next.js apps:
 ### Option 2: VPS Deployment
 
 #### Prerequisites
+
 - Ubuntu/Debian VPS (2GB RAM minimum)
 - Node.js 18+ installed
 - Domain name (optional)
@@ -385,6 +398,7 @@ pm2 status
 ### Troubleshooting
 
 **Issue: Build fails**
+
 ```bash
 # Clear cache and rebuild
 rm -rf .next node_modules
@@ -393,16 +407,19 @@ npm run build
 ```
 
 **Issue: Environment variables not working**
+
 - Ensure all `NEXT_PUBLIC_` prefix is correct
 - Rebuild after changing .env
 - Check browser console for actual values
 
 **Issue: Wallet connection fails**
+
 - Verify Privy App ID is correct
 - Check network configuration (Base Sepolia/Mainnet)
 - Ensure backend API is accessible
 
 **Issue: Charts not loading**
+
 - Check WebSocket connection to backend
 - Verify CORS settings on backend
 - Check browser console for errors

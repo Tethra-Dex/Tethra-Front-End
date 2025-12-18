@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/PageLayout';
+import PageLayout from '@/components/layout/PageLayout';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 import { useWallets } from '@privy-io/react-auth';
-import usePoolData from '../../hooks/usePoolData';
+import usePoolData from '@/hooks/data/usePoolData';
 
 const TETHRA_TOKEN = process.env.NEXT_PUBLIC_TETHRA_TOKEN_ADDRESS as `0x${string}`;
 const TETHRA_STAKING = process.env.NEXT_PUBLIC_TETHRA_STAKING_ADDRESS as `0x${string}`;
@@ -64,11 +64,12 @@ export default function StakePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Get external wallet
-  const externalWallet = wallets.find(wallet =>
-    wallet.walletClientType === 'metamask' ||
-    wallet.walletClientType === 'coinbase_wallet' ||
-    wallet.walletClientType === 'wallet_connect' ||
-    (wallet.walletClientType !== 'privy' && wallet.connectorType !== 'embedded')
+  const externalWallet = wallets.find(
+    (wallet) =>
+      wallet.walletClientType === 'metamask' ||
+      wallet.walletClientType === 'coinbase_wallet' ||
+      wallet.walletClientType === 'wallet_connect' ||
+      (wallet.walletClientType !== 'privy' && wallet.connectorType !== 'embedded'),
   );
   const userAddress = externalWallet?.address;
 
@@ -136,15 +137,14 @@ export default function StakePage() {
   }, [publicClient, userAddress]);
 
   // Calculate percentage of total
-  const percentOfTotal = totalStaked > BigInt(0)
-    ? (Number(userStaked) / Number(totalStaked)) * 100
-    : 0;
+  const percentOfTotal =
+    totalStaked > BigInt(0) ? (Number(userStaked) / Number(totalStaked)) * 100 : 0;
 
   return (
     <PageLayout
       navbar={{
-        title: "Stake TETHRA",
-        subtitle: "Buy and stake TETHRA to receive trading fees from traders",
+        title: 'Stake TETHRA',
+        subtitle: 'Buy and stake TETHRA to receive trading fees from traders',
       }}
     >
       <div className="mb-8">
@@ -152,8 +152,8 @@ export default function StakePage() {
         <p className="text-gray-400 text-sm">
           <Link href="#" className="text-blue-400 hover:text-blue-300 underline">
             Buy
-          </Link>
-          {" "}and stake TETHRA to receive trading fees from traders.
+          </Link>{' '}
+          and stake TETHRA to receive trading fees from traders.
         </p>
       </div>
 
@@ -164,13 +164,25 @@ export default function StakePage() {
             <thead className="bg-slate-900/50 border-b border-slate-800">
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">Asset</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">Total Supply</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">Total Staked</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">Historical APR</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">7 days APR</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">Your Stake</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
+                  Total Supply
+                </th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
+                  Total Staked
+                </th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
+                  Historical APR
+                </th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
+                  7 days APR
+                </th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
+                  Your Stake
+                </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">Available</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">% of Total</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
+                  % of Total
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -178,7 +190,7 @@ export default function StakePage() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <Image
-                      src="/images/logo.png"
+                      src="/tethra-logo.png"
                       alt="TETH"
                       width={32}
                       height={32}
@@ -189,12 +201,20 @@ export default function StakePage() {
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-white">
-                    {isLoading ? '...' : Number(formatUnits(totalSupply, 18)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {isLoading
+                      ? '...'
+                      : Number(formatUnits(totalSupply, 18)).toLocaleString(undefined, {
+                          maximumFractionDigits: 0,
+                        })}
                   </span>
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-white">
-                    {isLoading ? '...' : Number(formatUnits(totalStaked, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {isLoading
+                      ? '...'
+                      : Number(formatUnits(totalStaked, 18)).toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                        })}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -205,12 +225,20 @@ export default function StakePage() {
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-white">
-                    {isLoading ? '...' : Number(formatUnits(userStaked, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {isLoading
+                      ? '...'
+                      : Number(formatUnits(userStaked, 18)).toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                        })}
                   </span>
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-white">
-                    {isLoading ? '...' : Number(formatUnits(userBalance, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {isLoading
+                      ? '...'
+                      : Number(formatUnits(userBalance, 18)).toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                        })}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -255,7 +283,11 @@ export default function StakePage() {
               <div>
                 <p className="text-gray-400 text-sm mb-1">Total Earnings</p>
                 <h3 className="text-3xl font-bold text-white">
-                  {Number(formatUnits(pendingRewards, 6)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
+                  {Number(formatUnits(pendingRewards, 6)).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  USDC
                 </h3>
               </div>
               <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
@@ -266,7 +298,10 @@ export default function StakePage() {
               <div className="bg-slate-800/30 rounded-lg p-4">
                 <p className="text-gray-400 text-xs mb-1">Your Stake</p>
                 <p className="text-white font-semibold">
-                  {Number(formatUnits(userStaked, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 })} TETH
+                  {Number(formatUnits(userStaked, 18)).toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  TETH
                 </p>
               </div>
               <div className="bg-slate-800/30 rounded-lg p-4">
@@ -283,14 +318,22 @@ export default function StakePage() {
           <div className="bg-slate-900/30 rounded-lg border border-slate-800 p-12">
             <div className="flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="w-8 h-8 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">No earnings to collect</h3>
-              <p className="text-gray-400">
-                Stake TETHRA to start earning rewards.
-              </p>
+              <p className="text-gray-400">Stake TETHRA to start earning rewards.</p>
             </div>
           </div>
         )}

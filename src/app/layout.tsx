@@ -3,7 +3,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter, IBM_Plex_Mono } from 'next/font/google';
 import { Providers } from './providers';
-import { SidebarProvider } from './contexts/SidebarContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: 'Tethra DEX',
     images: [
       {
-        url: '/images/og-banner.png',
+        url: '/homepage/trade-page.png',
         width: 1200,
         height: 630,
         alt: 'Tethra DEX Banner',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tethra DEX',
     description: 'Decentralized Exchange with Advanced Trading Features',
-    images: ['/images/og-banner.png'],
+    images: ['/homepage/trade-page.png'],
     creator: '@tethradex',
   },
   other: {
@@ -78,16 +78,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexMono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${ibmPlexMono.variable}`}
+    >
       <head>
-        <link rel="icon" href="/images/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <link rel="icon" href="/tethra-logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/tethra-logo.png" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
-          <SidebarProvider>
-            {children}
-          </SidebarProvider>
+          <SidebarProvider>{children}</SidebarProvider>
         </Providers>
       </body>
     </html>

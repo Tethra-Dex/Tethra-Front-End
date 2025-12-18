@@ -1,39 +1,141 @@
-"use client";
+'use client';
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
-import PageLayout from "../components/PageLayout";
-import Image from "next/image";
-import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { usePublicClient } from "wagmi";
-import { ethers } from "ethers";
-import { parseUnits, formatUnits } from "viem";
-import usePoolData from "../../hooks/usePoolData";
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import Image from 'next/image';
+import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePublicClient } from 'wagmi';
+import { ethers } from 'ethers';
+import { parseUnits, formatUnits } from 'viem';
+import usePoolData from '@/hooks/data/usePoolData';
+import PageLayout from '@/components/layout/PageLayout';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS as `0x${string}`;
 const VAULT_POOL_ADDRESS = process.env.NEXT_PUBLIC_VAULT_POOL_ADDRESS as `0x${string}`;
 const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 84532);
 
 const usdcABI = [
-  { inputs: [{ internalType: 'address', name: 'owner', type: 'address' }, { internalType: 'address', name: 'spender', type: 'address' }], name: 'allowance', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [{ internalType: 'address', name: 'account', type: 'address' }], name: 'balanceOf', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [{ internalType: 'address', name: 'spender', type: 'address' }, { internalType: 'uint256', name: 'amount', type: 'uint256' }], name: 'approve', outputs: [{ internalType: 'bool', name: '', type: 'bool' }], stateMutability: 'nonpayable', type: 'function' },
+  {
+    inputs: [
+      { internalType: 'address', name: 'owner', type: 'address' },
+      { internalType: 'address', name: 'spender', type: 'address' },
+    ],
+    name: 'allowance',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'spender', type: 'address' },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const;
 
 const vaultABI = [
-  { inputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }], name: 'deposit', outputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
-  { inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }], name: 'withdraw', outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
-  { inputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }], name: 'convertToShares', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'totalAssets', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'totalSupply', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [{ internalType: 'address', name: 'account', type: 'address' }], name: 'balanceOf', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }], name: 'convertToAssets', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'lockPeriod', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'earlyExitFeeBps', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'apyEstimateBps', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'virtualSupply', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [{ internalType: 'address', name: '', type: 'address' }], name: 'lastDepositAt', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-  { inputs: [{ internalType: 'address', name: 'user', type: 'address' }], name: 'unlockTime', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  {
+    inputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    name: 'deposit',
+    outputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'withdraw',
+    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    name: 'convertToShares',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalAssets',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'lockPeriod',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'earlyExitFeeBps',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'apyEstimateBps',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'virtualSupply',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'lastDepositAt',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'unlockTime',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 interface VaultData {
@@ -58,37 +160,32 @@ export default function VaultsPage() {
   const { wallets } = useWallets();
   const publicClient = usePublicClient();
   const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [mode, setMode] = useState<"deposit" | "withdraw">("deposit");
-  const [amount, setAmount] = useState("");
+  const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
+  const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [userVaultBalance, setUserVaultBalance] = useState<string>("0");
-  const [userVaultBalanceUSD, setUserVaultBalanceUSD] = useState<string>("$0");
-  const [percentOwned, setPercentOwned] = useState<string>("0%");
+  const [userVaultBalance, setUserVaultBalance] = useState<string>('0');
+  const [userVaultBalanceUSD, setUserVaultBalanceUSD] = useState<string>('$0');
+  const [percentOwned, setPercentOwned] = useState<string>('0%');
   const [lockPeriodSec, setLockPeriodSec] = useState<number>(0);
   const [earlyExitFee, setEarlyExitFee] = useState<number>(0);
   const [apyBps, setApyBps] = useState<number>(0);
   const [userUnlockTime, setUserUnlockTime] = useState<number | null>(null);
 
   const embeddedWallet = useMemo(
-    () =>
-      wallets.find(
-        (w) =>
-          w.walletClientType === "privy" ||
-          w.connectorType === "embedded"
-      ),
-    [wallets]
+    () => wallets.find((w) => w.walletClientType === 'privy' || w.connectorType === 'embedded'),
+    [wallets],
   );
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
-      setSortDirection("asc");
+      setSortDirection('asc');
     }
   };
 
@@ -96,7 +193,7 @@ export default function VaultsPage() {
     if (sortColumn !== column) {
       return <ChevronDown className="w-4 h-4 text-gray-500" />;
     }
-    return sortDirection === "asc" ? (
+    return sortDirection === 'asc' ? (
       <ChevronUp className="w-4 h-4 text-blue-400" />
     ) : (
       <ChevronDown className="w-4 h-4 text-blue-400" />
@@ -107,9 +204,9 @@ export default function VaultsPage() {
 
   const fetchUserVaultData = useCallback(async () => {
     if (!publicClient || !ready || !authenticated || !embeddedWallet) {
-      setUserVaultBalance("0");
-      setUserVaultBalanceUSD("$0");
-      setPercentOwned("0%");
+      setUserVaultBalance('0');
+      setUserVaultBalanceUSD('$0');
+      setPercentOwned('0%');
       setUserUnlockTime(null);
       return;
     }
@@ -119,54 +216,56 @@ export default function VaultsPage() {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
 
-      const [userShares, totalSupply, virtualSupply, lockP, feeBps, apy, unlockTs] = await Promise.all([
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "balanceOf",
-          args: [userAddress as `0x${string}`],
-        }) as Promise<bigint>,
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "totalSupply",
-        }) as Promise<bigint>,
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "virtualSupply",
-        }) as Promise<bigint>,
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "lockPeriod",
-        }) as Promise<bigint>,
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "earlyExitFeeBps",
-        }) as Promise<bigint>,
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "apyEstimateBps",
-        }) as Promise<bigint>,
-        publicClient.readContract({
-          address: VAULT_POOL_ADDRESS,
-          abi: vaultABI,
-          functionName: "unlockTime",
-          args: [userAddress as `0x${string}`],
-        }) as Promise<bigint>,
-      ]);
-
-      const userAssets = userShares > 0n
-        ? await publicClient.readContract({
+      const [userShares, totalSupply, virtualSupply, lockP, feeBps, apy, unlockTs] =
+        await Promise.all([
+          publicClient.readContract({
             address: VAULT_POOL_ADDRESS,
             abi: vaultABI,
-            functionName: "convertToAssets",
-            args: [userShares],
-          }) as bigint
-        : 0n;
+            functionName: 'balanceOf',
+            args: [userAddress as `0x${string}`],
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: VAULT_POOL_ADDRESS,
+            abi: vaultABI,
+            functionName: 'totalSupply',
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: VAULT_POOL_ADDRESS,
+            abi: vaultABI,
+            functionName: 'virtualSupply',
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: VAULT_POOL_ADDRESS,
+            abi: vaultABI,
+            functionName: 'lockPeriod',
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: VAULT_POOL_ADDRESS,
+            abi: vaultABI,
+            functionName: 'earlyExitFeeBps',
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: VAULT_POOL_ADDRESS,
+            abi: vaultABI,
+            functionName: 'apyEstimateBps',
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: VAULT_POOL_ADDRESS,
+            abi: vaultABI,
+            functionName: 'unlockTime',
+            args: [userAddress as `0x${string}`],
+          }) as Promise<bigint>,
+        ]);
+
+      const userAssets =
+        userShares > 0n
+          ? ((await publicClient.readContract({
+              address: VAULT_POOL_ADDRESS,
+              abi: vaultABI,
+              functionName: 'convertToAssets',
+              args: [userShares],
+            })) as bigint)
+          : 0n;
 
       const userAssetsNumber = Number(formatUnits(userAssets, 6));
       setUserVaultBalance(userAssetsNumber.toFixed(2));
@@ -174,19 +273,21 @@ export default function VaultsPage() {
 
       const effectiveSupply = totalSupply + virtualSupply;
       // percent with 6 decimal places
-      const percentScaled = effectiveSupply > 0n ? (userShares * 100_000_000n) / effectiveSupply : 0n; // percent * 1e6
+      const percentScaled =
+        effectiveSupply > 0n ? (userShares * 100_000_000n) / effectiveSupply : 0n; // percent * 1e6
       const percent = Number(percentScaled) / 1_000_000;
-      const percentDisplay = percent < 0.000001 && percent > 0 ? "<0.000001%" : `${percent.toFixed(6)}%`;
+      const percentDisplay =
+        percent < 0.000001 && percent > 0 ? '<0.000001%' : `${percent.toFixed(6)}%`;
       setPercentOwned(percentDisplay);
       setLockPeriodSec(Number(lockP));
       setEarlyExitFee(Number(feeBps) / 100);
       setApyBps(Number(apy));
       setUserUnlockTime(Number(unlockTs));
     } catch (err) {
-      console.error("Failed to fetch user vault data:", err);
-      setUserVaultBalance("0");
-      setUserVaultBalanceUSD("$0");
-      setPercentOwned("0%");
+      console.error('Failed to fetch user vault data:', err);
+      setUserVaultBalance('0');
+      setUserVaultBalanceUSD('$0');
+      setPercentOwned('0%');
       setUserUnlockTime(null);
     }
   }, [authenticated, embeddedWallet, publicClient, ready]);
@@ -204,24 +305,24 @@ export default function VaultsPage() {
           publicClient.readContract({
             address: VAULT_POOL_ADDRESS,
             abi: vaultABI,
-            functionName: "lockPeriod",
+            functionName: 'lockPeriod',
           }) as Promise<bigint>,
           publicClient.readContract({
             address: VAULT_POOL_ADDRESS,
             abi: vaultABI,
-            functionName: "earlyExitFeeBps",
+            functionName: 'earlyExitFeeBps',
           }) as Promise<bigint>,
           publicClient.readContract({
             address: VAULT_POOL_ADDRESS,
             abi: vaultABI,
-            functionName: "apyEstimateBps",
+            functionName: 'apyEstimateBps',
           }) as Promise<bigint>,
         ]);
         setLockPeriodSec(Number(lockP));
         setEarlyExitFee(Number(feeBps) / 100);
         setApyBps(Number(apy));
       } catch (err) {
-        console.error("Failed to fetch vault config:", err);
+        console.error('Failed to fetch vault config:', err);
       }
     };
     fetchConfig();
@@ -230,9 +331,9 @@ export default function VaultsPage() {
   const vaultData: VaultData[] = [
     {
       collateral: {
-        name: "USD Coin",
-        symbol: "USDC",
-        icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png",
+        name: 'USD Coin',
+        symbol: 'USDC',
+        icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
       },
       balance: formattedTVL,
       balanceUSD: formattedTVL,
@@ -245,10 +346,10 @@ export default function VaultsPage() {
     },
   ];
 
-  const openModal = (selectedMode: "deposit" | "withdraw") => {
+  const openModal = (selectedMode: 'deposit' | 'withdraw') => {
     setMode(selectedMode);
     setIsModalOpen(true);
-    setAmount("");
+    setAmount('');
     setTxHash(null);
     setErrorMsg(null);
   };
@@ -258,7 +359,7 @@ export default function VaultsPage() {
     setIsSubmitting(false);
     setTxHash(null);
     setErrorMsg(null);
-    setAmount("");
+    setAmount('');
   };
 
   const submitTx = async () => {
@@ -269,13 +370,13 @@ export default function VaultsPage() {
 
       if (!ready || !authenticated) {
         await login();
-        throw new Error("Please complete login first");
+        throw new Error('Please complete login first');
       }
       if (!embeddedWallet) {
-        throw new Error("Embedded wallet not found. Connect via Privy first.");
+        throw new Error('Embedded wallet not found. Connect via Privy first.');
       }
       if (!amount || Number(amount) <= 0) {
-        throw new Error("Enter a valid amount");
+        throw new Error('Enter a valid amount');
       }
 
       const provider = new ethers.BrowserProvider(await embeddedWallet.getEthereumProvider());
@@ -293,10 +394,10 @@ export default function VaultsPage() {
       // Balance check
       const balance: bigint = await usdc.balanceOf(userAddress);
       if (balance < amt) {
-        throw new Error("Insufficient USDC balance in embedded wallet");
+        throw new Error('Insufficient USDC balance in embedded wallet');
       }
 
-      if (mode === "deposit") {
+      if (mode === 'deposit') {
         // approve if needed
         const allowance = await usdc.allowance(userAddress, VAULT_POOL_ADDRESS);
         if (allowance < amt) {
@@ -314,7 +415,7 @@ export default function VaultsPage() {
         await tx.wait();
       }
     } catch (err: any) {
-      const msg = err?.info?.error?.message || err?.message || "Transaction failed";
+      const msg = err?.info?.error?.message || err?.message || 'Transaction failed';
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -324,14 +425,15 @@ export default function VaultsPage() {
   return (
     <PageLayout
       navbar={{
-        title: "Vaults",
-        subtitle: "Vaults back their Stability Funds",
+        title: 'Vaults',
+        subtitle: 'Vaults back their Stability Funds',
       }}
       mobileHeaderContent={
         <div>
           <h1 className="text-3xl font-bold mb-2">Vaults</h1>
           <p className="text-gray-400 text-sm mb-4">
-            Vaults back their Stability Funds. Profits, including traders&apos; losses and trading fees from traders, stream back to them.{" "}
+            Vaults back their Stability Funds. Profits, including traders&apos; losses and trading
+            fees from traders, stream back to them.{' '}
             <a href="#" className="text-blue-400 hover:text-blue-300 underline">
               Read more
             </a>
@@ -342,7 +444,8 @@ export default function VaultsPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Vaults</h1>
         <p className="text-gray-400 text-sm mb-1">
-          Vaults back their Stability Funds. Profits, including traders&apos; losses and trading fees from traders, stream back to them.{" "}
+          Vaults back their Stability Funds. Profits, including traders&apos; losses and trading
+          fees from traders, stream back to them.{' '}
           <a href="#" className="text-blue-400 hover:text-blue-300 underline">
             Read more
           </a>
@@ -366,14 +469,14 @@ export default function VaultsPage() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex gap-3">
               <button
-                onClick={() => openModal("deposit")}
+                onClick={() => openModal('deposit')}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 <ArrowDownToLine className="w-4 h-4" />
                 Deposit
               </button>
               <button
-                onClick={() => openModal("withdraw")}
+                onClick={() => openModal('withdraw')}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-lg font-medium transition-colors"
               >
                 <ArrowUpFromLine className="w-4 h-4" />
@@ -383,7 +486,7 @@ export default function VaultsPage() {
 
             <div className="w-20 h-20 bg-blue-600/10 rounded-2xl flex items-center justify-center">
               <Image
-                src="/images/base-logo.png"
+                src="/icons/base.png"
                 alt="Base Logo"
                 width={64}
                 height={64}
@@ -394,25 +497,30 @@ export default function VaultsPage() {
         </div>
 
         <div className="mt-3 text-xs text-gray-400 space-y-1">
-          <p>Lock period: {lockPeriodSec ? `${(lockPeriodSec / 86400).toFixed(0)} days` : "-"} • Early exit fee: {earlyExitFee.toFixed(2)}%</p>
+          <p>
+            Lock period: {lockPeriodSec ? `${(lockPeriodSec / 86400).toFixed(0)} days` : '-'} •
+            Early exit fee: {earlyExitFee.toFixed(2)}%
+          </p>
           {userUnlockTime ? (
             <p>Your unlock time: {new Date(userUnlockTime * 1000).toLocaleString()}</p>
           ) : (
             <p>Deposit to start accruing and set your unlock time.</p>
           )}
-          <p>Fee APY is estimated from settlement inflows; real returns depend on trading outcomes.</p>
+          <p>
+            Fee APY is estimated from settlement inflows; real returns depend on trading outcomes.
+          </p>
         </div>
 
         <div className="md:hidden flex gap-3 mt-4 pt-4 border-t border-slate-700">
           <button
-            onClick={() => openModal("deposit")}
+            onClick={() => openModal('deposit')}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             <ArrowDownToLine className="w-4 h-4" />
             Deposit
           </button>
           <button
-            onClick={() => openModal("withdraw")}
+            onClick={() => openModal('withdraw')}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-lg font-medium transition-colors"
           >
             <ArrowUpFromLine className="w-4 h-4" />
@@ -428,7 +536,7 @@ export default function VaultsPage() {
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("collateral")}
+                    onClick={() => handleSort('collateral')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Collateral
@@ -437,7 +545,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("balance")}
+                    onClick={() => handleSort('balance')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Balance
@@ -446,7 +554,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("feeAPY")}
+                    onClick={() => handleSort('feeAPY')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Fee APY <sup className="text-xs">1</sup>
@@ -455,7 +563,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("stabilityFunds")}
+                    onClick={() => handleSort('stabilityFunds')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Stability Funds <sup className="text-xs">2</sup>
@@ -464,7 +572,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("yourBalance")}
+                    onClick={() => handleSort('yourBalance')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     Your Balance
@@ -473,7 +581,7 @@ export default function VaultsPage() {
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-400">
                   <button
-                    onClick={() => handleSort("percentOwned")}
+                    onClick={() => handleSort('percentOwned')}
                     className="flex items-center gap-1 hover:text-gray-300"
                   >
                     % Owned
@@ -484,10 +592,7 @@ export default function VaultsPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {vaultData.map((vault, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-slate-800/30 transition-colors cursor-pointer"
-                >
+                <tr key={index} className="hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative w-8 h-8">
@@ -498,23 +603,17 @@ export default function VaultsPage() {
                           height={32}
                           className="rounded-full"
                           onError={(e) => {
-                            e.currentTarget.src = "/images/placeholder-token.png";
+                            e.currentTarget.src = '/images/placeholder-token.png';
                           }}
                         />
                       </div>
-                      <span className="font-medium text-white">
-                        {vault.collateral.symbol}
-                      </span>
+                      <span className="font-medium text-white">{vault.collateral.symbol}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {vault.balance}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {vault.balanceUSD}
-                      </span>
+                      <span className="font-medium text-white">{vault.balance}</span>
+                      <span className="text-sm text-gray-400">{vault.balanceUSD}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -522,22 +621,14 @@ export default function VaultsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {vault.stabilityFunds}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {vault.stabilityFundsUSD}
-                      </span>
+                      <span className="font-medium text-white">{vault.stabilityFunds}</span>
+                      <span className="text-sm text-gray-400">{vault.stabilityFundsUSD}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {vault.yourBalance}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {vault.yourBalanceUSD}
-                      </span>
+                      <span className="font-medium text-white">{vault.yourBalance}</span>
+                      <span className="text-sm text-gray-400">{vault.yourBalanceUSD}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -556,7 +647,9 @@ export default function VaultsPage() {
           <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white capitalize">{mode} USDC</h3>
-              <button onClick={closeModal} className="text-gray-400 hover:text-white">✕</button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-white">
+                ✕
+              </button>
             </div>
             <div className="space-y-3">
               <label className="text-sm text-gray-400">Amount (USDC)</label>
@@ -569,11 +662,7 @@ export default function VaultsPage() {
                 placeholder="0.00"
               />
               {errorMsg && <p className="text-sm text-red-400">{errorMsg}</p>}
-              {txHash && (
-                <p className="text-sm text-green-400 break-all">
-                  TX: {txHash}
-                </p>
-              )}
+              {txHash && <p className="text-sm text-green-400 break-all">TX: {txHash}</p>}
               {!embeddedWallet && (
                 <p className="text-xs text-yellow-400">
                   No embedded wallet found. Please connect via Privy first.
@@ -587,7 +676,7 @@ export default function VaultsPage() {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {mode === "deposit" ? "Deposit" : "Withdraw"}
+                {mode === 'deposit' ? 'Deposit' : 'Withdraw'}
               </button>
               <button
                 onClick={closeModal}
@@ -608,7 +697,9 @@ export default function VaultsPage() {
           <sup>1</sup> Does not include trader wins and losses.
         </p>
         <p>
-          <sup>2</sup> The Stability Funds absorbs traders&apos; losses first and redistributes them to their corresponding vaults. When the Stability Fund has a positive balance, it is prioritized to pay out potential traders&apos; winnings.
+          <sup>2</sup> The Stability Funds absorbs traders&apos; losses first and redistributes them
+          to their corresponding vaults. When the Stability Fund has a positive balance, it is
+          prioritized to pay out potential traders&apos; winnings.
         </p>
       </div>
     </PageLayout>
