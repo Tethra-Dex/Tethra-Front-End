@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 
@@ -63,10 +63,8 @@ export interface PoolData {
   vaultTVL: string;
   stabilityBuffer: string;
   stakingTVL: string;
-  liquidityPoolTVL: string; // Added for AnalyticsDashboard
   totalFeesCollected: string;
   stakingAPR: string;
-  miningAPR: string; // Added for AnalyticsDashboard
   totalRewardsDistributed: string;
   isLoading: boolean;
   error: string | null;
@@ -78,10 +76,8 @@ export const usePoolData = (): PoolData => {
     vaultTVL: '0',
     stabilityBuffer: '0',
     stakingTVL: '0',
-    liquidityPoolTVL: '0',
     totalFeesCollected: '0',
     stakingAPR: '0',
-    miningAPR: '0',
     totalRewardsDistributed: '0',
     isLoading: true,
     error: null,
@@ -143,10 +139,8 @@ export const usePoolData = (): PoolData => {
           vaultTVL: formatCurrency(vaultValue),
           stabilityBuffer: formatCurrency(bufferValue),
           stakingTVL: `${formatTokens(Number(formatUnits(stakingTVL as bigint, 18)))} TETH`,
-          liquidityPoolTVL: formatCurrency(vaultValue), // Use vault value as liquidity pool TVL
-          totalFeesCollected: '—',
+          totalFeesCollected: formatCurrency(0),
           stakingAPR: `${(Number(stakingAPR) / 10000).toFixed(2)}%`,
-          miningAPR: '0%', // Placeholder for mining APR
           totalRewardsDistributed: formatCurrency(Number(formatUnits(stakingRewards as bigint, 6))),
           isLoading: false,
           error: null,
@@ -170,10 +164,7 @@ export const usePoolData = (): PoolData => {
 };
 
 const formatCurrency = (value: number): string => {
-  return `$${value.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatTokens = (value: number): string => {
