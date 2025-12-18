@@ -12,36 +12,24 @@ import { useTPSLContext } from '@/contexts/TPSLContext';
 import { useReadContract } from 'wagmi';
 import { POSITION_MANAGER_ADDRESS } from '@/config/contracts';
 import PositionManagerABI from '@/contracts/abis/PositionManager.json';
-
-// List of all markets for matching
-const ALL_MARKETS = [
-  { symbol: 'BTC', tradingViewSymbol: 'BINANCE:BTCUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png', binanceSymbol: 'BTCUSDT' },
-  { symbol: 'ETH', tradingViewSymbol: 'BINANCE:ETHUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', binanceSymbol: 'ETHUSDT' },
-  { symbol: 'SOL', tradingViewSymbol: 'BINANCE:SOLUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', binanceSymbol: 'SOLUSDT' },
-  { symbol: 'AVAX', tradingViewSymbol: 'BINANCE:AVAXUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png', binanceSymbol: 'AVAXUSDT' },
-  { symbol: 'NEAR', tradingViewSymbol: 'BINANCE:NEARUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png', binanceSymbol: 'NEARUSDT' },
-  { symbol: 'BNB', tradingViewSymbol: 'BINANCE:BNBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png', binanceSymbol: 'BNBUSDT' },
-  { symbol: 'XRP', tradingViewSymbol: 'BINANCE:XRPUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png', binanceSymbol: 'XRPUSDT' },
-  { symbol: 'AAVE', tradingViewSymbol: 'BINANCE:AAVEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9/logo.png', binanceSymbol: 'AAVEUSDT' },
-  { symbol: 'ARB', tradingViewSymbol: 'BINANCE:ARBUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png', binanceSymbol: 'ARBUSDT' },
-  { symbol: 'CRV', tradingViewSymbol: 'BINANCE:CRVUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xD533a949740bb3306d119CC777fa900bA034cd52/logo.png', binanceSymbol: 'CRVUSDT' },
-  { symbol: 'DOGE', tradingViewSymbol: 'BINANCE:DOGEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png', binanceSymbol: 'DOGEUSDT' },
-  { symbol: 'ENA', tradingViewSymbol: 'BINANCE:ENAUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x57E114B691Db790C35207b2e685D4A43181e6061/logo.png', binanceSymbol: 'ENAUSDT' },
-  { symbol: 'LINK', tradingViewSymbol: 'BINANCE:LINKUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png', binanceSymbol: 'LINKUSDT' },
-  { symbol: 'MATIC', tradingViewSymbol: 'BINANCE:MATICUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png', binanceSymbol: 'MATICUSDT' },
-  { symbol: 'PEPE', tradingViewSymbol: 'BINANCE:PEPEUSDT', logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6982508145454Ce325dDbE47a25d4ec3d2311933/logo.png', binanceSymbol: 'PEPEUSDT' },
-];
+import { ALL_MARKETS } from '@/features/trading/constants/markets';
 
 // Component to display individual position
 const PositionRow = ({
   positionId,
   onClose,
   onTPSLClick,
-  onPositionLoaded
+  onPositionLoaded,
 }: {
   positionId: bigint;
   onClose: (positionId: bigint, symbol: string) => void;
-  onTPSLClick: (positionId: bigint, trader: string, symbol: string, entryPrice: number, isLong: boolean) => void;
+  onTPSLClick: (
+    positionId: bigint,
+    trader: string,
+    symbol: string,
+    entryPrice: number,
+    isLong: boolean,
+  ) => void;
   onPositionLoaded?: (positionId: bigint, isOpen: boolean) => void;
 }) => {
   const { position, isLoading } = usePosition(positionId);
@@ -86,9 +74,7 @@ const PositionRow = ({
   const markPrice = currentPrice || entryPrice;
 
   if (currentPrice && entryPrice > 0) {
-    const priceDiff = position.isLong
-      ? currentPrice - entryPrice
-      : entryPrice - currentPrice;
+    const priceDiff = position.isLong ? currentPrice - entryPrice : entryPrice - currentPrice;
 
     unrealizedPnl = (priceDiff / entryPrice) * size;
     pnlPercentage = (unrealizedPnl / collateral) * 100;
@@ -105,7 +91,7 @@ const PositionRow = ({
 
   // Get crypto logo URL from ALL_MARKETS
   const getMarketLogo = (symbol: string) => {
-    const market = ALL_MARKETS.find(m => m.symbol === symbol);
+    const market = ALL_MARKETS.find((m) => m.symbol === symbol);
     return market?.logoUrl || '';
   };
 
@@ -128,9 +114,9 @@ const PositionRow = ({
 
       {/* Leverage */}
       <td className="px-4 py-3">
-        <span className={`text-sm font-semibold ${
-          position.isLong ? 'text-green-400' : 'text-red-400'
-        }`}>
+        <span
+          className={`text-sm font-semibold ${position.isLong ? 'text-green-400' : 'text-red-400'}`}
+        >
           {position.isLong ? 'LONG' : 'SHORT'} {leverage.toFixed(0)}x
         </span>
       </td>
@@ -170,7 +156,8 @@ const PositionRow = ({
           </span>
           {currentPrice && (
             <span className={`text-xs ${pnlColor}`}>
-              ({pnlPercentage >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%)
+              ({pnlPercentage >= 0 ? '+' : ''}
+              {pnlPercentage.toFixed(2)}%)
             </span>
           )}
         </div>
@@ -178,7 +165,13 @@ const PositionRow = ({
 
       {/* Entry Price */}
       <td className="px-4 py-3">
-        <span className="text-white">${entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className="text-white">
+          $
+          {entryPrice.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
       </td>
     </tr>
   );
@@ -215,12 +208,14 @@ function PositionsPageContent() {
 
   // Generate array of all position IDs (newest first - descending order)
   const allPositionIds = nextPositionId
-    ? Array.from({ length: Number(nextPositionId) - 1 }, (_, i) => BigInt(Number(nextPositionId) - 1 - i))
+    ? Array.from({ length: Number(nextPositionId) - 1 }, (_, i) =>
+        BigInt(Number(nextPositionId) - 1 - i),
+      )
     : [];
 
   // Handle position loaded - track if position is open
   const handlePositionLoaded = (positionId: bigint, isOpen: boolean) => {
-    setOpenPositionIds(prev => {
+    setOpenPositionIds((prev) => {
       if (isOpen) {
         // Add to list if not already there
         if (!prev.includes(positionId)) {
@@ -229,7 +224,7 @@ function PositionsPageContent() {
         return prev;
       } else {
         // Remove from list if closed
-        return prev.filter(id => id !== positionId);
+        return prev.filter((id) => id !== positionId);
       }
     });
   };
@@ -251,7 +246,7 @@ function PositionsPageContent() {
   // Listen for TP/SL updates from other components
   useEffect(() => {
     const handleTPSLUpdate = () => {
-      setTpslRefreshTrigger(prev => prev + 1);
+      setTpslRefreshTrigger((prev) => prev + 1);
     };
 
     window.addEventListener('tpsl-updated', handleTPSLUpdate);
@@ -259,13 +254,19 @@ function PositionsPageContent() {
   }, []);
 
   // Handle TP/SL modal open
-  const handleTPSLModalOpen = (positionId: bigint, trader: string, symbol: string, entryPrice: number, isLong: boolean) => {
+  const handleTPSLModalOpen = (
+    positionId: bigint,
+    trader: string,
+    symbol: string,
+    entryPrice: number,
+    isLong: boolean,
+  ) => {
     setTpslModalData({
       positionId: Number(positionId),
       trader,
       symbol,
       entryPrice,
-      isLong
+      isLong,
     });
     setTpslModalOpen(true);
   };
@@ -274,7 +275,7 @@ function PositionsPageContent() {
   const handleTPSLModalClose = () => {
     setTpslModalOpen(false);
     // Trigger refetch by incrementing counter
-    setTpslRefreshTrigger(prev => prev + 1);
+    setTpslRefreshTrigger((prev) => prev + 1);
   };
 
   // Handle close position - GASLESS via backend
@@ -286,11 +287,10 @@ function PositionsPageContent() {
 
       await closePosition({
         positionId,
-        symbol
+        symbol,
       });
 
       toast.dismiss('close-position');
-
     } catch (error) {
       console.error('Error closing position:', error);
       toast.dismiss('close-position');
@@ -309,8 +309,7 @@ function PositionsPageContent() {
               <p className="text-sm text-gray-400 mt-1">
                 {isLoading
                   ? 'Loading positions...'
-                  : `${totalOpenPositions} open position${totalOpenPositions !== 1 ? 's' : ''}`
-                }
+                  : `${totalOpenPositions} open position${totalOpenPositions !== 1 ? 's' : ''}`}
               </p>
             </div>
           </div>
@@ -375,11 +374,12 @@ function PositionsPageContent() {
           <div className="border-t border-gray-800 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-400">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalOpenPositions)} of {totalOpenPositions} open positions
+                Showing {startIndex + 1} to {Math.min(endIndex, totalOpenPositions)} of{' '}
+                {totalOpenPositions} open positions
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                     currentPage === 1
@@ -418,7 +418,7 @@ function PositionsPageContent() {
                   })}
                 </div>
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
                   className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                     currentPage === totalPages
@@ -454,8 +454,8 @@ export default function PositionsPage() {
   return (
     <PageLayout
       navbar={{
-        title: "Positions",
-        subtitle: "View all open trading positions",
+        title: 'Positions',
+        subtitle: 'View all open trading positions',
         showWalletButton: true,
       }}
     >
