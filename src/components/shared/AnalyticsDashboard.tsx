@@ -106,9 +106,7 @@ export default function AnalyticsDashboard({ className = '' }: AnalyticsDashboar
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
                   <Icon size={20} className={stat.color} />
                 </div>
-                <span className={`text-xs font-medium ${stat.changeColor}`}>
-                  {stat.change}
-                </span>
+                <span className={`text-xs font-medium ${stat.changeColor}`}>{stat.change}</span>
               </div>
               <h3 className="text-sm text-gray-400 mb-1">{stat.title}</h3>
               <p className="text-lg font-semibold text-white">{stat.value}</p>

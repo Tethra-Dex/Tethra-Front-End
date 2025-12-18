@@ -7,7 +7,7 @@ import { usePrice } from '@/hooks/data/usePrices';
 
 interface TPSLModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (refresh: boolean) => void;
   positionId: number;
   trader: string;
   symbol: string;
@@ -29,7 +29,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
   const [takeProfitError, setTakeProfitError] = useState<string>('');
   const [stopLossError, setStopLossError] = useState<string>('');
   const { setTPSL, getTPSL, deleteTPSL, isPending } = useTPSL();
-  
+
   // Fetch real-time price from backend
   const { price: priceData } = usePrice(symbol);
   const currentPrice = priceData?.price || entryPrice; // Fallback to entry if no price
@@ -110,7 +110,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
     });
 
     if (success) {
-      onClose();
+      onClose(true);
     }
   };
 
@@ -119,16 +119,16 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
     if (success) {
       setTakeProfitPrice('');
       setStopLossPrice('');
-      onClose();
+      onClose(true);
     }
   };
 
   const calculatePnL = (targetPrice: number) => {
     if (!targetPrice || targetPrice <= 0) return { pnl: 0, percentage: 0 };
-    
+
     const priceDiff = isLong ? targetPrice - entryPrice : entryPrice - targetPrice;
     const percentage = (priceDiff / entryPrice) * 100;
-    
+
     return { percentage };
   };
 
@@ -149,7 +149,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => onClose(false)}
             className="text-gray-400 hover:text-white transition-colors"
           >
             <X size={20} />
@@ -168,14 +168,14 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
 
           {/* Take Profit */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              Take Profit Price
-            </label>
+            <label className="block text-sm text-gray-400 mb-2">Take Profit Price</label>
             <div className="relative">
               <input
                 type="number"
                 step="0.01"
-                placeholder={`e.g., ${isLong ? (entryPrice * 1.1).toFixed(2) : (entryPrice * 0.9).toFixed(2)}`}
+                placeholder={`e.g., ${
+                  isLong ? (entryPrice * 1.1).toFixed(2) : (entryPrice * 0.9).toFixed(2)
+                }`}
                 value={takeProfitPrice}
                 onChange={(e) => {
                   setTakeProfitPrice(e.target.value);
@@ -186,16 +186,17 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
                 } rounded-lg px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors`}
               />
               {takeProfitPrice && !takeProfitError && (
-                <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${
-                  tpPnL.percentage >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {tpPnL.percentage >= 0 ? '+' : ''}{tpPnL.percentage.toFixed(2)}%
+                <div
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${
+                    tpPnL.percentage >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}
+                >
+                  {tpPnL.percentage >= 0 ? '+' : ''}
+                  {tpPnL.percentage.toFixed(2)}%
                 </div>
               )}
             </div>
-            {takeProfitError && (
-              <p className="text-xs text-red-400 mt-1">{takeProfitError}</p>
-            )}
+            {takeProfitError && <p className="text-xs text-red-400 mt-1">{takeProfitError}</p>}
             <p className="text-xs text-gray-500 mt-1">
               {isLong ? 'Must be above current price' : 'Must be below current price'}
             </p>
@@ -203,14 +204,14 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
 
           {/* Stop Loss */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              Stop Loss Price
-            </label>
+            <label className="block text-sm text-gray-400 mb-2">Stop Loss Price</label>
             <div className="relative">
               <input
                 type="number"
                 step="0.01"
-                placeholder={`e.g., ${isLong ? (entryPrice * 0.95).toFixed(2) : (entryPrice * 1.05).toFixed(2)}`}
+                placeholder={`e.g., ${
+                  isLong ? (entryPrice * 0.95).toFixed(2) : (entryPrice * 1.05).toFixed(2)
+                }`}
                 value={stopLossPrice}
                 onChange={(e) => {
                   setStopLossPrice(e.target.value);
@@ -221,19 +222,20 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
                 } rounded-lg px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors`}
               />
               {stopLossPrice && !stopLossError && (
-                <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${
-                  slPnL.percentage >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {slPnL.percentage >= 0 ? '+' : ''}{slPnL.percentage.toFixed(2)}%
+                <div
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${
+                    slPnL.percentage >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}
+                >
+                  {slPnL.percentage >= 0 ? '+' : ''}
+                  {slPnL.percentage.toFixed(2)}%
                 </div>
               )}
             </div>
-            {stopLossError && (
-              <p className="text-xs text-red-400 mt-1">{stopLossError}</p>
-            )}
+            {stopLossError && <p className="text-xs text-red-400 mt-1">{stopLossError}</p>}
             <p className="text-xs text-gray-500 mt-1">
-              {isLong 
-                ? 'Must be below current price (can be above entry for SL+)' 
+              {isLong
+                ? 'Must be below current price (can be above entry for SL+)'
                 : 'Must be above current price (can be below entry for SL+)'}
             </p>
           </div>
@@ -241,8 +243,8 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
           {/* Info */}
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-xs text-blue-400">
-              💡 TP/SL will be monitored by the backend and executed automatically when price targets are hit. 
-              Settings are stored in memory and will be lost on backend restart.
+              💡 TP/SL will be monitored by the backend and executed automatically when price
+              targets are hit. Settings are stored in memory and will be lost on backend restart.
             </p>
           </div>
         </div>
@@ -259,7 +261,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
             </button>
           )}
           <button
-            onClick={onClose}
+            onClick={() => onClose(false)}
             className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
           >
             Cancel

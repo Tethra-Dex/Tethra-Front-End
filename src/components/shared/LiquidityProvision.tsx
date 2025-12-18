@@ -1,20 +1,33 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { usePublicClient } from 'wagmi';
-import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
+import React, { useMemo, useState } from 'react';
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from 'wagmi';
+import { formatUnits, parseUnits } from 'viem';
 import { Droplets, TrendingUp, Clock } from 'lucide-react';
+import { USDC_ADDRESS, VAULT_POOL_ADDRESS } from '@/config/contracts';
 
-// Use type assertion for window.ethereum to avoid global declaration conflicts
-
-const LIQUIDITY_MINING = process.env.NEXT_PUBLIC_LIQUIDITY_MINING_ADDRESS as `0x${string}`;
-const USDC_TOKEN = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS as `0x${string}`;
+const VAULT_SHARE_DECIMALS = 18;
 
 const usdcABI = [
   {
     inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
     name: 'balanceOf',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'owner', type: 'address' },
+      { internalType: 'address', name: 'spender', type: 'address' },
+    ],
+    name: 'allowance',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
@@ -29,49 +42,55 @@ const usdcABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
-  {
-    inputs: [
-      { internalType: 'address', name: 'owner', type: 'address' },
-      { internalType: 'address', name: 'spender', type: 'address' },
-    ],
-    name: 'allowance',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
 ] as const;
 
-const liquidityMiningABI = [
+const vaultPoolABI = [
   {
     inputs: [],
-    name: 'totalLiquidity',
+    name: 'totalAssets',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'uint256', name: 'amount', type: 'uint256' }],
-    name: 'addLiquidity',
-    outputs: [],
+    inputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    name: 'convertToShares',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    name: 'deposit',
+    outputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'address', name: 'provider', type: 'address' }],
-    name: 'getProviderInfo',
-    outputs: [
-      { internalType: 'uint256', name: 'amount', type: 'uint256' },
-      { internalType: 'uint256', name: 'pendingRewards', type: 'uint256' },
-      { internalType: 'uint256', name: 'depositedAt', type: 'uint256' },
-      { internalType: 'bool', name: 'canWithdrawWithoutPenalty', type: 'bool' },
-    ],
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'withdraw',
+    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'calculateAPR',
-    outputs: [{ internalType: 'uint256', name: 'apr', type: 'uint256' }],
+    name: 'totalSupply',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -82,386 +101,252 @@ interface LiquidityProvisionProps {
 }
 
 export default function LiquidityProvision({ className = '' }: LiquidityProvisionProps) {
-  const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
+  const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
-  
-  // State for contract data
-  const [userBalance, setUserBalance] = useState<bigint>(BigInt(0));
-  const [totalLiquidity, setTotalLiquidity] = useState<bigint>(BigInt(0));
-  const [allowance, setAllowance] = useState<bigint>(BigInt(0));
-  const [userLiquidityAmount, setUserLiquidityAmount] = useState<bigint>(BigInt(0));
-  const [pendingRewards, setPendingRewards] = useState<bigint>(BigInt(0));
-  const [apr, setApr] = useState<bigint>(BigInt(0));
-  const [isLoading, setIsLoading] = useState(true);
-  const [liquidityAmount, setLiquidityAmount] = useState('');
-  const [isTransacting, setIsTransacting] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get external wallet (MetaMask, etc.) for liquidity provision
-  const externalWallet = wallets.find(wallet => 
-    wallet.walletClientType === 'metamask' || 
-    wallet.walletClientType === 'coinbase_wallet' ||
-    wallet.walletClientType === 'wallet_connect' ||
-    (wallet.walletClientType !== 'privy' && wallet.connectorType !== 'embedded')
-  );
-  const userAddress = externalWallet?.address;
+  const { data: vaultAssets } = useReadContract({
+    address: VAULT_POOL_ADDRESS,
+    abi: vaultPoolABI,
+    functionName: 'totalAssets',
+    query: { enabled: !!publicClient },
+  });
 
-  // Fetch contract data function (reusable)
-  const fetchContractData = async () => {
-    if (!publicClient || !userAddress) {
-      setIsLoading(false);
-      return;
-    }
+  const { data: vaultSharesSupply } = useReadContract({
+    address: VAULT_POOL_ADDRESS,
+    abi: vaultPoolABI,
+    functionName: 'totalSupply',
+    query: { enabled: !!publicClient },
+  });
 
-    try {
-      console.log('Fetching liquidity mining data for:', userAddress);
-      const [balance, liquidity, currentAllowance, providerInfo, currentAPR] = await Promise.all([
-        publicClient.readContract({
-          address: USDC_TOKEN,
-          abi: usdcABI,
-          functionName: 'balanceOf',
-          args: [userAddress as `0x${string}`],
-        }),
-        publicClient.readContract({
-          address: LIQUIDITY_MINING,
-          abi: liquidityMiningABI,
-          functionName: 'totalLiquidity',
-        }),
-        publicClient.readContract({
-          address: USDC_TOKEN,
-          abi: usdcABI,
-          functionName: 'allowance',
-          args: [userAddress as `0x${string}`, LIQUIDITY_MINING],
-        }),
-        publicClient.readContract({
-          address: LIQUIDITY_MINING,
-          abi: liquidityMiningABI,
-          functionName: 'getProviderInfo',
-          args: [userAddress as `0x${string}`],
-        }),
-        publicClient.readContract({
-          address: LIQUIDITY_MINING,
-          abi: liquidityMiningABI,
-          functionName: 'calculateAPR',
-        }),
-      ]);
+  const { data: userShares } = useReadContract({
+    address: VAULT_POOL_ADDRESS,
+    abi: vaultPoolABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: isConnected },
+  });
 
-      console.log('Liquidity mining data fetched:', {
-        balance: balance.toString(),
-        liquidity: liquidity.toString(), 
-        allowance: currentAllowance.toString(),
-        providerInfo: providerInfo,
-        apr: currentAPR.toString()
+  const { data: userUsdc } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: usdcABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: isConnected },
+  });
+
+  const { data: allowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: usdcABI,
+    functionName: 'allowance',
+    args: address ? [address, VAULT_POOL_ADDRESS] : undefined,
+    query: { enabled: isConnected && mode === 'deposit' },
+  });
+
+  const { writeContractAsync } = useWriteContract();
+  const { isLoading: isTxPending } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const needsApproval = useMemo(() => {
+    if (!allowance || !amount) return false;
+    const amt = parseUnits(amount || '0', 6);
+    return allowance < amt;
+  }, [allowance, amount]);
+
+  const formattedVaultAssets = vaultAssets
+    ? Number(formatUnits(vaultAssets as bigint, 6)).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : '0.00';
+  const formattedUserUsdc = userUsdc
+    ? Number(formatUnits(userUsdc as bigint, 6)).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : '0.00';
+  const formattedUserShares = userShares
+    ? Number(formatUnits(userShares as bigint, VAULT_SHARE_DECIMALS)).toLocaleString('en-US', {
+        minimumFractionDigits: 6,
+        maximumFractionDigits: 6,
+      })
+    : '0.000000';
+
+  const minDepositForOneShareUnit = useMemo(() => {
+    if (!vaultAssets || !vaultSharesSupply || vaultSharesSupply === 0n) return null;
+    // smallest share unit costs (totalAssets / totalSupply); round up to avoid zero-share revert
+    return (
+      ((vaultAssets as bigint) + (vaultSharesSupply as bigint) - 1n) / (vaultSharesSupply as bigint)
+    );
+  }, [vaultAssets, vaultSharesSupply]);
+
+  const handleSubmit = async () => {
+    if (!amount || !isConnected) return;
+    const amt = parseUnits(amount, 6);
+
+    if (mode === 'deposit') {
+      const previewShares = await publicClient?.readContract({
+        address: VAULT_POOL_ADDRESS,
+        abi: vaultPoolABI,
+        functionName: 'convertToShares',
+        args: [amt],
       });
 
-      setUserBalance(balance as bigint);
-      setTotalLiquidity(liquidity as bigint);
-      setAllowance(currentAllowance as bigint);
-      setApr(currentAPR as bigint);
-      
-      // Parse provider info
-      if (providerInfo && Array.isArray(providerInfo)) {
-        console.log('Setting user liquidity amount:', providerInfo[0].toString());
-        setUserLiquidityAmount(providerInfo[0] as bigint);
-        setPendingRewards(providerInfo[1] as bigint);
+      if (!previewShares || previewShares === 0n) {
+        setError('Amount too small for current vault price. Try a slightly larger deposit.');
+        return;
       }
-      
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching liquidity mining data:', error);
-      setIsLoading(false);
-    }
-  };
 
-  // Fetch contract data on component mount and when dependencies change
-  useEffect(() => {
-    fetchContractData();
-  }, [publicClient, userAddress]);
+      setError(null);
 
-  const switchToBaseSepolia = async () => {
-    const ethereum = (window as any).ethereum;
-    if (!ethereum) return;
-    
-    try {
-      // Try to switch to Base Sepolia
-      await ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x14a34' }], // 84532 in hex
-      });
-    } catch (switchError: any) {
-      // Chain not added to MetaMask, add it
-      if (switchError.code === 4902) {
-        try {
-          await ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x14a34',
-              chainName: 'Base Sepolia',
-              nativeCurrency: {
-                name: 'ETH',
-                symbol: 'ETH',
-                decimals: 18,
-              },
-              rpcUrls: ['https://sepolia.base.org'],
-              blockExplorerUrls: ['https://sepolia.basescan.org'],
-            }],
-          });
-        } catch (addError) {
-          console.error('Failed to add Base Sepolia network:', addError);
-          throw new Error('Please add Base Sepolia network to MetaMask manually');
-        }
-      } else {
-        console.error('Failed to switch network:', switchError);
-        throw switchError;
-      }
-    }
-  };
-
-  const handleApproveAndAddLiquidity = async () => {
-    if (!liquidityAmount || !userAddress) {
-      alert('Please enter an amount and make sure wallet is connected');
-      return;
-    }
-
-    const ethereum = (window as any).ethereum;
-    if (!ethereum) {
-      alert('Please install MetaMask or connect an external wallet');
-      return;
-    }
-    
-    setIsTransacting(true);
-    
-    try {
-      // Switch to Base Sepolia first
-      console.log('Switching to Base Sepolia...');
-      await switchToBaseSepolia();
-      console.log('Network switched successfully!');
-      
-      const amount = parseUnits(liquidityAmount, 6); // USDC has 6 decimals
-      
-      // Check if approval is needed
-      if (allowance < amount) {
-        console.log('Approving USDC...');
-        
-        // Prepare approve transaction data
-        const approveData = encodeFunctionData({
+      if (needsApproval) {
+        const approveHash = await writeContractAsync({
+          address: USDC_ADDRESS,
           abi: usdcABI,
           functionName: 'approve',
-          args: [LIQUIDITY_MINING, amount],
+          args: [VAULT_POOL_ADDRESS, amt],
         });
-        
-        // Send approve transaction
-        const approveTxHash = await ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: userAddress,
-            to: USDC_TOKEN,
-            data: approveData,
-          }],
-        });
-        
-        console.log('Approve tx hash:', approveTxHash);
-        
-        // Wait for approval to be confirmed
-        await publicClient!.waitForTransactionReceipt({ hash: approveTxHash });
-        console.log('Approval confirmed!');
-        
-        // Refresh allowance
-        const newAllowance = await publicClient!.readContract({
-          address: USDC_TOKEN,
-          abi: usdcABI,
-          functionName: 'allowance',
-          args: [userAddress as `0x${string}`, LIQUIDITY_MINING],
-        });
-        setAllowance(newAllowance);
+        setTxHash(approveHash);
+        await publicClient?.waitForTransactionReceipt({ hash: approveHash });
       }
-      
-      console.log('Adding liquidity...');
-      
-      // Prepare add liquidity transaction data
-      const addLiquidityData = encodeFunctionData({
-        abi: liquidityMiningABI,
-        functionName: 'addLiquidity',
-        args: [amount],
+
+      const hash = await writeContractAsync({
+        address: VAULT_POOL_ADDRESS,
+        abi: vaultPoolABI,
+        functionName: 'deposit',
+        args: [amt],
       });
-      
-      // Send add liquidity transaction
-      const liquidityTxHash = await ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: userAddress,
-          to: LIQUIDITY_MINING,
-          data: addLiquidityData,
-        }],
+      setTxHash(hash);
+    } else {
+      // withdraw expects shares; convert assets to shares first
+      const shares = await publicClient?.readContract({
+        address: VAULT_POOL_ADDRESS,
+        abi: vaultPoolABI,
+        functionName: 'convertToShares',
+        args: [amt],
       });
-      
-      console.log('Add liquidity tx hash:', liquidityTxHash);
-      
-      // Wait for liquidity addition to be confirmed
-      await publicClient!.waitForTransactionReceipt({ hash: liquidityTxHash });
-      console.log('Liquidity addition confirmed!');
-      
-      // Refresh all contract data immediately after successful transaction
-      console.log('Refreshing contract data...');
-      await fetchContractData();
-      
-      setLiquidityAmount('');
-      alert('Liquidity added successfully! Data refreshed.');
-      
-    } catch (error) {
-      console.error('Transaction failed:', error);
-      alert('Transaction failed: ' + (error as any).message);
-    } finally {
-      setIsTransacting(false);
+      const sharesToWithdraw = (shares as bigint) || 0n;
+      const hash = await writeContractAsync({
+        address: VAULT_POOL_ADDRESS,
+        abi: vaultPoolABI,
+        functionName: 'withdraw',
+        args: [sharesToWithdraw],
+      });
+      setTxHash(hash);
     }
   };
-
-  const handleConnect = () => {
-    login();
-  };
-
-  if (!ready) {
-    return (
-      <div className={`bg-slate-900/50 rounded-lg border border-slate-800 p-6 ${className}`}>
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-700 rounded w-48 mb-6"></div>
-          <div className="h-32 bg-gray-700 rounded"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`bg-slate-900/50 rounded-lg border border-slate-800 p-6 ${className}`}>
-      <div className="flex items-center gap-2 mb-6">
-        <Droplets className="text-blue-400" size={24} />
-        <h2 className="text-xl font-bold text-white">USDC Liquidity Mining</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <Droplets className="text-blue-400" size={20} />
+        <h3 className="text-lg font-semibold text-white">Vault Pool Liquidity</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-slate-800/50 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={16} className="text-green-400" />
-            <span className="text-sm text-gray-400">Current APR</span>
-          </div>
-          <p className="text-lg font-semibold text-white">
-            {isLoading ? '...' : `${(Number(apr) / 100).toFixed(2)}%`}
-          </p>
-        </div>
-
-        <div className="bg-slate-800/50 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Droplets size={16} className="text-blue-400" />
-            <span className="text-sm text-gray-400">Total Liquidity</span>
-          </div>
-          <p className="text-lg font-semibold text-white">
-            {isLoading ? '...' : `${Number(formatUnits(totalLiquidity, 6)).toFixed(2)} USDC`}
-          </p>
-        </div>
-
-        <div className="bg-slate-800/50 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock size={16} className="text-yellow-400" />
-            <span className="text-sm text-gray-400">Lock Period</span>
-          </div>
-          <p className="text-lg font-semibold text-white">14 days</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <MetricCard
+          label="Vault TVL"
+          value={`$${formattedVaultAssets}`}
+          icon={<TrendingUp className="text-green-400" size={18} />}
+        />
+        <MetricCard
+          label="Your USDC"
+          value={`${formattedUserUsdc} USDC`}
+          icon={<Clock className="text-blue-400" size={18} />}
+        />
+        <MetricCard
+          label="Your Vault Shares"
+          value={`${formattedUserShares} vUSDC`}
+          icon={<Droplets className="text-purple-400" size={18} />}
+        />
       </div>
 
-      <div className="bg-slate-800/30 rounded-lg p-4 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-white">Your Liquidity</h3>
-          <button 
-            onClick={() => fetchContractData()}
-            className="text-blue-400 hover:text-blue-300 text-sm"
-            disabled={isLoading}
+      <div className="flex flex-col md:flex-row md:items-end gap-4">
+        <div className="flex-1">
+          <label className="block text-sm text-gray-400 mb-2">Amount (USDC)</label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+            placeholder="0.00"
+            min="0"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode('deposit')}
+            className={`px-4 py-2 rounded-lg border ${
+              mode === 'deposit'
+                ? 'border-blue-500 text-blue-200'
+                : 'border-slate-700 text-gray-300'
+            } bg-slate-800`}
           >
-            {isLoading ? 'Loading...' : 'Refresh'}
+            Deposit
+          </button>
+          <button
+            onClick={() => setMode('withdraw')}
+            className={`px-4 py-2 rounded-lg border ${
+              mode === 'withdraw'
+                ? 'border-blue-500 text-blue-200'
+                : 'border-slate-700 text-gray-300'
+            } bg-slate-800`}
+          >
+            Withdraw
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-400">Provided Amount</p>
-              <p className="font-semibold text-white">
-                {isLoading ? '...' : `${Number(formatUnits(userLiquidityAmount, 6)).toFixed(2)} USDC`}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Pending Rewards</p>
-              <p className="font-semibold text-green-400">
-                {isLoading ? '...' : `${Number(formatUnits(pendingRewards, 18)).toFixed(2)} TETH`}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Available Balance</p>
-              <p className="font-semibold text-white">
-                {isLoading ? '...' : `${Number(formatUnits(userBalance, 6)).toFixed(2)} USDC`}
-              </p>
-            </div>
-        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!isConnected || !amount || isTxPending}
+          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+        >
+          {isTxPending
+            ? 'Pending...'
+            : mode === 'deposit'
+            ? needsApproval
+              ? 'Approve & Deposit'
+              : 'Deposit'
+            : 'Withdraw'}
+        </button>
       </div>
 
-      {authenticated && userAddress ? (
-        <>
-          <div className="bg-slate-800/30 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-white mb-3">Your Wallet</h3>
-            <div className="text-sm text-gray-400">
-              <p>Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}</p>
-              <p className="mt-1">Ready for liquidity transactions</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Amount to Provide (USDC)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={liquidityAmount}
-                  onChange={(e) => setLiquidityAmount(e.target.value)}
-                  placeholder="0.0"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                />
-                <button 
-                  onClick={() => setLiquidityAmount(Number(formatUnits(userBalance, 6)).toFixed(2))}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 text-sm hover:text-blue-300"
-                >
-                  MAX
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Minimum: 100 USDC • Lock period: 14 days • Early withdrawal penalty: 15%
-              </p>
-            </div>
-            
-            <button 
-              onClick={handleApproveAndAddLiquidity}
-              disabled={!liquidityAmount || Number(liquidityAmount) <= 0 || isTransacting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
-            >
-              {isTransacting ? 'Processing...' : 
-               (allowance >= parseUnits(liquidityAmount || '0', 6) ? 'Add Liquidity' : 'Approve & Add Liquidity')}
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-gray-400 mb-4">
-            {authenticated 
-              ? 'Connect an external wallet (MetaMask, etc.) to provide liquidity'
-              : 'Connect your wallet to start providing USDC liquidity'
-            }
-          </p>
-          <button 
-            onClick={handleConnect}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
-          >
-            {authenticated ? 'Connect External Wallet' : 'Connect Wallet'}
-          </button>
-        </div>
+      {mode === 'deposit' && minDepositForOneShareUnit && (
+        <p className="text-xs text-gray-400 mt-2">
+          Current min deposit to mint 1 share unit: ~
+          {Number(formatUnits(minDepositForOneShareUnit, 6)).toFixed(6)} USDC
+        </p>
       )}
+      {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+
+      {!isConnected && (
+        <p className="text-xs text-yellow-400 mt-3">
+          Connect your wallet to interact with the vault.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-400">{label}</p>
+        <p className="text-lg font-semibold text-white">{value}</p>
+      </div>
+      <div>{icon}</div>
     </div>
   );
 }
