@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Market } from '@/features/trading/types';
+import { ALL_MARKETS } from '@/features/trading/constants/markets';
 
 interface SelectedPosition {
   positionId: bigint;
@@ -26,13 +27,7 @@ interface MarketContextType {
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
 
 export const MarketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeMarket, setActiveMarket] = useState<Market>({
-    symbol: 'BTC',
-    tradingViewSymbol: 'BITSTAMP:BTCUSD',
-    logoUrl:
-      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png',
-    binanceSymbol: 'BTCUSDT',
-  });
+  const [activeMarket, setActiveMarket] = useState<Market>(ALL_MARKETS[0]);
   const [currentPrice, setCurrentPrice] = useState<string>('0');
   const [timeframe, setTimeframe] = useState<string>('1'); // Default 1 minute
   const [selectedPosition, setSelectedPosition] = useState<SelectedPosition | null>(null);

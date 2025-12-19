@@ -9,12 +9,14 @@ import { useApproveUSDCForLimitOrders } from '@/features/trading/hooks/useLimitO
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
 import { toast } from 'react-hot-toast';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
+import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
 
 interface Market {
   symbol: string;
   tradingViewSymbol: string;
-  logoUrl: string;
-  binanceSymbol: string;
+  logoUrl?: string;
+  binanceSymbol?: string;
+  category?: 'crypto' | 'forex' | 'indices' | 'commodities' | 'stocks';
 }
 
 // Market Selector Component
@@ -107,7 +109,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
             >
               <div className="flex items-center gap-2">
                 <img
-                  src={market.logoUrl}
+                  src={market.logoUrl || '/icons/usdc.png'}
                   alt={market.symbol}
                   className="w-5 h-5 rounded-full"
                   onError={(e) => {
@@ -116,7 +118,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                   }}
                 />
                 <span className="text-white font-medium whitespace-nowrap">
-                  {market.symbol}/USD
+                  {formatMarketPair(market.symbol)}
                 </span>
               </div>
               <button
@@ -210,7 +212,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
   // Handler untuk mengganti market
   const handleMarketSelect = (market: Market) => {
-    setActiveMarket(market);
+    setActiveMarket({ ...market, category: market.category || 'crypto' });
     setIsMarketSelectorOpen(false);
   };
 
@@ -466,17 +468,19 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               className="flex items-center gap-2 bg-transparent rounded-lg px-2 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
             >
               <img
-                src={activeMarket.logoUrl}
+                src={activeMarket.logoUrl || '/icons/usdc.png'}
                 alt={activeMarket.symbol}
                 className="w-7 h-7 rounded-full flex-shrink-0"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  target.style.display = 'none';
-                }}
-              />
-              <span className="whitespace-nowrap font-medium">
-                {activeTab === 'swap' ? activeMarket.symbol : `${activeMarket.symbol}/USD`}
-              </span>
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+              }}
+            />
+            <span className="whitespace-nowrap font-medium">
+              {activeTab === 'swap'
+                ? activeMarket.symbol
+                : formatMarketPair(activeMarket.symbol || 'BTC')}
+            </span>
               <ChevronDown
                 size={16}
                 className={`flex-shrink-0 transition-transform duration-200 ${
@@ -536,7 +540,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                 <span>USDC per</span>
                 {activeMarket && (
                   <img
-                    src={activeMarket.logoUrl}
+                    src={activeMarket.logoUrl || '/icons/usdc.png'}
                     alt={activeMarket.symbol}
                     className="w-5 h-5 rounded-full flex-shrink-0"
                     onError={(e) => {
@@ -890,7 +894,11 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
       <div className="space-y-2 text-sm border-t border-[#1A202C] pt-3">
         <div className="flex justify-between">
           <span className="text-gray-400">Oracle Price</span>
-          <span className="text-white">{formatPrice(effectiveOraclePrice)}</span>
+          <span className="text-white">
+            {Number.isFinite(effectiveOraclePrice)
+              ? formatDynamicUsd(Number(effectiveOraclePrice))
+              : '$--'}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Liquidation Price</span>

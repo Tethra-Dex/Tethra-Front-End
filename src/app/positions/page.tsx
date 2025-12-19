@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 import { usePosition } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
@@ -134,7 +135,7 @@ const PositionRow = ({
               target.style.visibility = 'hidden';
             }}
           />
-          <span className="font-semibold text-white">{position.symbol}/USD</span>
+          <span className="font-semibold text-white">{formatMarketPair(position.symbol)}</span>
         </div>
       </td>
 

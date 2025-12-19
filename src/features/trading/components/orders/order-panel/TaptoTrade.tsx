@@ -13,12 +13,14 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { parseUnits } from 'viem';
 import { toast } from 'react-hot-toast';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
+import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 
 interface Market {
   symbol: string;
   tradingViewSymbol: string;
-  logoUrl: string;
-  binanceSymbol: string;
+  logoUrl?: string;
+  binanceSymbol?: string;
+  category?: 'crypto' | 'forex' | 'indices' | 'commodities' | 'stocks';
 }
 
 interface TimeframeOption {
@@ -127,7 +129,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
             >
               <div className="flex items-center gap-2">
                 <img
-                  src={market.logoUrl}
+                  src={market.logoUrl || '/icons/usdc.png'}
                   alt={market.symbol}
                   className="w-5 h-5 rounded-full"
                   onError={(e) => {
@@ -136,7 +138,7 @@ const MarketSelector: React.FC<MarketSelectorProps> = ({
                   }}
                 />
                 <span className="text-white font-medium whitespace-nowrap">
-                  {market.symbol}/USD
+                  {formatMarketPair(market.symbol)}
                 </span>
               </div>
               <button
@@ -291,7 +293,7 @@ const TapToTrade: React.FC = () => {
 
   // Handler untuk mengganti market dan update chart
   const handleMarketSelect = (market: Market) => {
-    setActiveMarket(market);
+    setActiveMarket({ ...market, category: market.category || 'crypto' });
     setIsMarketSelectorOpen(false);
   };
 
@@ -447,18 +449,18 @@ const TapToTrade: React.FC = () => {
             >
               {activeMarket && (
                 <img
-                  src={activeMarket.logoUrl}
-                  alt={activeMarket.symbol}
-                  className="w-7 h-7 rounded-full"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = 'none';
-                  }}
-                />
-              )}
-              <span className="text-white font-medium whitespace-nowrap">
-                {activeMarket?.symbol || 'BTC'}/USD
-              </span>
+                  src={activeMarket.logoUrl || '/icons/usdc.png'}
+              alt={activeMarket.symbol}
+              className="w-7 h-7 rounded-full"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+              }}
+            />
+          )}
+          <span className="text-white font-medium whitespace-nowrap">
+            {formatMarketPair(activeMarket?.symbol || 'BTC')}
+          </span>
               <ChevronDown
                 size={16}
                 className={`transition-transform duration-200 ${
