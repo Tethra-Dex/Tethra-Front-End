@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ['pino', 'thread-stream'],
+  
+  transpilePackages: ['@privy-io/react-auth'],
   images: {
     remotePatterns: [
       {
