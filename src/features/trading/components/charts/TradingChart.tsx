@@ -33,7 +33,10 @@ const TradingChart: React.FC = () => {
     useMarketWebSocket(baseMarkets);
 
   const oracleSymbolsKey = useMemo(
-    () => Object.keys(oraclePrices || {}).sort().join('|'),
+    () =>
+      Object.keys(oraclePrices || {})
+        .sort()
+        .join('|'),
     [oraclePrices],
   );
 
@@ -148,31 +151,22 @@ const TradingChart: React.FC = () => {
         {activeMarket && (
           <>
             {tapToTrade.isEnabled && activeMarket?.binanceSymbol ? (
-              tapToTrade.tradeMode === 'one-tap-profit' ? (
-                <PerSecondChart
-                  key={`${activeMarket.symbol}-per-s`}
-                  symbol={activeMarket.symbol}
-                  currentPrice={parseFloat(
-                    currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
-                  )}
-                  betAmount={tapToTrade.betAmount}
-                  isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
-                />
-              ) : (
-                <SimpleLineChart
-                  key={`${activeMarket.symbol}-tap`}
-                  symbol={activeMarket.binanceSymbol || ''}
-                  interval={timeframe}
-                  currentPrice={parseFloat(
-                    currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
-                  )}
-                  tapToTradeEnabled={true}
-                  gridSize={tapToTrade.gridSizeY}
-                  onCellTap={handleTapCellClick}
-                />
-              )
+              // Use PerSecondChart for BOTH tap-to-trade modes
+              <PerSecondChart
+                key={`${activeMarket.symbol}-tap-to-trade`}
+                symbol={activeMarket.symbol}
+                currentPrice={parseFloat(
+                  currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
+                )}
+                betAmount={tapToTrade.betAmount}
+                isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
+                enableTapToTrade={true}
+              />
             ) : (
-              <TradingViewWidget key={`${activeMarket.symbol}`} symbol={activeMarket.tradingViewSymbol} />
+              <TradingViewWidget
+                key={`${activeMarket.symbol}`}
+                symbol={activeMarket.tradingViewSymbol}
+              />
             )}
           </>
         )}
