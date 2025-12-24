@@ -11,13 +11,14 @@ import WalletConnectButton from '@/components/layout/WalletConnectButton';
 
 interface OrderPanelProps {
   mobileActiveTab?: 'long' | 'short' | 'swap';
+  mode?: 'market' | 'trade'; // 'market' = Market/Limit only, 'trade' = Tap-to-Trade only
 }
 
-const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
+const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab, mode = 'market' }) => {
   const [activeTab, setActiveTab] = useState<'long' | 'short' | 'swap'>(mobileActiveTab || 'short');
   const [activeOrderType, setActiveOrderType] = useState<
     'market' | 'limit' | 'Tap to Trade' | 'more'
-  >('market');
+  >(mode === 'trade' ? 'Tap to Trade' : 'market');
 
   // Sync with mobile tab if provided
   React.useEffect(() => {
@@ -137,86 +138,92 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab }) => {
 
         <div className="flex items-center justify-between px-4 py-4 border-b border-[#1A202C] bg-[#0B1017]">
           <div className="inline-flex gap-1.5 bg-[#0D1117] p-1 rounded-lg relative">
-            {(['market', 'limit', 'Tap to Trade', 'more'] as const).map((type) => (
-              <div key={type} className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (type === 'Tap to Trade') {
-                      setActiveOrderType(type);
-                      setIsTapToTradeDropdownOpen(!isTapToTradeDropdownOpen);
-                    } else {
-                      setActiveOrderType(type);
-                      setIsTapToTradeDropdownOpen(false);
+            {(mode === 'trade'
+              ? (['Tap to Trade'] as const) // Trade route: only Tap-to-Trade
+              : (['market', 'limit'] as const)
+            ) // Market route: only Market and Limit
+              .map((type) => (
+                <div key={type} className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (type === 'Tap to Trade') {
+                        setActiveOrderType(type);
+                        setIsTapToTradeDropdownOpen(!isTapToTradeDropdownOpen);
+                      } else {
+                        setActiveOrderType(type);
+                        setIsTapToTradeDropdownOpen(false);
+                      }
+                    }}
+                    disabled={
+                      activeTab === 'swap' || (tapToTradeEnabled && type !== 'Tap to Trade')
                     }
-                  }}
-                  disabled={activeTab === 'swap' || (tapToTradeEnabled && type !== 'Tap to Trade')}
-                  className={`tap-to-trade-button px-4 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap min-w-fit ${
-                    activeTab === 'swap' || (tapToTradeEnabled && type !== 'Tap to Trade')
-                      ? 'cursor-not-allowed opacity-50'
-                      : 'cursor-pointer'
-                  } ${
-                    activeOrderType === type
-                      ? 'bg-[#1E2836] text-white shadow-sm'
-                      : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  {type === 'more' ? (
-                    <span className="flex items-center gap-1">
-                      More <ChevronDown size={14} />
-                    </span>
-                  ) : type === 'Tap to Trade' ? (
-                    <span className="flex items-center gap-1">
-                      Tap to Trade{' '}
-                      <ChevronDown
-                        size={14}
-                        className={`transition-transform ${
-                          isTapToTradeDropdownOpen ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </span>
-                  ) : (
-                    type.charAt(0).toUpperCase() + type.slice(1)
-                  )}
-                </button>
+                    className={`tap-to-trade-button px-4 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap min-w-fit ${
+                      activeTab === 'swap' || (tapToTradeEnabled && type !== 'Tap to Trade')
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'cursor-pointer'
+                    } ${
+                      activeOrderType === type
+                        ? 'bg-[#1E2836] text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    {type === 'more' ? (
+                      <span className="flex items-center gap-1">
+                        More <ChevronDown size={14} />
+                      </span>
+                    ) : type === 'Tap to Trade' ? (
+                      <span className="flex items-center gap-1">
+                        Tap to Trade{' '}
+                        <ChevronDown
+                          size={14}
+                          className={`transition-transform ${
+                            isTapToTradeDropdownOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </span>
+                    ) : (
+                      type.charAt(0).toUpperCase() + type.slice(1)
+                    )}
+                  </button>
 
-                {/* Tap to Trade Mode Dropdown */}
-                {type === 'Tap to Trade' &&
-                  isTapToTradeDropdownOpen &&
-                  activeOrderType === 'Tap to Trade' && (
-                    <div className="tap-to-trade-dropdown absolute top-full mt-1 left-0 w-48 bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTradeMode('open-position');
-                          setIsTapToTradeDropdownOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
-                          tradeMode === 'open-position'
-                            ? 'bg-[#2D3748] text-blue-300'
-                            : 'text-white'
-                        }`}
-                      >
-                        Open Position
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTradeMode('one-tap-profit');
-                          setIsTapToTradeDropdownOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
-                          tradeMode === 'one-tap-profit'
-                            ? 'bg-[#2D3748] text-blue-300'
-                            : 'text-white'
-                        }`}
-                      >
-                        One Tap Profit
-                      </button>
-                    </div>
-                  )}
-              </div>
-            ))}
+                  {/* Tap to Trade Mode Dropdown */}
+                  {type === 'Tap to Trade' &&
+                    isTapToTradeDropdownOpen &&
+                    activeOrderType === 'Tap to Trade' && (
+                      <div className="tap-to-trade-dropdown absolute top-full mt-1 left-0 w-48 bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTradeMode('open-position');
+                            setIsTapToTradeDropdownOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
+                            tradeMode === 'open-position'
+                              ? 'bg-[#2D3748] text-blue-300'
+                              : 'text-white'
+                          }`}
+                        >
+                          Open Position
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTradeMode('one-tap-profit');
+                            setIsTapToTradeDropdownOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2D3748] transition-colors cursor-pointer ${
+                            tradeMode === 'one-tap-profit'
+                              ? 'bg-[#2D3748] text-blue-300'
+                              : 'text-white'
+                          }`}
+                        >
+                          One Tap Profit
+                        </button>
+                      </div>
+                    )}
+                </div>
+              ))}
           </div>
           <div className="flex gap-2">
             <button className="p-2 rounded-md text-gray-400 hover:bg-[#1A202C] hover:text-white transition-all cursor-pointer">
