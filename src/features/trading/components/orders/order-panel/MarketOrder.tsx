@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Info, Star } from 'lucide-react';
+import { ChevronDown, Info } from 'lucide-react';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { baseSepolia } from 'wagmi/chains';
@@ -18,139 +18,19 @@ import { USDC_DECIMALS } from '@/config/contracts';
 import { toast } from 'react-hot-toast';
 import { useTPSL } from '@/features/trading/hooks/useTPSL';
 import { useUserPositions } from '@/hooks/data/usePositions';
-import { ALL_MARKETS } from '@/features/trading/constants/markets';
 import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
+import { MarketSelector, type Market } from './components/MarketSelector';
+import { formatPrice, formatTokenAmount, formatLeverage } from './utils/formatUtils';
+import {
+  generateLeverageValues,
+  getCurrentSliderIndex as getSliderIndex,
+  LEVERAGE_MARKERS,
+} from './utils/leverageUtils';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 
-interface Market {
-  symbol: string;
-  tradingViewSymbol: string;
-  logoUrl?: string;
-  binanceSymbol?: string;
-  category?: 'crypto' | 'forex' | 'indices' | 'commodities' | 'stocks';
-}
-
-// Market Selector Component
-interface MarketSelectorProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (market: Market) => void;
-  triggerRef?: React.RefObject<HTMLButtonElement | null>;
-}
-
-const MarketSelector: React.FC<MarketSelectorProps> = ({
-  isOpen,
-  onClose,
-  onSelect,
-  triggerRef,
-}) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const toggleFavorite = (symbol: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavorites((prev) => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(symbol)) {
-        newFavorites.delete(symbol);
-      } else {
-        newFavorites.add(symbol);
-      }
-      return newFavorites;
-    });
-  };
-
-  const filteredMarkets = ALL_MARKETS.filter((market) =>
-    market.symbol.toLowerCase().includes(searchTerm.toLowerCase()),
-  ).sort((a, b) => {
-    const aIsFav = favorites.has(a.symbol);
-    const bIsFav = favorites.has(b.symbol);
-    if (aIsFav && !bIsFav) return -1;
-    if (!aIsFav && bIsFav) return 1;
-    return 0;
-  });
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      // Ignore clicks on the trigger button or inside the panel
-      if (
-        (panelRef.current && panelRef.current.contains(target)) ||
-        (triggerRef?.current && triggerRef.current.contains(target))
-      ) {
-        return;
-      }
-      onClose();
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, triggerRef]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      ref={panelRef}
-      className="absolute top-full mt-1 right-0 w-fit min-w-[200px] max-h-[400px] bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden"
-    >
-      <div className="p-2 border-b border-[#2D3748]">
-        <input
-          type="text"
-          placeholder="Search Market"
-          className="w-full px-3 py-2 bg-[#0F1419] border border-[#2D3748] rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          autoFocus
-        />
-      </div>
-      <div className="overflow-y-auto max-h-[350px] custom-scrollbar-dark">
-        {filteredMarkets.map((market) => {
-          const isFavorite = favorites.has(market.symbol);
-          return (
-            <div
-              key={market.symbol}
-              onClick={() => {
-                onSelect(market);
-                onClose();
-              }}
-              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-[#2D3748] cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <img
-                  src={market.logoUrl || '/icons/usdc.png'}
-                  alt={market.symbol}
-                  className="w-5 h-5 rounded-full"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = 'none';
-                  }}
-                />
-                <span className="text-white font-medium whitespace-nowrap">
-                  {formatMarketPair(market.symbol)}
-                </span>
-              </div>
-              <button
-                onClick={(e) => toggleFavorite(market.symbol, e)}
-                className="p-1 hover:bg-[#3D4A5F] rounded transition-colors"
-              >
-                <Star
-                  size={14}
-                  className={`${
-                    isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'
-                  } transition-colors`}
-                />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// MarketOrder Component - Updated
+// MarketOrder Component
 interface MarketOrderProps {
   activeTab?: 'long' | 'short' | 'swap';
 }
@@ -196,7 +76,6 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const { setTPSL } = useTPSL();
   const { positionIds, refetch: refetchPositions } = useUserPositions();
 
-  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
   const [showPreApprove, setShowPreApprove] = useState(false);
 
   // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
@@ -228,24 +107,13 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
     setIsMarketSelectorOpen(false);
   };
 
-  const generateLeverageValues = () => {
-    const values: number[] = [];
-    for (let i = 0; i < leverageMarkers.length - 1; i++) {
-      const start = leverageMarkers[i];
-      const end = leverageMarkers[i + 1];
-      const step = (end - start) / 10;
-
-      for (let j = 0; j < 10; j++) {
-        const value = start + step * j;
-        values.push(Number(value.toFixed(2)));
-      }
-    }
-    values.push(leverageMarkers[leverageMarkers.length - 1]);
-    return values;
-  };
-
-  const leverageValues = generateLeverageValues();
+  // Use imported leverage utilities
+  const leverageValues = useMemo(() => generateLeverageValues(), []);
+  const leverageMarkers = LEVERAGE_MARKERS;
   const maxSliderValue = leverageValues.length - 1;
+
+  // Use imported getCurrentSliderIndex utility
+  const getCurrentSliderIndex = () => getSliderIndex(leverage, leverageValues);
 
   // Get oracle price from current price - memoized
   const oraclePrice = useMemo(() => {
@@ -336,40 +204,6 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
     setShowLeverageTooltip(false);
   };
 
-  const getCurrentSliderIndex = () => {
-    let closestIndex = 0;
-    let minDiff = Math.abs(leverageValues[0] - leverage);
-
-    for (let i = 1; i < leverageValues.length; i++) {
-      const diff = Math.abs(leverageValues[i] - leverage);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIndex = i;
-      }
-    }
-
-    return closestIndex;
-  };
-
-  const formatPrice = (price: number) => {
-    if (isNaN(price) || price === 0) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-  };
-
-  const formatTokenAmount = (amount: number) => {
-    if (isNaN(amount) || amount === 0) return '0.0';
-    return amount.toFixed(6);
-  };
-
-  const formatLeverage = (lev: number) => {
-    return lev.toFixed(1);
-  };
-
   // Handle market order execution
   const handleOpenPosition = async () => {
     // Moved console.logs to avoid setState during render warnings
@@ -454,15 +288,13 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   // Get button text based on state
   const getButtonText = () => {
     if (!authenticated) return 'Connect Wallet';
-    if ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
-      return '⚡ Enable One-Click Trading First';
     if (isApproving) return 'Approving for Paymaster...';
     if (isDepositing) return 'Depositing to Paymaster...';
     if (isRelayPending) return 'Opening Position (Gasless)...';
     if (!payAmount || parseFloat(payAmount) <= 0) return 'Enter Amount';
 
-    if (activeTab === 'long') return `⚡ Long ${activeMarket?.symbol || 'BTC'} (No Gas)`;
-    if (activeTab === 'short') return `⚡ Short ${activeMarket?.symbol || 'BTC'} (No Gas)`;
+    if (activeTab === 'long') return `Buy/Long`;
+    if (activeTab === 'short') return `Sell/Short`;
     return 'Swap';
   };
 
@@ -576,60 +408,68 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   ]);
 
   return (
-    <div className="flex flex-col gap-3 md:px-4 px-3 md:py-4 py-3 bg-[#0F1419]">
+    <div className="flex flex-col gap-4 px-4 py-4 bg-trading-bg">
+      {/* Collateral Input */}
       <div>
-        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg md:p-3 p-2">
-          <label className="text-xs text-gray-400 mb-2 block">Pay</label>
-          <div className="flex justify-between items-center mb-2">
+        <div className="bg-trading-surface border border-border-default rounded-lg p-4 hover:border-border-light transition-colors">
+          <div className="flex justify-between items-center mb-3">
             <input
               type="text"
               placeholder="0.0"
               value={payAmount}
               onChange={handlePayInputChange}
-              className="bg-transparent text-2xl text-white outline-none w-full"
+              className="bg-transparent text-xl text-text-primary outline-none placeholder-text-muted focus:placeholder-text-disabled"
             />
-            <div className="flex items-center gap-2 mr-6">
-              <img
+            <div className="flex items-center gap-2">
+              <Image
                 src="/icons/usdc.png"
+                width={100}
+                height={100}
                 alt="USDC"
-                className="w-7 h-7 rounded-full"
+                className="w-6 h-6 rounded-full"
                 onError={(e) => {
                   const target = e.currentTarget;
                   target.style.display = 'none';
                 }}
               />
-              <span className="font-medium">USDC</span>
+              <span className="font-semibold text-text-primary">USDC</span>
             </div>
           </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">{formatPrice(payUsdValue)}</span>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-text-secondary">{formatPrice(payUsdValue)}</span>
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">
-                {isLoadingBalance ? 'Loading...' : `${usdcBalance} USDC`}
+              <span className="text-text-muted">
+                {isLoadingBalance ? 'Loading...' : `Balance: ${usdcBalance}`}
               </span>
-              <button
+              <Button
                 onClick={handleMaxClick}
-                className="bg-[#2D3748] px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-[#3d4a5f] transition-colors"
+                size="sm"
+                variant="swap"
+                className="h-7 px-2.5 text-xs font-medium"
               >
-                Max
-              </button>
+                MAX
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div>
-        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 relative">
-          <label className="text-xs text-gray-400 mb-2 block">
-            {activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}
-          </label>
-          <div className="flex justify-between items-center mb-2 gap-2">
+      {/* Position Size */}
+      <div className="bg-trading-surface border border-border-default rounded-lg p-4">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-text-secondary">
+              {activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Swap'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            {/* Price Input - Left Side */}
             <input
               type="text"
               placeholder="0.0"
               value={
                 activeTab === 'swap'
-                  ? payAmount && oraclePrice > 0
+                  ? tokenAmount > 0
                     ? formatTokenAmount(payUsdValue / oraclePrice)
                     : ''
                   : tokenAmount > 0
@@ -637,49 +477,19 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                   : ''
               }
               readOnly
-              className="bg-transparent text-2xl text-white outline-none flex-1 min-w-0"
+              className="bg-transparent text-2xl text-text-primary outline-none cursor-not-allowed flex-1 min-w-0"
             />
-            <button
-              ref={triggerButtonRef}
-              onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-              className="flex items-center gap-2 bg-transparent rounded-lg px-2 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
-            >
-              {activeMarket && (
-                <img
-                  src={activeMarket.logoUrl || '/icons/usdc.png'}
-                  alt={activeMarket.symbol}
-              className="w-7 h-7 rounded-full flex-shrink-0"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
-              }}
-            />
-          )}
-          <span className="whitespace-nowrap font-medium">
-            {activeTab === 'swap'
-              ? activeMarket?.symbol || 'BTC'
-              : `${formatMarketPair(activeMarket?.symbol || 'BTC')}`}
-          </span>
-              <ChevronDown
-                size={16}
-                className={`flex-shrink-0 transition-transform duration-200 ${
-                  isMarketSelectorOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-            <MarketSelector
-              isOpen={isMarketSelectorOpen}
-              onClose={() => setIsMarketSelectorOpen(false)}
-              onSelect={handleMarketSelect}
-              triggerRef={triggerButtonRef}
-            />
+            {/* Market Selector - Right Side */}
+            <div className="flex-shrink-0">
+              <MarketSelector value={activeMarket} onSelect={handleMarketSelect} />
+            </div>
           </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-text-secondary">
               {activeTab === 'swap' ? formatPrice(payUsdValue) : formatPrice(longShortUsdValue)}
             </span>
             {activeTab !== 'swap' && (
-              <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>
+              <span className="text-info font-medium">{formatLeverage(leverage)}x</span>
             )}
           </div>
         </div>
@@ -687,16 +497,18 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
       {activeTab !== 'swap' && (
         <div>
-          <label className="text-xs text-gray-400 mb-2 block">Leverage</label>
+          <label className="text-xs uppercase tracking-wide text-gray-500 mb-3 block font-medium">
+            LEVERAGE
+          </label>
 
           {/* Slider and Value Box in One Row */}
           <div className="flex items-center gap-3">
             {/* Slider Container */}
             <div className="flex-1 relative pt-1 pb-4">
-              <div className="relative h-1 bg-[#2D3748] rounded-full">
+              <div className="relative h-1 bg-border-muted rounded-full">
                 {/* Blue progress line */}
                 <div
-                  className="absolute top-0 left-0 h-full bg-blue-400 rounded-full"
+                  className="absolute top-0 left-0 h-full bg-info rounded-full"
                   style={{
                     width: `${(getCurrentSliderIndex() / maxSliderValue) * 100}%`,
                   }}
@@ -711,7 +523,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                     <div
                       key={index}
                       className={`absolute w-3 h-3 rounded-full border-2 transition-colors duration-150 ${
-                        isActive ? 'bg-blue-400 border-blue-400' : 'bg-[#1A2332] border-[#4A5568]'
+                        isActive ? 'bg-info border-info' : 'bg-trading-surface border-border-light'
                       }`}
                       style={{
                         left: `${position}%`,
@@ -785,15 +597,15 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
             </div>
 
             {/* Leverage Value Box */}
-            <div className="bg-[#2D3748] rounded-lg px-3 py-2 min-w-[70px] flex items-center justify-center gap-1">
+            <div className="bg-trading-elevated rounded-lg px-3 py-2 min-w-[70px] flex items-center justify-center gap-1">
               <input
                 type="text"
                 value={leverageInput}
                 onChange={handleLeverageInputChange}
                 onBlur={handleLeverageInputBlur}
-                className="bg-transparent text-sm font-semibold text-white outline-none w-12 text-right"
+                className="bg-transparent text-sm font-bold text-text-primary outline-none w-12 text-right"
               />
-              <span className="text-sm font-semibold text-white">x</span>
+              <span className="text-sm font-bold text-text-primary">x</span>
             </div>
           </div>
         </div>
@@ -806,30 +618,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
       {activeTab !== 'swap' && (
         <>
-          <div className="mb-4"></div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">Pool</span>
-            <button className="flex items-center gap-1 text-white cursor-pointer hover:text-blue-300 transition-colors">
-              {activeMarket?.symbol || 'BTC'}-USDC
-            </button>
-          </div>
-
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex items-center gap-1">
-              <span className="text-gray-400">Collateral In</span>
-              <Info size={12} className="text-gray-500" />
-            </div>
-            <button className="flex items-center gap-1 text-white hover:text-blue-300 transition-colors">
-              USDC
-            </button>
-          </div>
-        </>
-      )}
-
-      {activeTab !== 'swap' && (
-        <>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">Take Profit / Stop Loss</span>
+            <span className="text-gray-500 text-xs uppercase tracking-wide font-medium">
+              TP / SL
+            </span>
             <label className="relative inline-block w-10 h-5">
               <input
                 type="checkbox"
@@ -839,7 +631,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
               />
               <span
                 className={`absolute cursor-pointer inset-0 rounded-full transition-all ${
-                  isTpSlEnabled ? 'bg-blue-300' : 'bg-[#2D3748]'
+                  isTpSlEnabled ? 'bg-blue-500' : 'bg-gray-700'
                 }`}
               >
                 <span
@@ -853,12 +645,14 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
           {/* Take Profit / Stop Loss Form */}
           {isTpSlEnabled && (
-            <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3">
               {/* Take Profit */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block">Take Profit</label>
-                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                  <span className="text-xs text-gray-400 mr-2">$</span>
+                <label className="text-xs uppercase tracking-wide text-gray-500 mb-2 block font-medium">
+                  TAKE PROFIT
+                </label>
+                <div className="bg-gray-900 rounded-lg px-3 py-2.5 flex items-center">
+                  <span className="text-xs text-gray-500 mr-2">$</span>
                   <input
                     type="text"
                     placeholder="Price"
@@ -869,16 +663,18 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                         setTakeProfitPrice(value);
                       }
                     }}
-                    className="bg-transparent text-sm text-white outline-none w-full"
+                    className="bg-transparent text-sm text-white outline-none w-full placeholder-gray-600"
                   />
                 </div>
               </div>
 
               {/* Stop Loss */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block">Stop Loss</label>
-                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                  <span className="text-xs text-gray-400 mr-2">$</span>
+                <label className="text-xs uppercase tracking-wide text-gray-500 mb-2 block font-medium">
+                  STOP LOSS
+                </label>
+                <div className="bg-gray-900 rounded-lg px-3 py-2.5 flex items-center">
+                  <span className="text-xs text-gray-500 mr-2">$</span>
                   <input
                     type="text"
                     placeholder="Price"
@@ -889,7 +685,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
                         setStopLossPrice(value);
                       }
                     }}
-                    className="bg-transparent text-sm text-white outline-none w-full"
+                    className="bg-transparent text-sm text-white outline-none w-full placeholder-gray-600"
                   />
                 </div>
               </div>
@@ -900,67 +696,45 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
       {/* Pre-Approve Section */}
       {authenticated && !hasLargeAllowance && activeTab !== 'swap' && (
-        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-300/30">
-          <div className="flex items-start gap-2">
-            <Info size={16} className="text-blue-300 mt-0.5 flex-shrink-0" />
+        <div className="bg-info/10 border border-info/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Info size={18} className="text-info-light mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm text-blue-300 font-medium mb-1">⚡ Enable One-Click Trading</p>
-              <p className="text-xs text-gray-400 mb-2">
-                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade
-                for security.
+              <p className="text-sm text-info-light font-semibold mb-1.5">⚡ One-Click Trading</p>
+              <p className="text-xs text-text-secondary mb-3">
+                Approve once, trade faster. No approval needed for each trade.
               </p>
-              <button
+              <Button
                 onClick={handlePreApprove}
                 disabled={isApprovalPending}
-                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors cursor-pointer"
+                className="w-full"
+                size="lg"
               >
-                {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Large Allowance Indicator */}
-      {authenticated && hasLargeAllowance && activeTab !== 'swap' && (
-        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
-          <div className="flex items-center gap-2">
-            <span className="text-green-400">✅</span>
-            <div className="flex-1">
-              <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                USDC pre-approved! Just 1 confirmation per trade (for your security).
-              </p>
+                {isApprovalPending ? 'Approving...' : 'Enable Now'}
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {/* Action Button */}
-      <button
+      <Button
         onClick={handleOpenPosition}
         disabled={isButtonDisabled}
-        className={`w-full py-4 rounded-lg font-bold text-white transition-all duration-200 ${
-          isButtonDisabled
-            ? 'bg-gray-600 cursor-not-allowed opacity-50'
-            : activeTab === 'long'
-            ? 'bg-green-600 hover:bg-green-700'
-            : activeTab === 'short'
-            ? 'bg-red-600 hover:bg-red-700'
-            : 'bg-blue-400 hover:bg-blue-500'
-        }`}
+        variant={activeTab === 'long' ? 'long' : activeTab === 'short' ? 'short' : 'swap'}
+        size="lg"
       >
         {getButtonText()}
-      </button>
+      </Button>
 
       {/* Paymaster Info */}
       {authenticated && parseFloat(paymasterBalance) > 0 && (
-        <div className="text-xs text-gray-400 text-center">
+        <div className="text-xs text-text-muted text-center">
           Gas Balance: ${parseFloat(paymasterBalance).toFixed(2)} USDC
         </div>
       )}
 
-      <div className="text-center py-6 text-gray-500 text-sm border-t border-[#1A202C]">
+      <div className="text-center py-4 text-text-muted text-xs border-t border-border-muted">
         {payAmount
           ? activeTab === 'swap'
             ? `Swap Amount: ${formatPrice(payUsdValue)}`

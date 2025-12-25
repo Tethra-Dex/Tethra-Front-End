@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronDown, Info, Star } from 'lucide-react';
+import { ChevronDown, Info } from 'lucide-react';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
 import { usePrivy } from '@privy-io/react-auth';
 import { parseUnits } from 'viem';
@@ -8,137 +8,18 @@ import { useLimitOrderSubmit } from './LimitOrderIntegration';
 import { useApproveUSDCForLimitOrders } from '@/features/trading/hooks/useLimitOrder';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
 import { toast } from 'react-hot-toast';
-import { ALL_MARKETS } from '@/features/trading/constants/markets';
 import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
+import { MarketSelector, type Market } from './components/MarketSelector';
+import { formatPrice, formatTokenAmount, formatLeverage } from './utils/formatUtils';
+import {
+  generateLeverageValues,
+  getCurrentSliderIndex as getSliderIndex,
+  LEVERAGE_MARKERS,
+} from './utils/leverageUtils';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
-interface Market {
-  symbol: string;
-  tradingViewSymbol: string;
-  logoUrl?: string;
-  binanceSymbol?: string;
-  category?: 'crypto' | 'forex' | 'indices' | 'commodities' | 'stocks';
-}
-
-// Market Selector Component
-interface MarketSelectorProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (market: Market) => void;
-  triggerRef?: React.RefObject<HTMLButtonElement | null>;
-}
-
-const MarketSelector: React.FC<MarketSelectorProps> = ({
-  isOpen,
-  onClose,
-  onSelect,
-  triggerRef,
-}) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const toggleFavorite = (symbol: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavorites((prev) => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(symbol)) {
-        newFavorites.delete(symbol);
-      } else {
-        newFavorites.add(symbol);
-      }
-      return newFavorites;
-    });
-  };
-
-  const filteredMarkets = ALL_MARKETS.filter((market) =>
-    market.symbol.toLowerCase().includes(searchTerm.toLowerCase()),
-  ).sort((a, b) => {
-    const aIsFav = favorites.has(a.symbol);
-    const bIsFav = favorites.has(b.symbol);
-    if (aIsFav && !bIsFav) return -1;
-    if (!aIsFav && bIsFav) return 1;
-    return 0;
-  });
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      // Ignore clicks on the trigger button or inside the panel
-      if (
-        (panelRef.current && panelRef.current.contains(target)) ||
-        (triggerRef?.current && triggerRef.current.contains(target))
-      ) {
-        return;
-      }
-      onClose();
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, triggerRef]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      ref={panelRef}
-      className="absolute top-full mt-1 right-0 w-fit min-w-[200px] max-h-[400px] bg-[#1A2332] border border-[#2D3748] rounded-lg shadow-xl z-50 overflow-hidden"
-    >
-      <div className="p-2 border-b border-[#2D3748]">
-        <input
-          type="text"
-          placeholder="Search Market"
-          className="w-full px-3 py-2 bg-[#0F1419] border border-[#2D3748] rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          autoFocus
-        />
-      </div>
-      <div className="overflow-y-auto max-h-[350px] custom-scrollbar-dark">
-        {filteredMarkets.map((market) => {
-          const isFavorite = favorites.has(market.symbol);
-          return (
-            <div
-              key={market.symbol}
-              onClick={() => {
-                onSelect(market);
-                onClose();
-              }}
-              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-[#2D3748] cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <img
-                  src={market.logoUrl || '/icons/usdc.png'}
-                  alt={market.symbol}
-                  className="w-5 h-5 rounded-full"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = 'none';
-                  }}
-                />
-                <span className="text-white font-medium whitespace-nowrap">
-                  {formatMarketPair(market.symbol)}
-                </span>
-              </div>
-              <button
-                onClick={(e) => toggleFavorite(market.symbol, e)}
-                className="p-1 hover:bg-[#3D4A5F] rounded transition-colors"
-              >
-                <Star
-                  size={14}
-                  className={`${
-                    isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'
-                  } transition-colors`}
-                />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+// LimitOrder Component
 
 interface LimitOrderProps {
   activeTab?: 'long' | 'short' | 'swap';
@@ -151,7 +32,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   const [leverageInput, setLeverageInput] = useState<string>('10.0');
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const [oraclePrice, setOraclePrice] = useState<number | null>(null);
-  const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
+  const [showPreApprove, setShowPreApprove] = useState(false);
   const [payAmount, setPayAmount] = useState<string>('');
   const [limitPrice, setLimitPrice] = useState<string>('');
   const [isTpSlEnabled, setIsTpSlEnabled] = useState(false);
@@ -174,31 +55,10 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
     isSuccess: isApprovalSuccess,
   } = useApproveUSDCForLimitOrders();
 
-  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100];
-
   // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
   const hasLargeAllowance = useMemo(() => {
     return Boolean(allowance && allowance > parseUnits('10000', 6));
   }, [allowance]);
-
-  // Handler untuk pre-approve USDC dalam jumlah besar
-  const handlePreApprove = async () => {
-    try {
-      toast.loading('Approving unlimited USDC...', { id: 'pre-approve' });
-      // Approve 1 million USDC (enough for many trades)
-      const maxAmount = parseUnits('1000000', 6).toString();
-      await approveUSDC(maxAmount);
-      toast.success('✅ Pre-approved! You can now trade without approval popups', {
-        id: 'pre-approve',
-        duration: 5000,
-      });
-      // Refetch allowance to update UI immediately
-      setTimeout(() => refetchAllowance(), 1000);
-    } catch (error) {
-      console.error('Pre-approve error:', error);
-      toast.error('Failed to pre-approve USDC', { id: 'pre-approve' });
-    }
-  };
 
   // Auto-refetch allowance when approval succeeds
   useEffect(() => {
@@ -213,28 +73,15 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   // Handler untuk mengganti market
   const handleMarketSelect = (market: Market) => {
     setActiveMarket({ ...market, category: market.category || 'crypto' });
-    setIsMarketSelectorOpen(false);
   };
 
-  // Generate leverage values
-  const generateLeverageValues = () => {
-    const values: number[] = [];
-    for (let i = 0; i < leverageMarkers.length - 1; i++) {
-      const start = leverageMarkers[i];
-      const end = leverageMarkers[i + 1];
-      const step = (end - start) / 10;
-
-      for (let j = 0; j < 10; j++) {
-        const value = start + step * j;
-        values.push(Number(value.toFixed(2)));
-      }
-    }
-    values.push(leverageMarkers[leverageMarkers.length - 1]);
-    return values;
-  };
-
-  const leverageValues = generateLeverageValues();
+  // Use imported leverage utilities
+  const leverageValues = useMemo(() => generateLeverageValues(), []);
+  const leverageMarkers = LEVERAGE_MARKERS;
   const maxSliderValue = leverageValues.length - 1;
+
+  // Use imported getCurrentSliderIndex utility
+  const getCurrentSliderIndex = () => getSliderIndex(leverage, leverageValues);
 
   // Calculate values - use oracle price if available, fallback to context price
   const effectiveOraclePrice = oraclePrice || (currentPrice ? parseFloat(currentPrice) : 0);
@@ -325,21 +172,6 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
     setShowLeverageTooltip(false);
   };
 
-  const getCurrentSliderIndex = () => {
-    let closestIndex = 0;
-    let minDiff = Math.abs(leverageValues[0] - leverage);
-
-    for (let i = 1; i < leverageValues.length; i++) {
-      const diff = Math.abs(leverageValues[i] - leverage);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIndex = i;
-      }
-    }
-
-    return closestIndex;
-  };
-
   // Fetch Pyth Oracle price via WebSocket
   useEffect(() => {
     const wsUrl =
@@ -400,15 +232,15 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
     <div className="flex flex-col gap-3 px-4 py-4">
       {/* Pay Section */}
       <div>
-        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3">
-          <label className="text-xs text-gray-400 mb-2 block">Pay</label>
+        <div className="bg-trading-surface border border-border-default rounded-lg p-3">
+          <label className="text-xs text-text-secondary mb-2 block">Pay</label>
           <div className="flex justify-between items-center mb-2">
             <input
               type="text"
               placeholder="0.0"
               value={payAmount}
               onChange={handlePayInputChange}
-              className="bg-transparent text-2xl text-white outline-none w-full"
+              className="bg-transparent text-2xl text-text-primary outline-none w-full"
             />
             <div className="flex items-center gap-2 mr-6">
               <img
@@ -429,89 +261,66 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               <span className="text-gray-400">
                 {isLoadingBalance ? 'Loading...' : `${usdcBalance} USDC`}
               </span>
-              <button
+              <Button
                 onClick={handleMaxClick}
-                className="bg-[#2D3748] px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-[#3d4a5f] transition-colors"
+                size="sm"
+                variant="default"
+                className="h-7 px-2 text-xs"
               >
                 Max
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Long/Short Section */}
-      <div>
-        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3 relative">
-          <label className="text-xs text-gray-400 mb-2 block">
-            {activeTab === 'long' ? 'Long' : activeTab === 'short' ? 'Short' : 'Receive'}
-          </label>
-          <div className="flex justify-between items-center mb-2 gap-2">
+      {/* Position Size / Token Amount */}
+      <div className="bg-trading-surface border border-border-default rounded-lg p-4">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-text-secondary">
+              {activeTab === 'long' ? 'Long' : 'Short'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            {/* Price Input - Left Side */}
             <input
               type="text"
               placeholder="0.0"
               value={
                 activeTab === 'swap'
-                  ? payAmount && effectiveOraclePrice > 0
-                    ? formatTokenAmount(payUsdValue / effectiveOraclePrice)
+                  ? tokenAmount > 0
+                    ? formatTokenAmount(payUsdValue / (oraclePrice || 1))
                     : ''
                   : tokenAmount > 0
                   ? formatTokenAmount(tokenAmount)
                   : ''
               }
               readOnly
-              className="bg-transparent text-2xl text-white outline-none flex-1 min-w-0"
+              className="bg-transparent text-2xl text-text-primary outline-none cursor-not-allowed flex-1 min-w-0"
             />
-            <button
-              ref={triggerButtonRef}
-              onClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-              className="flex items-center gap-2 bg-transparent rounded-lg px-2 py-1 text-base cursor-pointer hover:opacity-75 transition-opacity flex-shrink-0"
-            >
-              <img
-                src={activeMarket.logoUrl || '/icons/usdc.png'}
-                alt={activeMarket.symbol}
-                className="w-7 h-7 rounded-full flex-shrink-0"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
-              }}
-            />
-            <span className="whitespace-nowrap font-medium">
-              {activeTab === 'swap'
-                ? activeMarket.symbol
-                : formatMarketPair(activeMarket.symbol || 'BTC')}
-            </span>
-              <ChevronDown
-                size={16}
-                className={`flex-shrink-0 transition-transform duration-200 ${
-                  isMarketSelectorOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-            <MarketSelector
-              isOpen={isMarketSelectorOpen}
-              onClose={() => setIsMarketSelectorOpen(false)}
-              onSelect={handleMarketSelect}
-              triggerRef={triggerButtonRef}
-            />
+            {/* Market Selector - Right Side */}
+            <div className="flex-shrink-0">
+              <MarketSelector value={activeMarket} onSelect={handleMarketSelect} />
+            </div>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-gray-500">
+            <span className="text-text-secondary">
               {activeTab === 'swap' ? formatPrice(payUsdValue) : formatPrice(longShortUsdValue)}
             </span>
-            {activeTab !== 'swap' && (
-              <span className="text-gray-400">Leverage: {formatLeverage(leverage)}x</span>
-            )}
+            <span className="text-info font-medium">{formatLeverage(leverage)}x</span>
           </div>
         </div>
       </div>
 
       {/* Limit Price */}
       <div>
-        <div className="bg-[#1A2332] border border-[#2D3748] rounded-lg p-3">
+        <div className="bg-trading-surface border border-border-default rounded-lg p-3">
           <div className="flex justify-between items-center mb-2">
-            <label className="text-xs text-gray-400">Limit Price</label>
-            <span className="text-xs text-blue-300">Mark: {formatPrice(effectiveOraclePrice)}</span>
+            <label className="text-xs text-text-secondary">Limit Price</label>
+            <span className="text-xs text-info-light">
+              Mark: {formatPrice(effectiveOraclePrice)}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <input
@@ -524,10 +333,10 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                   setLimitPrice(value);
                 }
               }}
-              className="bg-transparent text-xl text-white outline-none w-full"
+              className="bg-transparent text-xl text-text-primary outline-none w-full"
             />
             {activeTab === 'swap' ? (
-              <div className="flex items-center gap-1.5 text-white font-semibold text-sm whitespace-nowrap ml-3">
+              <div className="flex items-center gap-1.5 text-text-primary font-semibold text-sm whitespace-nowrap ml-3">
                 <img
                   src="/icons/usdc.png"
                   alt="USDC"
@@ -552,7 +361,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                 <span>{activeMarket?.symbol || 'BTC'}</span>
               </div>
             ) : (
-              <span className="text-white font-semibold">USD</span>
+              <span className="text-text-primary font-semibold">USD</span>
             )}
           </div>
         </div>
@@ -615,10 +424,10 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                       transform: 'translateX(-50%)',
                     }}
                   >
-                    <div className="relative bg-blue-400 text-white px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                    <div className="relative bg-info text-text-primary px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
                       <span className="text-sm font-bold">{formatLeverage(leverage)}x</span>
                       {/* Arrow pointing down */}
-                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-blue-400"></div>
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-info"></div>
                     </div>
                   </div>
                 )}
@@ -716,11 +525,11 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
               />
               <span
                 className={`absolute cursor-pointer inset-0 rounded-full transition-all ${
-                  isTpSlEnabled ? 'bg-blue-300' : 'bg-[#2D3748]'
+                  isTpSlEnabled ? 'bg-info' : 'bg-button-secondary'
                 }`}
               >
                 <span
-                  className={`absolute left-0.5 top-0.5 h-4 w-4 bg-white rounded-full transition-transform ${
+                  className={`absolute left-0.5 top-0.5 h-4 w-4 bg-text-primary rounded-full transition-transform ${
                     isTpSlEnabled ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 ></span>
@@ -730,12 +539,12 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
           {/* Take Profit / Stop Loss Form */}
           {isTpSlEnabled && (
-            <div className="bg-[#1A2332] rounded-lg p-3 space-y-3">
+            <div className="bg-trading-surface rounded-lg p-3 space-y-3">
               {/* Take Profit */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block">Take Profit</label>
-                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                  <span className="text-xs text-gray-400 mr-2">$</span>
+                <label className="text-xs text-text-secondary mb-2 block">Take Profit</label>
+                <div className="bg-trading-elevated rounded-lg px-3 py-2 flex items-center">
+                  <span className="text-xs text-text-secondary mr-2">$</span>
                   <input
                     type="text"
                     placeholder="Price"
@@ -746,16 +555,16 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                         setTakeProfitPrice(value);
                       }
                     }}
-                    className="bg-transparent text-sm text-white outline-none w-full"
+                    className="bg-transparent text-sm text-text-primary outline-none w-full"
                   />
                 </div>
               </div>
 
               {/* Stop Loss */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block">Stop Loss</label>
-                <div className="bg-[#0F1419] rounded-lg px-3 py-2 flex items-center">
-                  <span className="text-xs text-gray-400 mr-2">$</span>
+                <label className="text-xs text-text-secondary mb-2 block">Stop Loss</label>
+                <div className="bg-trading-elevated rounded-lg px-3 py-2 flex items-center">
+                  <span className="text-xs text-text-secondary mr-2">$</span>
                   <input
                     type="text"
                     placeholder="Price"
@@ -766,7 +575,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
                         setStopLossPrice(value);
                       }
                     }}
-                    className="bg-transparent text-sm text-white outline-none w-full"
+                    className="bg-transparent text-sm text-text-primary outline-none w-full"
                   />
                 </div>
               </div>
@@ -775,47 +584,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         </>
       )}
 
-      {/* Pre-Approve Section */}
-      {authenticated && !hasLargeAllowance && activeTab !== 'swap' && (
-        <div className="bg-[#1A2332] rounded-lg p-3 border border-blue-300/30">
-          <div className="flex items-start gap-2">
-            <Info size={16} className="text-blue-300 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm text-blue-300 font-medium mb-1">⚡ Enable One-Click Trading</p>
-              <p className="text-xs text-gray-400 mb-2">
-                Approve USDC once → Trade with 1 click instead of 2. You'll still confirm each trade
-                for security.
-              </p>
-              <button
-                onClick={handlePreApprove}
-                disabled={isApprovalPending}
-                className="w-full px-3 py-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium transition-colors cursor-pointer"
-              >
-                {isApprovalPending ? 'Approving...' : '⚡ Enable Fast Trading'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Large Allowance Indicator */}
-      {authenticated && hasLargeAllowance && activeTab !== 'swap' && (
-        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
-          <div className="flex items-center gap-2">
-            <span className="text-green-400">✅</span>
-            <div className="flex-1">
-              <p className="text-sm text-green-400 font-medium">⚡ One-Click Trading Active</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                USDC pre-approved! Just 1 confirmation per trade (for your security).
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Enter an amount / Position Size */}
       <div className="border-t border-[#1A202C] pt-3">
-        <button
+        <Button
           onClick={async () => {
             if (!activeMarket) return;
 
@@ -868,26 +639,25 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
             isProcessing ||
             ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
           }
-          className={`w-full py-4 rounded-lg font-bold text-white transition-all duration-200 ${
+          size="lg"
+          className={`w-full py-3.5 font-bold text-base ${
             !authenticated ||
             !payAmount ||
             !limitPrice ||
             isProcessing ||
             ((activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance)
-              ? 'bg-gray-600 cursor-not-allowed opacity-50'
+              ? 'opacity-60'
               : activeTab === 'long'
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-red-600 hover:bg-red-700'
+              ? 'bg-long hover:bg-long-hover shadow-lg shadow-glow-green'
+              : 'bg-short hover:bg-short-hover shadow-lg shadow-glow-red'
           }`}
         >
           {!authenticated
             ? 'Connect Wallet'
-            : (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance
-            ? '⚡ Enable One-Click Trading First'
             : isProcessing
             ? 'Processing...'
             : `Create Limit ${activeTab === 'long' ? 'Long' : 'Short'} Order`}
-        </button>
+        </Button>
       </div>
 
       {/* Info sections */}
